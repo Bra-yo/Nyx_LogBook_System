@@ -2,7 +2,7 @@
 
 A premium SaaS-grade internship/industrial attachment logbook management system built for NYX QUANT SYSTEMS LTD.
 
-## 🚀 Features
+##  Features
 
 ### Core System
 - **Role-Based Access Control (RBAC)** with 4 distinct roles
@@ -40,7 +40,7 @@ A premium SaaS-grade internship/industrial attachment logbook management system 
 - ✅ User role assignment and permissions
 - ✅ System activity monitoring and logs
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 ### Frontend
 - **Next.js 15** with App Router
@@ -64,7 +64,7 @@ A premium SaaS-grade internship/industrial attachment logbook management system 
 - **jsPDF** for PDF generation
 - **date-fns** for date manipulation
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 src/
@@ -83,7 +83,7 @@ src/
 └── prisma/                       # Database schema and migrations
 ```
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 - Node.js 18+ 
@@ -122,17 +122,17 @@ src/
 
    Visit [http://localhost:3000](http://localhost:3000)
 
-## 🔐 Authentication
+##  Authentication
 
 The system uses role-based authentication with the following roles:
 
 ### Demo Accounts
-- **Student:** `student@demo.com` / `password`
-- **Supervisor:** `supervisor@demo.com` / `password`
-- **Lecturer:** `lecturer@demo.com` / `password`
-- **Admin:** `admin@demo.com` / `password`
+- **Student:** `student@demo.com` / `password123`
+- **Supervisor:** `supervisor@demo.com` / `password123`
+- **Lecturer:** `lecturer@demo.com` / `password123`
+- **Admin:** `admin@demo.com` / `password123`
 
-## 📊 Database Schema
+##  Database Schema
 
 The system includes comprehensive database models:
 
@@ -148,7 +148,7 @@ The system includes comprehensive database models:
 - **Notifications** - System notifications
 - **AuditLogs** - Activity tracking
 
-## 🎨 Design System
+##  Design System
 
 ### UI Features
 - **Dark theme** by default
@@ -163,14 +163,14 @@ The system includes comprehensive database models:
 - **Lucide icons** for cohesive iconography
 - **Custom components** for specific use cases
 
-## 📱 Responsive Design
+##  Responsive Design
 
 - **Mobile:** Optimized for phones and tablets
 - **Tablet:** Enhanced layouts for medium screens
 - **Desktop:** Full-featured experience for large screens
 - **Adaptive navigation** based on screen size
 
-## 🔒 Security Features
+##  Security Features
 
 - **JWT-based authentication** with NextAuth
 - **Role-based authorization** middleware
@@ -180,7 +180,7 @@ The system includes comprehensive database models:
 - **Password hashing** with bcrypt
 - **Activity logging** for audit trails
 
-## 📈 Analytics & Reporting
+##  Analytics & Reporting
 
 ### Student Reports
 - Weekly progress summaries
@@ -196,7 +196,7 @@ The system includes comprehensive database models:
 - System performance monitoring
 - Export capabilities
 
-## 🚀 Deployment
+##  Deployment
 
 ### Production Build
 ```bash
@@ -211,7 +211,7 @@ npm start
 - `UPLOADTHING_SECRET` - File upload service
 - `UPLOADTHING_APP_ID` - UploadThing app ID
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -219,11 +219,11 @@ npm start
 4. Add tests if applicable
 5. Submit a pull request
 
-## 📄 License
+##  License
 
 © 2026 NYX QUANT SYSTEMS LTD. All rights reserved.
 
-## 🆘 Support
+##  Support
 
 For technical support or questions:
 - Contact the development team
