@@ -1,65 +1,175 @@
-import Image from "next/image";
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { BookOpen, Users, GraduationCap, BarChart3, ArrowRight } from "lucide-react"
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      {/* Header */}
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between px-6">
+          <div className="flex items-center space-x-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <span className="text-sm font-bold text-primary-foreground">NYX</span>
+            </div>
+            <div>
+              <h1 className="text-sm font-semibold">LogBook</h1>
+              <p className="text-xs text-muted-foreground">Quant Systems</p>
+            </div>
+          </div>
+          <Link href="/auth/signin">
+            <Button>Sign In</Button>
+          </Link>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="container px-6 py-24 text-center">
+        <div className="mx-auto max-w-3xl space-y-6">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+            Internship Logbook
+            <span className="block text-primary">Management System</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-xl text-muted-foreground">
+            A comprehensive platform for students, supervisors, and lecturers to manage 
+            internship experiences with real-time tracking and assessments.
+          </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+            <Link href="/auth/signin">
+              <Button size="lg" className="text-lg px-8">
+                Get Started
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Button variant="outline" size="lg" className="text-lg px-8">
+              Learn More
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="container px-6 py-24">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold mb-4">Role-Based Features</h2>
+          <p className="text-xl text-muted-foreground">
+            Tailored experiences for every user type
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="text-center hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                <BookOpen className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle>Students</CardTitle>
+              <CardDescription>
+                Submit daily/weekly logs, track progress, and receive feedback
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-sm text-left space-y-2 text-muted-foreground">
+                <li>• Create and manage logbook entries</li>
+                <li>• Upload attachments and documents</li>
+                <li>• View supervisor comments</li>
+                <li>• Track internship progress</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle>Supervisors</CardTitle>
+              <CardDescription>
+                Review student entries and provide valuable feedback
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-sm text-left space-y-2 text-muted-foreground">
+                <li>• Review and approve entries</li>
+                <li>• Add comments and ratings</li>
+                <li>• Track student progress</li>
+                <li>• Generate reports</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                <GraduationCap className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle>Lecturers</CardTitle>
+              <CardDescription>
+                Assess student performance and provide academic guidance
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-sm text-left space-y-2 text-muted-foreground">
+                <li>• Grade student performance</li>
+                <li>• Add assessment scores</li>
+                <li>• Provide academic feedback</li>
+                <li>• Generate reports</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                <BarChart3 className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle>Administrators</CardTitle>
+              <CardDescription>
+                Manage users and oversee system operations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-sm text-left space-y-2 text-muted-foreground">
+                <li>• User management</li>
+                <li>• System analytics</li>
+                <li>• Department management</li>
+                <li>• Export reports</li>
+              </ul>
+            </CardContent>
+          </Card>
         </div>
-      </main>
+      </section>
+
+      {/* CTA Section */}
+      <section className="container px-6 py-24">
+        <Card className="bg-primary text-primary-foreground">
+          <CardContent className="px-12 py-16 text-center">
+            <h2 className="text-3xl font-bold mb-4">
+              Ready to streamline your internship management?
+            </h2>
+            <p className="text-xl mb-8 opacity-90">
+              Join thousands of students and educators already using NYX LogBook
+            </p>
+            <Link href="/auth/signin">
+              <Button size="lg" variant="secondary" className="text-lg px-8">
+                Start Using NYX LogBook
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t bg-muted/50">
+        <div className="container px-6 py-8">
+          <div className="text-center text-sm text-muted-foreground">
+            <p> 2026 NYX QUANT SYSTEMS LTD. All rights reserved.</p>
+            <p className="mt-2">Premium Internship Management Solution</p>
+          </div>
+        </div>
+      </footer>
     </div>
-  );
+  )
 }

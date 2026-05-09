@@ -1,0 +1,19 @@
+export enum UserRole {
+  STUDENT = 'STUDENT',
+  SUPERVISOR = 'SUPERVISOR',
+  LECTURER = 'LECTURER',
+  ADMIN = 'ADMIN'
+}
+
+export enum LogStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  DRAFT = 'DRAFT'
+}
+
+export enum AssessmentStatus {
+  NOT_ASSESSED = 'NOT_ASSESSED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED'
+}
