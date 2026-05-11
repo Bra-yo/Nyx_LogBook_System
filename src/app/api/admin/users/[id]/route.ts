@@ -25,17 +25,18 @@ const updateUserSchema = z.object({
 // GET - Fetch single user
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const resolvedParams = await params
     
     if (!session?.user?.role || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         studentProfile: {
           include: {
@@ -91,10 +92,11 @@ export async function GET(
 // PUT - Update user
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const resolvedParams = await params
     
     if (!session?.user?.role || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -105,7 +107,7 @@ export async function PUT(
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id: params.id }
+      where: { id: resolvedParams.id }
     })
 
     if (!existingUser) {
@@ -138,7 +140,7 @@ export async function PUT(
     const result = await prisma.$transaction(async (tx) => {
       // Update user
       const user = await tx.user.update({
-        where: { id: params.id },
+        where: { id: resolvedParams.id },
         data: updateData
       })
 
@@ -153,7 +155,7 @@ export async function PUT(
         if (validatedData.semester !== undefined) profileUpdate.semester = validatedData.semester
 
         await tx.studentProfile.update({
-          where: { userId: params.id },
+          where: { userId: resolvedParams.id },
           data: profileUpdate
         })
       } else if (existingUser.role === 'SUPERVISOR') {
@@ -163,7 +165,7 @@ export async function PUT(
         if (validatedData.company) profileUpdate.company = validatedData.company
 
         await tx.supervisorProfile.update({
-          where: { userId: params.id },
+          where: { userId: resolvedParams.id },
           data: profileUpdate
         })
       } else if (existingUser.role === 'LECTURER') {
@@ -173,7 +175,7 @@ export async function PUT(
         if (validatedData.office) profileUpdate.office = validatedData.office
 
         await tx.lecturerProfile.update({
-          where: { userId: params.id },
+          where: { userId: resolvedParams.id },
           data: profileUpdate
         })
       } else if (existingUser.role === 'ADMIN') {
@@ -182,7 +184,7 @@ export async function PUT(
         if (validatedData.permissions !== undefined) profileUpdate.permissions = validatedData.permissions
 
         await tx.adminProfile.update({
-          where: { userId: params.id },
+          where: { userId: resolvedParams.id },
           data: profileUpdate
         })
       }
@@ -248,10 +250,11 @@ export async function PUT(
 // DELETE - Delete user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const resolvedParams = await params
     
     if (!session?.user?.role || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -259,7 +262,7 @@ export async function DELETE(
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id: params.id }
+      where: { id: resolvedParams.id }
     })
 
     if (!existingUser) {
@@ -267,13 +270,13 @@ export async function DELETE(
     }
 
     // Prevent self-deletion
-    if (params.id === session.user.id) {
+    if (resolvedParams.id === session.user.id) {
       return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 })
     }
 
     // Delete user (cascade will handle related records)
     await prisma.user.delete({
-      where: { id: params.id }
+      where: { id: resolvedParams.id }
     })
 
     return NextResponse.json({

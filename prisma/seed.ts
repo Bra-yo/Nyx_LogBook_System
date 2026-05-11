@@ -51,6 +51,10 @@ async function main() {
         department = await prisma.department.findFirst()
       }
 
+      if (!department) {
+        throw new Error('No department found. Cannot create admin user.')
+      }
+
       // Create bootstrap admin
       const hashedPassword = await bcrypt.hash(adminPassword, 12)
       

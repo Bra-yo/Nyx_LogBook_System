@@ -107,29 +107,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid competency score' }, { status: 400 })
     }
 
-    // Create or update assessment
-    const assessment = await prisma.supervisorComment.upsert({
+    // Check if assessment already exists
+    const existingAssessment = await prisma.supervisorComment.findFirst({
       where: {
         logbookEntryId: validatedData.logbookEntryId,
         supervisorId: supervisorProfile.id
-      },
-      update: {
-        competencyScore: validatedData.competencyScore,
-        competencyLabel: competencyLevel.label,
-        competencyDescription: competencyLevel.description,
-        optionalComment: validatedData.optionalComment,
-        status: validatedData.status
-      },
-      create: {
-        logbookEntryId: validatedData.logbookEntryId,
-        supervisorId: supervisorProfile.id,
-        competencyScore: validatedData.competencyScore,
-        competencyLabel: competencyLevel.label,
-        competencyDescription: competencyLevel.description,
-        optionalComment: validatedData.optionalComment,
-        status: validatedData.status
       }
     })
+
+    const assessmentData = {
+      competencyScore: validatedData.competencyScore,
+      competencyLabel: competencyLevel.label,
+      competencyDescription: competencyLevel.description,
+      optionalComment: validatedData.optionalComment,
+      status: validatedData.status
+    }
+
+    let assessment
+    if (existingAssessment) {
+      // Update existing assessment
+      assessment = await prisma.supervisorComment.update({
+        where: { id: existingAssessment.id },
+        data: assessmentData
+      })
+    } else {
+      // Create new assessment
+      assessment = await prisma.supervisorComment.create({
+        data: {
+          logbookEntryId: validatedData.logbookEntryId,
+          supervisorId: supervisorProfile.id,
+          ...assessmentData
+        }
+      })
+    }
 
     return NextResponse.json({
       success: true,

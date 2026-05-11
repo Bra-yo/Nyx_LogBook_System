@@ -9,13 +9,31 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
 
 const editUserSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   role: z.enum(['STUDENT', 'SUPERVISOR', 'LECTURER', 'ADMIN']),
   departmentId: z.string().min(1, 'Department is required'),
-  isActive: z.boolean()
+  isActive: z.boolean(),
+  // Student fields
+  regNumber: z.string().optional(),
+  course: z.string().optional(),
+  institution: z.string().optional(),
+  internshipCompany: z.string().optional(),
+  internshipLocation: z.string().optional(),
+  year: z.number().optional(),
+  semester: z.number().optional(),
+  // Supervisor fields
+  employeeId: z.string().optional(),
+  organization: z.string().optional(),
+  position: z.string().optional(),
+  // Lecturer fields
+  staffNumber: z.string().optional(),
+  title: z.string().optional(),
+  office: z.string().optional()
 })
 
 type EditUserFormData = z.infer<typeof editUserSchema>
@@ -33,7 +51,8 @@ export default function EditUserPage() {
     handleSubmit,
     formState: { errors },
     setValue,
-    reset
+    reset,
+    watch
   } = useForm<EditUserFormData>({
     resolver: zodResolver(editUserSchema)
   })
@@ -136,7 +155,7 @@ export default function EditUserPage() {
   }
 
   const renderRoleSpecificFields = () => {
-    const role = register('role').value
+    const role = watch('role')
 
     switch (role) {
       case 'STUDENT':
@@ -303,7 +322,7 @@ export default function EditUserPage() {
 
                 <div>
                   <Label htmlFor="role">Role *</Label>
-                  <Select value={register('role').value} onValueChange={(value) => setValue('role', value as any)}>
+                  <Select value={watch('role')} onValueChange={(value) => setValue('role', value as any)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
@@ -321,7 +340,7 @@ export default function EditUserPage() {
 
                 <div>
                   <Label htmlFor="departmentId">Department *</Label>
-                  <Select value={register('departmentId').value} onValueChange={(value) => setValue('departmentId', value)}>
+                  <Select value={watch('departmentId')} onValueChange={(value) => setValue('departmentId', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>

@@ -31,20 +31,32 @@ export function AttendanceStats() {
 
   const fetchStats = async () => {
     try {
-      // Mock data for now - replace with actual API call
-      const mockStats = {
-        totalHours: 164.5,
-        averageHours: 8.2,
-        totalDays: 20,
-        presentDays: 19,
-        absentDays: 1,
-        lateDays: 2,
-        overtimeHours: 12.5,
-        attendanceRate: 95
+      const response = await fetch('/api/attendance/analytics')
+      if (response.ok) {
+        const data = await response.json()
+        setStats({
+          totalHours: data.totalHours || 0,
+          averageHours: data.averageHours || 0,
+          totalDays: data.totalDays || 0,
+          presentDays: data.presentDays || 0,
+          absentDays: data.absentDays || 0,
+          lateDays: data.lateDays || 0,
+          overtimeHours: data.overtimeHours || 0,
+          attendanceRate: data.attendanceRate || 0
+        })
       }
-      setStats(mockStats)
     } catch (error) {
       console.error('Error fetching attendance stats:', error)
+      setStats({
+        totalHours: 0,
+        averageHours: 0,
+        totalDays: 0,
+        presentDays: 0,
+        absentDays: 0,
+        lateDays: 0,
+        overtimeHours: 0,
+        attendanceRate: 0
+      })
     } finally {
       setLoading(false)
     }

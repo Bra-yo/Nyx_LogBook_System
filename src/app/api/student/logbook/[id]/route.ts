@@ -18,10 +18,11 @@ const logbookUpdateSchema = z.object({
 // GET - Fetch single logbook entry
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const resolvedParams = await params
     
     if (!session?.user?.role || session.user.role !== 'STUDENT') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -39,7 +40,7 @@ export async function GET(
     // Get logbook entry
     const entry = await prisma.logbookEntry.findFirst({
       where: {
-        id: params.id,
+        id: resolvedParams.id,
         studentId: studentProfile.id
       },
       include: {
@@ -82,10 +83,11 @@ export async function GET(
 // PUT - Update logbook entry
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const resolvedParams = await params
     
     if (!session?.user?.role || session.user.role !== 'STUDENT') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -106,7 +108,7 @@ export async function PUT(
     // Check if entry exists and belongs to student
     const existingEntry = await prisma.logbookEntry.findFirst({
       where: {
-        id: params.id,
+        id: resolvedParams.id,
         studentId: studentProfile.id
       }
     })
@@ -131,7 +133,7 @@ export async function PUT(
     }
 
     const entry = await prisma.logbookEntry.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: updateData,
       include: {
         comments: {
@@ -173,10 +175,11 @@ export async function PUT(
 // DELETE - Delete logbook entry
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const resolvedParams = await params
     
     if (!session?.user?.role || session.user.role !== 'STUDENT') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -194,7 +197,7 @@ export async function DELETE(
     // Check if entry exists and belongs to student
     const existingEntry = await prisma.logbookEntry.findFirst({
       where: {
-        id: params.id,
+        id: resolvedParams.id,
         studentId: studentProfile.id
       }
     })
@@ -212,7 +215,7 @@ export async function DELETE(
 
     // Delete entry
     await prisma.logbookEntry.delete({
-      where: { id: params.id }
+      where: { id: resolvedParams.id }
     })
 
     return NextResponse.json({

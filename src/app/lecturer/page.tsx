@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,37 +16,14 @@ import {
 import Link from "next/link"
 
 export default function LecturerDashboard() {
-  // Mock data - replace with actual data from API
-  const stats = {
-    totalStudents: 25,
-    assessedThisWeek: 12,
-    pendingAssessments: 8,
-    averageScore: 78
-  }
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    assessedThisWeek: 0,
+    pendingAssessments: 0,
+    averageScore: 0
+  })
 
-  const recentAssessments = [
-    {
-      id: 1,
-      studentName: "John Doe",
-      entryTitle: "Database Schema Design",
-      score: 85,
-      assessedAt: "2 hours ago"
-    },
-    {
-      id: 2,
-      studentName: "Jane Smith",
-      entryTitle: "API Development", 
-      score: 92,
-      assessedAt: "5 hours ago"
-    },
-    {
-      id: 3,
-      studentName: "Mike Johnson",
-      entryTitle: "Frontend Components",
-      score: 78,
-      assessedAt: "1 day ago"
-    }
-  ]
+  const [recentAssessments, setRecentAssessments] = useState([])
 
   return (
     <DashboardLayout title="Lecturer Dashboard">
@@ -128,18 +106,24 @@ export default function LecturerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentAssessments.map((assessment) => (
-                  <div key={assessment.id} className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{assessment.studentName}</p>
-                      <p className="text-xs text-muted-foreground">{assessment.entryTitle}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-bold">{assessment.score}%</div>
-                      <div className="text-xs text-muted-foreground">{assessment.assessedAt}</div>
-                    </div>
+                {recentAssessments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No recent assessments found.</p>
                   </div>
-                ))}
+                ) : (
+                  recentAssessments.map((assessment: any) => (
+                    <div key={assessment.id} className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{assessment.studentName}</p>
+                        <p className="text-xs text-muted-foreground">{assessment.entryTitle}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold">{assessment.score}%</div>
+                        <div className="text-xs text-muted-foreground">{assessment.assessedAt}</div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

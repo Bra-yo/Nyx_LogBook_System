@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
       
       // Department statistics
       prisma.attendance.groupBy({
-        by: ['student'],
+        by: ['studentId'],
         where: {
           status: 'COMPLETED',
           ...dateFilter

@@ -54,12 +54,12 @@ export async function POST(request: NextRequest) {
     })
 
     if (activeSession) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'You already have an active check-in session',
         activeSession: {
           id: activeSession.id,
           checkInTime: activeSession.checkInTime,
-          officeLocation: activeSession.officeLocation
+          officeLocationId: activeSession.officeLocationId
         }
       }, { status: 400 })
     }
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         checkInLng: validatedData.longitude,
         status: 'ACTIVE',
         qrCodeData: validatedData.qrCodeData,
-        ipAddress: request.ip || 'unknown',
+        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown'
       },
       include: {
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Check-in error:', error)
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid request data', details: error.errors }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid request data', details: error.issues }, { status: 400 })
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

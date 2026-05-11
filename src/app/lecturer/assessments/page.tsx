@@ -36,63 +36,24 @@ import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 import { AssessmentStatus } from "@/types"
 
-// Mock data - replace with actual API call
-const assessments = [
-  {
-    id: "1",
-    studentName: "John Doe",
-    studentEmail: "john.doe@university.edu",
-    entryTitle: "Database Schema Design",
-    date: new Date("2024-01-15"),
-    status: AssessmentStatus.NOT_ASSESSED,
-    technicalScore: null,
-    communicationScore: null,
-    professionalismScore: null,
-    overallScore: null
-  },
-  {
-    id: "2",
-    studentName: "Jane Smith",
-    studentEmail: "jane.smith@university.edu",
-    entryTitle: "API Development",
-    date: new Date("2024-01-14"),
-    status: AssessmentStatus.IN_PROGRESS,
-    technicalScore: 85,
-    communicationScore: 90,
-    professionalismScore: 88,
-    overallScore: null
-  },
-  {
-    id: "3",
-    studentName: "Mike Johnson",
-    studentEmail: "mike.johnson@university.edu",
-    entryTitle: "Frontend Components",
-    date: new Date("2024-01-13"),
-    status: AssessmentStatus.COMPLETED,
-    technicalScore: 92,
-    communicationScore: 88,
-    professionalismScore: 90,
-    overallScore: 90
-  }
-]
-
-const statusColors = {
-  [AssessmentStatus.NOT_ASSESSED]: "bg-gray-100 text-gray-800",
-  [AssessmentStatus.IN_PROGRESS]: "bg-yellow-100 text-yellow-800", 
-  [AssessmentStatus.COMPLETED]: "bg-green-100 text-green-800"
-}
-
-const statusLabels = {
-  [AssessmentStatus.NOT_ASSESSED]: "Not Assessed",
-  [AssessmentStatus.IN_PROGRESS]: "In Progress",
-  [AssessmentStatus.COMPLETED]: "Completed"
-}
-
-export default function AssessmentsPage() {
+export default function LecturerAssessmentsPage() {
+  const [assessments, setAssessments] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<AssessmentStatus | "all">("all")
 
-  const filteredAssessments = assessments.filter(assessment => {
+  const statusColors = {
+    [AssessmentStatus.NOT_ASSESSED]: "bg-gray-100 text-gray-800",
+    [AssessmentStatus.IN_PROGRESS]: "bg-yellow-100 text-yellow-800", 
+    [AssessmentStatus.COMPLETED]: "bg-green-100 text-green-800"
+  }
+
+  const statusLabels = {
+    [AssessmentStatus.NOT_ASSESSED]: "Not Assessed",
+    [AssessmentStatus.IN_PROGRESS]: "In Progress",
+    [AssessmentStatus.COMPLETED]: "Completed"
+  }
+
+  const filteredAssessments = assessments.filter((assessment: any) => {
     const matchesSearch = assessment.entryTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          assessment.studentName.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesFilter = filterStatus === "all" || assessment.status === filterStatus
@@ -121,7 +82,7 @@ export default function AssessmentsPage() {
               {filteredAssessments.length} Total
             </Badge>
             <Badge variant="destructive" className="text-sm">
-              {assessments.filter(a => a.status === AssessmentStatus.NOT_ASSESSED).length} Pending
+              {assessments.filter((a: any) => a.status === AssessmentStatus.NOT_ASSESSED).length} Pending
             </Badge>
           </div>
         </div>
@@ -145,7 +106,7 @@ export default function AssessmentsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-600">
-                {assessments.filter(a => a.status === AssessmentStatus.NOT_ASSESSED).length}
+                {assessments.filter((a: any) => a.status === AssessmentStatus.NOT_ASSESSED).length}
               </div>
             </CardContent>
           </Card>
@@ -157,7 +118,7 @@ export default function AssessmentsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">
-                {assessments.filter(a => a.status === AssessmentStatus.IN_PROGRESS).length}
+                {assessments.filter((a: any) => a.status === AssessmentStatus.IN_PROGRESS).length}
               </div>
             </CardContent>
           </Card>
@@ -169,7 +130,7 @@ export default function AssessmentsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {assessments.filter(a => a.status === AssessmentStatus.COMPLETED).length}
+                {assessments.filter((a: any) => a.status === AssessmentStatus.COMPLETED).length}
               </div>
             </CardContent>
           </Card>
@@ -241,19 +202,26 @@ export default function AssessmentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAssessments.map((assessment) => (
-                  <TableRow key={assessment.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{assessment.studentName}</div>
-                        <div className="text-sm text-muted-foreground">{assessment.studentEmail}</div>
-                      </div>
+                {filteredAssessments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <div className="text-gray-600">No assessments found.</div>
                     </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{assessment.entryTitle}</div>
-                      </div>
-                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredAssessments.map((assessment: any) => (
+                    <TableRow key={assessment.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{assessment.studentName}</div>
+                          <div className="text-sm text-muted-foreground">{assessment.studentEmail}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{assessment.entryTitle}</div>
+                        </div>
+                      </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -261,8 +229,8 @@ export default function AssessmentsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={statusColors[assessment.status]}>
-                        {statusLabels[assessment.status]}
+                      <Badge className={statusColors[assessment.status as AssessmentStatus]}>
+                        {statusLabels[assessment.status as AssessmentStatus]}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -311,7 +279,8 @@ export default function AssessmentsPage() {
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>

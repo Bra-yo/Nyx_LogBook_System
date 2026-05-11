@@ -34,66 +34,30 @@ import {
 import { formatDate } from "@/lib/utils"
 import { LogStatus } from "@/types"
 
-// Mock data - replace with actual API call
-const reports = [
-  {
-    id: "1",
-    title: "Weekly Report - Week 3",
-    type: "weekly",
-    startDate: new Date("2024-01-15"),
-    endDate: new Date("2024-01-21"),
-    entriesCount: 5,
-    status: "completed",
-    generatedAt: new Date("2024-01-22T10:30:00"),
-    fileUrl: "/reports/weekly-report-3.pdf"
-  },
-  {
-    id: "2",
-    title: "Monthly Report - January 2024",
-    type: "monthly",
-    startDate: new Date("2024-01-01"),
-    endDate: new Date("2024-01-31"),
-    entriesCount: 22,
-    status: "completed",
-    generatedAt: new Date("2024-02-01T09:15:00"),
-    fileUrl: "/reports/monthly-report-jan-2024.pdf"
-  },
-  {
-    id: "3",
-    title: "Full Internship Report",
-    type: "full",
-    startDate: new Date("2024-01-01"),
-    endDate: new Date("2024-04-30"),
-    entriesCount: 89,
-    status: "draft",
-    generatedAt: null,
-    fileUrl: null
-  }
-]
-
-const statusColors = {
-  completed: "bg-green-100 text-green-800",
-  draft: "bg-gray-100 text-gray-800",
-  generating: "bg-yellow-100 text-yellow-800"
-}
-
-const statusLabels = {
-  completed: "Completed",
-  draft: "Draft",
-  generating: "Generating..."
-}
-
-const typeLabels = {
-  weekly: "Weekly",
-  monthly: "Monthly", 
-  full: "Full Internship"
-}
-
 export default function ReportsPage() {
+  const [reports, setReports] = useState([])
   const [filterType, setFilterType] = useState<"all" | "weekly" | "monthly" | "full">("all")
+
+  const statusColors = {
+    completed: "bg-green-100 text-green-800",
+    draft: "bg-gray-100 text-gray-800",
+    generating: "bg-yellow-100 text-yellow-800"
+  }
+
+  const statusLabels = {
+    completed: "Completed",
+    draft: "Draft",
+    generating: "Generating..."
+  }
+
+  const typeLabels = {
+    weekly: "Weekly",
+    monthly: "Monthly", 
+    full: "Full Internship"
+  }
   const [filterStatus, setFilterStatus] = useState<"all" | "completed" | "draft" | "generating">("all")
 
-  const filteredReports = reports.filter(report => {
+  const filteredReports = reports.filter((report: any) => {
     const matchesType = filterType === "all" || report.type === filterType
     const matchesStatus = filterStatus === "all" || report.status === filterStatus
     return matchesType && matchesStatus
@@ -161,7 +125,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {reports.filter(r => r.type === "weekly").length}
+                {reports.filter((r: any) => r.type === "weekly").length}
               </div>
               <p className="text-xs text-muted-foreground">
                 Weekly summaries
@@ -176,7 +140,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {reports.filter(r => r.type === "monthly").length}
+                {reports.filter((r: any) => r.type === "monthly").length}
               </div>
               <p className="text-xs text-muted-foreground">
                 Monthly summaries
@@ -191,7 +155,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-600">
-                {reports.filter(r => r.type === "full").length}
+                {reports.filter((r: any) => r.type === "full").length}
               </div>
               <p className="text-xs text-muted-foreground">
                 Complete internship
@@ -267,92 +231,63 @@ export default function ReportsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Report</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Period</TableHead>
-                  <TableHead>Entries</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Generated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReports.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{report.title}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {typeLabels[report.type as keyof typeof typeLabels]}
+            <div className="space-y-4">
+              {filteredReports.map((report: any) => (
+                <div key={(report as any).id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-medium">{(report as any).title}</h3>
+                      <Badge variant={(report as any).status === 'completed' ? 'default' : 'secondary'}>
+                        {(report as any).status === 'completed' ? 'Completed' : (report as any).status === 'draft' ? 'Draft' : 'Generating'}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {formatDate(report.startDate)} - {formatDate(report.endDate)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{report.entriesCount} entries</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[report.status as keyof typeof statusColors]}>
-                        {statusLabels[report.status as keyof typeof statusLabels]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {report.generatedAt ? formatDate(report.generatedAt) : "Not generated"}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/student/reports/${report.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </Link>
-                          </DropdownMenuItem>
-                          {report.status === "completed" && report.fileUrl && (
-                            <>
-                              <DropdownMenuItem 
-                                onClick={() => handleDownloadReport(report.id, report.fileUrl!)}
-                              >
-                                <Download className="mr-2 h-4 w-4" />
-                                Download PDF
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handlePrintReport(report.id)}
-                              >
-                                <Printer className="mr-2 h-4 w-4" />
-                                Print
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          {report.status === "draft" && (
-                            <DropdownMenuItem onClick={() => handleGenerateReport(report.type as any)}>
-                              <FileText className="mr-2 h-4 w-4" />
-                              Generate Report
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                    <div className="text-sm text-gray-600 mb-1">
+                      {formatDate((report as any).startDate)} - {formatDate((report as any).endDate)}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {(report as any).entriesCount} entries
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500 mb-1">
+                      {(report as any).generatedAt ? formatDate((report as any).generatedAt) : 'Not generated'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Generated {(report as any).generatedAt ? `${Math.round((Date.now() - (report as any).generatedAt.getTime()) / (1000 * 60 * 60 * 24))} days ago` : '-'}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(`/api/reports/${(report as any).id}/download`, '_blank')}
+                      disabled={(report as any).status !== 'completed'}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open((report as any).fileUrl, '_blank')}
+                      disabled={!(report as any).fileUrl}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(`/api/reports/${(report as any).id}/regenerate`, '_blank')}
+                      disabled={(report as any).status === 'generating'}
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Regenerate
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>

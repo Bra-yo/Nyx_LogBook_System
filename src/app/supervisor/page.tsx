@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,37 +16,14 @@ import {
 import Link from "next/link"
 
 export default function SupervisorDashboard() {
-  // Mock data - replace with actual data from API
-  const stats = {
-    totalStudents: 12,
-    pendingReviews: 8,
-    approvedToday: 5,
-    weeklySubmissions: 24
-  }
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    pendingReviews: 0,
+    approvedToday: 0,
+    weeklySubmissions: 0
+  })
 
-  const recentActivity = [
-    {
-      id: 1,
-      studentName: "John Doe",
-      entryTitle: "Database Schema Design",
-      status: "pending",
-      submittedAt: "2 hours ago"
-    },
-    {
-      id: 2,
-      studentName: "Jane Smith", 
-      entryTitle: "API Development",
-      status: "approved",
-      submittedAt: "5 hours ago"
-    },
-    {
-      id: 3,
-      studentName: "Mike Johnson",
-      entryTitle: "Frontend Components",
-      status: "pending",
-      submittedAt: "1 day ago"
-    }
-  ]
+  const [recentActivity, setRecentActivity] = useState([])
 
   return (
     <DashboardLayout title="Supervisor Dashboard">
@@ -128,19 +106,25 @@ export default function SupervisorDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-center space-x-4">
-                    <div className={`w-2 h-2 rounded-full ${
-                      activity.status === 'approved' ? 'bg-green-500' :
-                      activity.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
-                    }`} />
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium">{activity.studentName}</p>
-                      <p className="text-xs text-muted-foreground">{activity.entryTitle}</p>
-                    </div>
-                    <div className="text-xs text-muted-foreground">{activity.submittedAt}</div>
+                {recentActivity.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No recent activity found.</p>
                   </div>
-                ))}
+                ) : (
+                  recentActivity.map((activity: any) => (
+                    <div key={activity.id} className="flex items-center space-x-4">
+                      <div className={`w-2 h-2 rounded-full ${
+                        activity.status === 'approved' ? 'bg-green-500' :
+                        activity.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
+                      }`} />
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium">{activity.studentName}</p>
+                        <p className="text-xs text-muted-foreground">{activity.entryTitle}</p>
+                      </div>
+                      <div className="text-xs text-muted-foreground">{activity.submittedAt}</div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

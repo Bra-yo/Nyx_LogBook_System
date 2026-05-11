@@ -44,50 +44,11 @@ export default function OfficeLocationsPage() {
   const fetchLocations = async () => {
     setLoading(true)
     try {
-      // Mock data for now - replace with actual API call
-      const mockLocations: OfficeLocation[] = [
-        {
-          id: '1',
-          name: 'NYX Office Main',
-          address: '123 Tech Street, Nairobi, Kenya',
-          latitude: -1.2921,
-          longitude: 36.8219,
-          radius: 100,
-          isActive: true,
-          qrCodeData: JSON.stringify({
-            type: 'attendance',
-            locationId: '1',
-            locationName: 'NYX Office Main',
-            latitude: -1.2921,
-            longitude: 36.8219,
-            radius: 100,
-            timestamp: Date.now()
-          }),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          name: 'NYX Office Annex',
-          address: '456 Innovation Road, Nairobi, Kenya',
-          latitude: -1.2951,
-          longitude: 36.8259,
-          radius: 100,
-          isActive: true,
-          qrCodeData: JSON.stringify({
-            type: 'attendance',
-            locationId: '2',
-            locationName: 'NYX Office Annex',
-            latitude: -1.2951,
-            longitude: 36.8259,
-            radius: 100,
-            timestamp: Date.now()
-          }),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ]
-      setLocations(mockLocations)
+      const response = await fetch('/api/admin/attendance/locations')
+      if (response.ok) {
+        const data = await response.json()
+        setLocations(data.locations || [])
+      }
     } catch (error) {
       console.error('Error fetching locations:', error)
     } finally {
