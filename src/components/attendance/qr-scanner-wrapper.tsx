@@ -1,23 +1,23 @@
 "use client"
 
 import { Suspense } from "react"
+import { QRScannerDialog } from "./qr-scanner-dialog"
 import { Loader2 } from "lucide-react"
-import { QRScannerContent } from "./qr-scanner-content"
 
-interface QRScannerDialogProps {
+interface QRScannerWrapperProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: (attendance: any) => void
 }
 
-export function QRScannerDialog({ open, onOpenChange, onSuccess }: QRScannerDialogProps) {
+export function QRScannerWrapper({ open, onOpenChange, onSuccess }: QRScannerWrapperProps) {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     }>
-      <QRScannerContent open={open} onOpenChange={onOpenChange} onSuccess={onSuccess} />
+      <QRScannerDialog open={open} onOpenChange={onOpenChange} onSuccess={onSuccess} />
     </Suspense>
   )
 }

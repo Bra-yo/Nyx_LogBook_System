@@ -50,14 +50,34 @@ export class QRCodeService {
   }
 
   /**
-   * Parse QR code data
+   * Parse QR code data safely
    */
   static parseQRCodeData(qrData: string): any {
+    const cleaned = qrData.trim()
+
     try {
-      return JSON.parse(qrData)
+      const parsed = JSON.parse(cleaned)
+
+      return {
+        isJson: true,
+        raw: cleaned,
+        ...parsed,
+        qrCodeData:
+          parsed.qrCodeData ||
+          parsed.qrToken ||
+          parsed.token ||
+          parsed.officeToken ||
+          cleaned,
+      }
     } catch (error) {
-      console.error('Error parsing QR code data:', error)
-      throw new Error('Invalid QR code data')
+      // Return plain text as-is
+      return {
+        isJson: false,
+        raw: cleaned,
+        qrCodeData: cleaned,
+        qrToken: cleaned,
+        token: cleaned,
+      }
     }
   }
 

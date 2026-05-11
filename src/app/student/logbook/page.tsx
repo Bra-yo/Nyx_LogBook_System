@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -75,10 +76,37 @@ export default function LogbookPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<LogStatus | "all">("all")
+  const [checkingAttendance, setCheckingAttendance] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
-    fetchLogbookEntries()
+    checkAttendanceAndFetchEntries()
   }, [])
+
+  const checkAttendanceAndFetchEntries = async () => {
+    try {
+      setCheckingAttendance(true)
+      
+      // Check if student has checked in today
+      const attendanceResponse = await fetch('/api/attendance/active')
+      const attendanceData = await attendanceResponse.json()
+      
+      if (!attendanceData.hasActiveSession) {
+        // Redirect to attendance page with redirect parameter
+        router.push('/student/attendance?redirect=/student/logbook')
+        return
+      }
+      
+      // If has attendance, fetch logbook entries
+      await fetchLogbookEntries()
+    } catch (error) {
+      console.error('Error checking attendance:', error)
+      // Still try to fetch entries even if attendance check fails
+      await fetchLogbookEntries()
+    } finally {
+      setCheckingAttendance(false)
+    }
+  }
 
   const fetchLogbookEntries = async () => {
     try {
@@ -102,6 +130,16 @@ export default function LogbookPage() {
     const matchesFilter = filterStatus === "all" || entry.status === filterStatus
     return matchesSearch && matchesFilter
   })
+
+  if (checkingAttendance) {
+    return (
+      <DashboardLayout title="Logbook Entries">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout title="Logbook Entries">

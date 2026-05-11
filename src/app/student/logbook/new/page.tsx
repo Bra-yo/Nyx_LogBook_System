@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,6 +28,31 @@ export default function NewLogbookEntry() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDraft, setIsDraft] = useState(true)
+  const [checkingAttendance, setCheckingAttendance] = useState(true)
+
+  useEffect(() => {
+    checkAttendanceStatus()
+  }, [])
+
+  const checkAttendanceStatus = async () => {
+    try {
+      setCheckingAttendance(true)
+      
+      // Check if student has checked in today
+      const attendanceResponse = await fetch('/api/attendance/active')
+      const attendanceData = await attendanceResponse.json()
+      
+      if (!attendanceData.hasActiveSession) {
+        // Redirect to attendance page with redirect parameter
+        router.push('/student/attendance?redirect=/student/logbook/new')
+        return
+      }
+    } catch (error) {
+      console.error('Error checking attendance:', error)
+    } finally {
+      setCheckingAttendance(false)
+    }
+  }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -69,6 +94,16 @@ export default function NewLogbookEntry() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (checkingAttendance) {
+    return (
+      <DashboardLayout title="New Logbook Entry">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    )
   }
 
   return (
