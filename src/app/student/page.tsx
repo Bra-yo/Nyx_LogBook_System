@@ -1,44 +1,71 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, CheckCircle, Clock, TrendingUp, Plus, FileText, Calendar } from "lucide-react"
+import { BookOpen, CheckCircle, Clock, TrendingUp, Plus, FileText, Calendar, Loader2 } from "lucide-react"
 import Link from "next/link"
 
-export default function StudentDashboard() {
-  // Mock data - replace with actual data from API
-  const stats = {
-    totalEntries: 24,
-    approvedEntries: 18,
-    pendingReviews: 3,
-    draftEntries: 3,
-    progressPercentage: 75
-  }
+interface LogbookEntry {
+  id: string
+  title: string
+  description: string
+  date: string
+  status: string
+}
 
-  const recentActivity = [
-    {
-      id: 1,
-      title: "Database Design Implementation",
-      date: "2024-01-15",
-      status: "approved",
-      description: "Implemented database schema for user management"
-    },
-    {
-      id: 2,
-      title: "API Development",
-      date: "2024-01-14",
-      status: "pending",
-      description: "Created RESTful APIs for logbook entries"
-    },
-    {
-      id: 3,
-      title: "Frontend Components",
-      date: "2024-01-13",
-      status: "draft",
-      description: "Built reusable UI components with Tailwind CSS"
+interface DashboardStats {
+  totalEntries: number
+  approvedEntries: number
+  pendingReviews: number
+  draftEntries: number
+  progressPercentage: number
+}
+
+export default function StudentDashboard() {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalEntries: 0,
+    approvedEntries: 0,
+    pendingReviews: 0,
+    draftEntries: 0,
+    progressPercentage: 0
+  })
+  const [recentActivity, setRecentActivity] = useState<LogbookEntry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true)
+      
+      // Fetch logbook entries
+      const entriesResponse = await fetch('/api/student/logbook')
+      if (entriesResponse.ok) {
+        const entriesData = await entriesResponse.json()
+        const entries = entriesData.entries || []
+        
+        // Calculate stats from real data
+        const calculatedStats: DashboardStats = {
+          totalEntries: entries.length,
+          approvedEntries: entries.filter((e: LogbookEntry) => e.status === 'APPROVED').length,
+          pendingReviews: entries.filter((e: LogbookEntry) => e.status === 'PENDING').length,
+          draftEntries: entries.filter((e: LogbookEntry) => e.status === 'DRAFT').length,
+          progressPercentage: entries.length > 0 ? Math.round((entries.filter((e: LogbookEntry) => e.status === 'APPROVED').length / entries.length) * 100) : 0
+        }
+        
+        setStats(calculatedStats)
+        setRecentActivity(entries.slice(0, 3)) // Show only 3 most recent
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
 
   return (
     <DashboardLayout title="Student Dashboard">
@@ -62,7 +89,7 @@ export default function StudentDashboard() {
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalEntries}</div>
+              <div className="text-2xl font-bold">{loading ? '...' : stats.totalEntries}</div>
               <p className="text-xs text-muted-foreground">
                 All time logbook entries
               </p>
@@ -75,7 +102,7 @@ export default function StudentDashboard() {
               <CheckCircle className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.approvedEntries}</div>
+              <div className="text-2xl font-bold text-green-600">{loading ? '...' : stats.approvedEntries}</div>
               <p className="text-xs text-muted-foreground">
                 Successfully reviewed
               </p>
@@ -88,7 +115,7 @@ export default function StudentDashboard() {
               <Clock className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.pendingReviews}</div>
+              <div className="text-2xl font-bold text-yellow-600">{loading ? '...' : stats.pendingReviews}</div>
               <p className="text-xs text-muted-foreground">
                 Awaiting supervisor review
               </p>
@@ -101,7 +128,7 @@ export default function StudentDashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.progressPercentage}%</div>
+              <div className="text-2xl font-bold">{loading ? '...' : `${stats.progressPercentage}%`}</div>
               <p className="text-xs text-muted-foreground">
                 Internship completion
               </p>
@@ -117,21 +144,34 @@ export default function StudentDashboard() {
               <CardDescription>Your latest logbook entries</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((entry) => (
-                  <div key={entry.id} className="flex items-center space-x-4">
-                    <div className={`w-2 h-2 rounded-full ${
-                      entry.status === 'approved' ? 'bg-green-500' :
-                      entry.status === 'pending' ? 'bg-yellow-500' : 'bg-gray-400'
-                    }`} />
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium">{entry.title}</p>
-                      <p className="text-xs text-muted-foreground">{entry.description}</p>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : recentActivity.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No logbook entries yet.<br />
+                  <Link href="/student/logbook/new" className="text-primary hover:underline">
+                    Create your first entry
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentActivity.map((entry) => (
+                    <div key={entry.id} className="flex items-center space-x-4">
+                      <div className={`w-2 h-2 rounded-full ${
+                        entry.status === 'APPROVED' ? 'bg-green-500' :
+                        entry.status === 'PENDING' ? 'bg-yellow-500' : 'bg-gray-400'
+                      }`} />
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium">{entry.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{entry.description}</p>
+                      </div>
+                      <div className="text-xs text-muted-foreground">{new Date(entry.date).toLocaleDateString()}</div>
                     </div>
-                    <div className="text-xs text-muted-foreground">{entry.date}</div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 

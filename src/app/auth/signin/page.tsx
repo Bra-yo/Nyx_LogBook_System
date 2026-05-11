@@ -151,37 +151,7 @@ export default function SignInPage() {
           </CardContent>
         </Card>
 
-        {/* Demo Accounts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Demo Accounts</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-xs">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="p-2 bg-muted rounded">
-                <p className="font-medium">Student</p>
-                <p className="text-muted-foreground">student@demo.com</p>
-                <p className="text-muted-foreground">password</p>
               </div>
-              <div className="p-2 bg-muted rounded">
-                <p className="font-medium">Supervisor</p>
-                <p className="text-muted-foreground">supervisor@demo.com</p>
-                <p className="text-muted-foreground">password</p>
-              </div>
-              <div className="p-2 bg-muted rounded">
-                <p className="font-medium">Lecturer</p>
-                <p className="text-muted-foreground">lecturer@demo.com</p>
-                <p className="text-muted-foreground">password</p>
-              </div>
-              <div className="p-2 bg-muted rounded">
-                <p className="font-medium">Admin</p>
-                <p className="text-muted-foreground">admin@demo.com</p>
-                <p className="text-muted-foreground">password</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   )
 }

@@ -49,11 +49,21 @@ export default function AdminAttendancePage() {
         department: selectedDepartment
       })
       
-      const response = await fetch(`/api/attendance/analytics?${params}`)
+      const response = await fetch(`/api/admin/attendance/analytics?${params}`)
       const data = await response.json()
       setAnalytics(data)
     } catch (error) {
       console.error('Error fetching analytics:', error)
+      setAnalytics({
+        overview: {
+          totalRecords: 0,
+          activeSessions: 0,
+          completionRate: 0,
+          totalHours: 0
+        },
+        dailyStats: [],
+        topStudents: []
+      })
     } finally {
       setLoading(false)
     }
@@ -266,19 +276,8 @@ export default function AdminAttendancePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">NYX Office Main</span>
-                  <Badge variant="outline">156</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">NYX Office Annex</span>
-                  <Badge variant="outline">89</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Remote Work</span>
-                  <Badge variant="outline">23</Badge>
-                </div>
+              <div className="text-center py-8 text-muted-foreground">
+                No office location data available yet
               </div>
             </CardContent>
           </Card>

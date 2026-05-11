@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -32,65 +32,45 @@ import {
   User,
   Mail,
   Calendar,
-  Shield
+  Shield,
+  Loader2
 } from "lucide-react"
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 import { UserRole } from "@/types"
 
-// Mock data - replace with actual API call
-const users = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john.doe@university.edu",
-    role: UserRole.STUDENT,
-    department: "Computer Science",
-    isActive: true,
-    createdAt: new Date("2024-01-10"),
-    lastLogin: new Date("2024-01-15T09:30:00")
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane.smith@company.com",
-    role: UserRole.SUPERVISOR,
-    department: "Computer Science",
-    isActive: true,
-    createdAt: new Date("2024-01-08"),
-    lastLogin: new Date("2024-01-15T14:15:00")
-  },
-  {
-    id: "3",
-    name: "Prof. Robert Johnson",
-    email: "r.johnson@university.edu",
-    role: UserRole.LECTURER,
-    department: "Computer Science",
-    isActive: true,
-    createdAt: new Date("2024-01-05"),
-    lastLogin: new Date("2024-01-15T11:45:00")
-  },
-  {
-    id: "4",
-    name: "Admin User",
-    email: "admin@nyxquant.com",
-    role: UserRole.ADMIN,
-    department: "IT",
-    isActive: true,
-    createdAt: new Date("2024-01-01"),
-    lastLogin: new Date("2024-01-15T08:00:00")
-  },
-  {
-    id: "5",
-    name: "Mike Wilson",
-    email: "mike.wilson@university.edu",
-    role: UserRole.STUDENT,
-    department: "Information Technology",
-    isActive: false,
-    createdAt: new Date("2024-01-12"),
-    lastLogin: new Date("2024-01-14T16:30:00")
+interface User {
+  id: string
+  name: string
+  email: string
+  role: UserRole
+  isActive: boolean
+  createdAt: string
+  lastLogin?: string
+  studentProfile?: {
+    department: { name: string }
+    regNumber: string
   }
-]
+  supervisorProfile?: {
+    department: { name: string }
+  }
+  lecturerProfile?: {
+    department: { name: string }
+  }
+  adminProfile?: {
+    department: { name: string }
+  }
+}
+
+interface UsersResponse {
+  users: User[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    pages: number
+  }
+}
 
 const roleColors = {
   [UserRole.STUDENT]: "bg-blue-100 text-blue-800",
@@ -107,20 +87,64 @@ const roleLabels = {
 }
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterRole, setFilterRole] = useState<UserRole | "all">("all")
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all")
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 1
+  })
+
+  useEffect(() => {
+    fetchUsers()
+  }, [searchTerm, filterRole, filterStatus])
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '100', // Get all users for client-side filtering
+        ...(searchTerm && { search: searchTerm }),
+        ...(filterRole !== 'all' && { role: filterRole }),
+        ...(filterStatus !== 'all' && { status: filterStatus })
+      })
+
+      const response = await fetch(`/api/admin/users?${params}`)
+      if (response.ok) {
+        const data: UsersResponse = await response.json()
+        setUsers(data.users)
+        setPagination(data.pagination)
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.department.toLowerCase().includes(searchTerm.toLowerCase())
+                         getDepartmentName(user).toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = filterRole === "all" || user.role === filterRole
     const matchesStatus = filterStatus === "all" || 
                          (filterStatus === "active" && user.isActive) ||
                          (filterStatus === "inactive" && !user.isActive)
     return matchesSearch && matchesRole && matchesStatus
   })
+
+  const getDepartmentName = (user: User): string => {
+    if (user.studentProfile?.department) return user.studentProfile.department.name
+    if (user.supervisorProfile?.department) return user.supervisorProfile.department.name
+    if (user.lecturerProfile?.department) return user.lecturerProfile.department.name
+    if (user.adminProfile?.department) return user.adminProfile.department.name
+    return "No Department"
+  }
 
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
     // TODO: Implement API call to toggle user status
@@ -157,7 +181,7 @@ export default function UsersPage() {
               <User className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
+              <div className="text-2xl font-bold">{loading ? '...' : users.length}</div>
             </CardContent>
           </Card>
 
@@ -168,7 +192,7 @@ export default function UsersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {users.filter(u => u.role === UserRole.STUDENT).length}
+                {loading ? '...' : users.filter(u => u.role === UserRole.STUDENT).length}
               </div>
             </CardContent>
           </Card>
@@ -180,7 +204,7 @@ export default function UsersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {users.filter(u => u.role === UserRole.SUPERVISOR).length}
+                {loading ? '...' : users.filter(u => u.role === UserRole.SUPERVISOR).length}
               </div>
             </CardContent>
           </Card>
@@ -192,7 +216,7 @@ export default function UsersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-600">
-                {users.filter(u => u.role === UserRole.LECTURER).length}
+                {loading ? '...' : users.filter(u => u.role === UserRole.LECTURER).length}
               </div>
             </CardContent>
           </Card>
@@ -204,7 +228,7 @@ export default function UsersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {users.filter(u => u.role === UserRole.ADMIN).length}
+                {loading ? '...' : users.filter(u => u.role === UserRole.ADMIN).length}
               </div>
             </CardContent>
           </Card>
@@ -284,103 +308,113 @@ export default function UsersPage() {
           <CardHeader>
             <CardTitle>System Users</CardTitle>
             <CardDescription>
-              {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'} found
+              {loading ? 'Loading...' : `${filteredUsers.length} ${filteredUsers.length === 1 ? 'user' : 'users'} found`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={roleColors[user.role]}>
-                        {roleLabels[user.role]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{user.department}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${
-                          user.isActive ? 'bg-green-500' : 'bg-red-500'
-                        }`} />
-                        <span className="text-sm">
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {formatDate(user.lastLogin)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/users/${user.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/users/${user.id}/edit`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit User
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => handleToggleStatus(user.id, user.isActive)}
-                          >
-                            {user.isActive ? (
-                              <>
-                                <Shield className="mr-2 h-4 w-4" />
-                                Deactivate User
-                              </>
-                            ) : (
-                              <>
-                                <Shield className="mr-2 h-4 w-4" />
-                                Activate User
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete User
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No users found
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{user.name}</div>
+                          <div className="text-sm text-muted-foreground">{user.email}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={roleColors[user.role]}>
+                          {roleLabels[user.role]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{getDepartmentName(user)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className={`h-2 w-2 rounded-full ${
+                            user.isActive ? 'bg-green-500' : 'bg-red-500'
+                          }`} />
+                          <span className="text-sm">
+                            {user.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {user.lastLogin ? formatDate(user.lastLogin) : 'Never'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/users/${user.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/users/${user.id}/edit`}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit User
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleToggleStatus(user.id, user.isActive)}
+                            >
+                              {user.isActive ? (
+                                <>
+                                  <Shield className="mr-2 h-4 w-4" />
+                                  Deactivate User
+                                </>
+                              ) : (
+                                <>
+                                  <Shield className="mr-2 h-4 w-4" />
+                                  Activate User
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

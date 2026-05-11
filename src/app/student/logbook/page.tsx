@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -30,55 +30,31 @@ import {
   Trash2, 
   MoreHorizontal,
   Calendar,
-  FileText
+  FileText,
+  Loader2
 } from "lucide-react"
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 import { LogStatus } from "@/types"
 
-// Mock data - replace with actual API call
-const logbookEntries = [
-  {
-    id: "1",
-    title: "Database Schema Design",
-    description: "Designed and implemented the complete database schema for the user management system",
-    date: new Date("2024-01-15"),
-    status: LogStatus.APPROVED,
-    supervisorComments: 2
-  },
-  {
-    id: "2", 
-    title: "API Development",
-    description: "Created RESTful APIs for logbook CRUD operations",
-    date: new Date("2024-01-14"),
-    status: LogStatus.PENDING,
-    supervisorComments: 1
-  },
-  {
-    id: "3",
-    title: "Frontend Components",
-    description: "Built reusable UI components using React and Tailwind CSS",
-    date: new Date("2024-01-13"),
-    status: LogStatus.DRAFT,
-    supervisorComments: 0
-  },
-  {
-    id: "4",
-    title: "Authentication System",
-    description: "Implemented JWT-based authentication with NextAuth",
-    date: new Date("2024-01-12"),
-    status: LogStatus.APPROVED,
-    supervisorComments: 3
-  },
-  {
-    id: "5",
-    title: "Testing Framework Setup",
-    description: "Set up Jest and React Testing Library for unit testing",
-    date: new Date("2024-01-11"),
-    status: LogStatus.REJECTED,
-    supervisorComments: 1
+interface LogbookEntry {
+  id: string
+  title: string
+  description: string
+  date: string
+  status: LogStatus
+  supervisorComments: number
+}
+
+interface LogbookResponse {
+  entries: LogbookEntry[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    pages: number
   }
-]
+}
 
 const statusColors = {
   [LogStatus.APPROVED]: "bg-green-100 text-green-800",
@@ -95,8 +71,30 @@ const statusLabels = {
 }
 
 export default function LogbookPage() {
+  const [logbookEntries, setLogbookEntries] = useState<LogbookEntry[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<LogStatus | "all">("all")
+
+  useEffect(() => {
+    fetchLogbookEntries()
+  }, [])
+
+  const fetchLogbookEntries = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/student/logbook')
+      if (response.ok) {
+        const data: LogbookResponse = await response.json()
+        setLogbookEntries(data.entries || [])
+      }
+    } catch (error) {
+      console.error('Error fetching logbook entries:', error)
+      setLogbookEntries([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredEntries = logbookEntries.filter(entry => {
     const matchesSearch = entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -130,7 +128,7 @@ export default function LogbookPage() {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{logbookEntries.length}</div>
+              <div className="text-2xl font-bold">{loading ? '...' : logbookEntries.length}</div>
             </CardContent>
           </Card>
 
@@ -141,7 +139,7 @@ export default function LogbookPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {logbookEntries.filter(e => e.status === LogStatus.APPROVED).length}
+                {loading ? '...' : logbookEntries.filter(e => e.status === LogStatus.APPROVED).length}
               </div>
             </CardContent>
           </Card>
@@ -153,7 +151,7 @@ export default function LogbookPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">
-                {logbookEntries.filter(e => e.status === LogStatus.PENDING).length}
+                {loading ? '...' : logbookEntries.filter(e => e.status === LogStatus.PENDING).length}
               </div>
             </CardContent>
           </Card>
@@ -165,7 +163,7 @@ export default function LogbookPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-600">
-                {logbookEntries.filter(e => e.status === LogStatus.DRAFT).length}
+                {loading ? '...' : logbookEntries.filter(e => e.status === LogStatus.DRAFT).length}
               </div>
             </CardContent>
           </Card>
@@ -224,84 +222,97 @@ export default function LogbookPage() {
           <CardHeader>
             <CardTitle>Entries</CardTitle>
             <CardDescription>
-              {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'} found
+              {loading ? 'Loading...' : `${filteredEntries.length} ${filteredEntries.length === 1 ? 'entry' : 'entries'} found`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Comments</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEntries.map((entry) => (
-                  <TableRow key={entry.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{entry.title}</div>
-                        <div className="text-sm text-muted-foreground line-clamp-1">
-                          {entry.description}
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : filteredEntries.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No logbook entries found.<br />
+                <Link href="/student/logbook/new" className="text-primary hover:underline">
+                  Create your first entry
+                </Link>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Comments</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEntries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{entry.title}</div>
+                          <div className="text-sm text-muted-foreground line-clamp-1">
+                            {entry.description}
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {formatDate(entry.date)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[entry.status]}>
-                        {statusLabels[entry.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span>{entry.supervisorComments}</span>
-                        {entry.supervisorComments > 0 && (
-                          <div className="h-2 w-2 rounded-full bg-blue-500" />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/student/logbook/${entry.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View
-                            </Link>
-                          </DropdownMenuItem>
-                          {entry.status === LogStatus.DRAFT && (
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {formatDate(entry.date)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[entry.status]}>
+                          {statusLabels[entry.status]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>{entry.supervisorComments}</span>
+                          {entry.supervisorComments > 0 && (
+                            <div className="h-2 w-2 rounded-full bg-blue-500" />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
-                              <Link href={`/student/logbook/${entry.id}/edit`}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
+                              <Link href={`/student/logbook/${entry.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View
                               </Link>
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                            {entry.status === LogStatus.DRAFT && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/student/logbook/${entry.id}/edit`}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-600">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

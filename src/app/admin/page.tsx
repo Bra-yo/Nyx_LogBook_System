@@ -59,36 +59,22 @@ export default function AdminDashboard() {
     }
   }
 
-  const recentActivity = [
-    {
-      id: 1,
-      action: "New User Registration",
-      user: "John Doe (Student)",
-      time: "5 minutes ago",
-      type: "user"
-    },
-    {
-      id: 2,
-      action: "Logbook Entry Submitted",
-      user: "Jane Smith",
-      time: "15 minutes ago",
-      type: "entry"
-    },
-    {
-      id: 3,
-      action: "Assessment Completed",
-      user: "Prof. Johnson",
-      time: "1 hour ago",
-      type: "assessment"
-    },
-    {
-      id: 4,
-      action: "System Backup Completed",
-      user: "System",
-      time: "2 hours ago",
-      type: "system"
+  const [recentActivity, setRecentActivity] = useState<any[]>([])
+
+  useEffect(() => {
+    fetchRecentActivity()
+  }, [])
+
+  const fetchRecentActivity = async () => {
+    try {
+      // TODO: Implement real activity logging API
+      // For now, show empty state
+      setRecentActivity([])
+    } catch (error) {
+      console.error('Error fetching recent activity:', error)
+      setRecentActivity([])
     }
-  ]
+  }
 
   const activityIcons = {
     user: Users,
@@ -219,23 +205,29 @@ export default function AdminDashboard() {
               <CardDescription>Latest system events and user actions</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((activity) => {
-                  const Icon = activityIcons[activity.type as keyof typeof activityIcons]
-                  return (
-                    <div key={activity.id} className="flex items-center space-x-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-                        <Icon className="h-4 w-4" />
+              {recentActivity.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No recent activity
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentActivity.map((activity) => {
+                    const Icon = activityIcons[activity.type as keyof typeof activityIcons]
+                    return (
+                      <div key={activity.id} className="flex items-center space-x-4">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm font-medium">{activity.action}</p>
+                          <p className="text-xs text-muted-foreground">{activity.user}</p>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{activity.time}</div>
                       </div>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium">{activity.action}</p>
-                        <p className="text-xs text-muted-foreground">{activity.user}</p>
-                      </div>
-                      <div className="text-xs text-muted-foreground">{activity.time}</div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 

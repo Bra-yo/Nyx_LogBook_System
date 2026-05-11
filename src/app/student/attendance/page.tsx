@@ -164,23 +164,8 @@ export default function StudentAttendancePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">This Week</span>
-                  <Badge variant="outline">5 days</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Average Hours</span>
-                  <Badge variant="outline">8.2 hrs</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Total Hours</span>
-                  <Badge variant="outline">164 hrs</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Attendance Rate</span>
-                  <Badge className="bg-green-600">95%</Badge>
-                </div>
+              <div className="text-center py-8 text-muted-foreground">
+                No attendance data available yet
               </div>
             </CardContent>
           </Card>

@@ -140,6 +140,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Student profile not found' }, { status: 404 })
     }
 
+    // Check if student has checked in today
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Start of day
+    today.setHours(23, 59, 59, 999) // End of day
+
+    const todayAttendance = await prisma.attendance.findFirst({
+      where: {
+        studentId: studentProfile.id,
+        checkInTime: {
+          gte: today
+        },
+        OR: [
+          { status: 'ACTIVE' },
+          { status: 'COMPLETED' }
+        ]
+      }
+    })
+
+    if (!todayAttendance) {
+      return NextResponse.json({ 
+        error: 'You must check in before creating a logbook entry for today.',
+        requiresCheckIn: true
+      }, { status: 403 })
+    }
+
     // Create logbook entry
     const entry = await prisma.logbookEntry.create({
       data: {
