@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,16 +16,47 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
+interface DashboardStats {
+  totalStudents: number
+  totalSupervisors: number
+  totalLecturers: number
+  totalAdmins: number
+  totalDepartments: number
+  weeklySubmissions: number
+  pendingReviews: number
+  systemUptime: string
+}
+
 export default function AdminDashboard() {
-  // Mock data - replace with actual data from API
-  const stats = {
-    totalStudents: 156,
-    totalSupervisors: 24,
-    totalLecturers: 18,
-    totalAdmins: 5,
-    weeklySubmissions: 89,
-    pendingReviews: 23,
+  const [stats, setStats] = useState<DashboardStats>({
+    totalStudents: 0,
+    totalSupervisors: 0,
+    totalLecturers: 0,
+    totalAdmins: 0,
+    totalDepartments: 0,
+    weeklySubmissions: 0,
+    pendingReviews: 0,
     systemUptime: "99.9%"
+  })
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/admin/stats')
+      const data = await response.json()
+      
+      if (data.success) {
+        setStats(data.stats)
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const recentActivity = [
@@ -125,13 +157,13 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">System Uptime</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Departments</CardTitle>
+              <Settings className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.systemUptime}</div>
+              <div className="text-2xl font-bold text-orange-600">{stats.totalDepartments}</div>
               <p className="text-xs text-muted-foreground">
-                Last 30 days
+                Academic departments
               </p>
             </CardContent>
           </Card>

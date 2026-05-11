@@ -14,7 +14,8 @@ import {
   FileText,
   Calendar,
   Bell,
-  BarChart3
+  BarChart3,
+  Clock
 } from "lucide-react"
 import { UserRole } from "@/types"
 
@@ -29,6 +30,11 @@ const navigationItems = {
       title: "Dashboard",
       href: "/student",
       icon: LayoutDashboard,
+    },
+    {
+      title: "Attendance",
+      href: "/student/attendance",
+      icon: Clock,
     },
     {
       title: "Logbook Entries",
@@ -63,6 +69,11 @@ const navigationItems = {
       icon: Users,
     },
     {
+      title: "Attendance",
+      href: "/supervisor/attendance",
+      icon: Clock,
+    },
+    {
       title: "Review Entries",
       href: "/supervisor/review",
       icon: FileText,
@@ -88,6 +99,11 @@ const navigationItems = {
       title: "Students",
       href: "/lecturer/students",
       icon: Users,
+    },
+    {
+      title: "Attendance",
+      href: "/lecturer/attendance",
+      icon: Clock,
     },
     {
       title: "Assessments",
@@ -120,6 +136,11 @@ const navigationItems = {
       title: "Departments",
       href: "/admin/departments",
       icon: Settings,
+    },
+    {
+      title: "Attendance",
+      href: "/admin/attendance",
+      icon: Clock,
     },
     {
       title: "Analytics",

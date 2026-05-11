@@ -8,22 +8,23 @@ datasource db {
 }
 
 model User {
-  id                String             @id @default(cuid())
-  email             String             @unique
-  name              String
-  password          String
-  role              UserRole
-  avatar            String?
-  isActive          Boolean            @default(true)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  adminProfile      AdminProfile?
-  auditLogs         AuditLog[]
-  lecturerProfile   LecturerProfile?
-  notifications     Notification[]
-  sessions          Session[]
-  studentProfile    StudentProfile?
-  supervisorProfile SupervisorProfile?
+  id                 String             @id @default(cuid())
+  email              String             @unique
+  name               String
+  password           String
+  role               UserRole
+  avatar             String?
+  isActive           Boolean            @default(true)
+  mustChangePassword Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  adminProfile       AdminProfile?
+  auditLogs          AuditLog[]
+  lecturerProfile    LecturerProfile?
+  notifications      Notification[]
+  sessions           Session[]
+  studentProfile     StudentProfile?
+  supervisorProfile  SupervisorProfile?
 
   @@map("users")
 }
@@ -69,6 +70,7 @@ model StudentProfile {
   updatedAt           DateTime             @updatedAt
   assessments         LecturerAssessment[]
   logbookEntries      LogbookEntry[]
+  attendanceRecords   Attendance[]
   department          Department           @relation(fields: [departmentId], references: [id])
   lecturer            LecturerProfile?     @relation(fields: [lecturerId], references: [id])
   supervisor          SupervisorProfile?   @relation(fields: [supervisorId], references: [id])
@@ -145,16 +147,18 @@ model LogbookEntry {
 }
 
 model SupervisorComment {
-  id             String            @id @default(cuid())
-  logbookEntryId String
-  supervisorId   String
-  comment        String
-  rating         Int?
-  approved       Boolean           @default(false)
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  logbookEntry   LogbookEntry      @relation(fields: [logbookEntryId], references: [id], onDelete: Cascade)
-  supervisor     SupervisorProfile @relation(fields: [supervisorId], references: [id])
+  id                    String                 @id @default(cuid())
+  logbookEntryId        String
+  supervisorId          String
+  competencyScore       Int
+  competencyLabel       String
+  competencyDescription String
+  optionalComment       String?
+  status                SupervisorReviewStatus @default(PENDING)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  logbookEntry          LogbookEntry           @relation(fields: [logbookEntryId], references: [id], onDelete: Cascade)
+  supervisor            SupervisorProfile      @relation(fields: [supervisorId], references: [id])
 
   @@map("supervisor_comments")
 }
@@ -193,6 +197,45 @@ model Notification {
   @@map("notifications")
 }
 
+model Attendance {
+  id               String           @id @default(cuid())
+  studentId        String
+  officeLocationId String
+  checkInTime      DateTime
+  checkOutTime     DateTime?
+  checkInLat       Float
+  checkInLng       Float
+  checkOutLat      Float?
+  checkOutLng      Float?
+  status           AttendanceStatus @default(ACTIVE)
+  hoursWorked      Float?
+  qrCodeData       String
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  officeLocation   OfficeLocation   @relation(fields: [officeLocationId], references: [id])
+  student          StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("attendance")
+}
+
+model OfficeLocation {
+  id         String       @id @default(cuid())
+  name       String
+  address    String
+  latitude   Float
+  longitude  Float
+  radius     Float        @default(100) // meters
+  isActive   Boolean      @default(true)
+  qrCodeData String       @unique
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  attendance Attendance[]
+
+  @@map("office_locations")
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   userId     String
@@ -226,4 +269,17 @@ enum UserRole {
   SUPERVISOR
   LECTURER
   ADMIN
+}
+
+enum AttendanceStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum SupervisorReviewStatus {
+  APPROVED
+  NEEDS_REVISION
+  REJECTED
+  PENDING
 }

@@ -1,111 +1,136 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { 
-  Search, 
-  Filter, 
-  Eye, 
-  CheckCircle, 
-  XCircle, 
-  MoreHorizontal,
-  Calendar,
   User,
+  Calendar,
   FileText
 } from "lucide-react"
-import Link from "next/link"
-import { formatDate } from "@/lib/utils"
-import { LogStatus } from "@/types"
+import { format } from "date-fns"
+import { CompetencyReviewForm } from "@/components/supervisor/competency-review-form"
 
-// Mock data - replace with actual API call
-const pendingEntries = [
-  {
-    id: "1",
-    studentName: "John Doe",
-    studentEmail: "john.doe@university.edu",
-    title: "Database Schema Design",
-    description: "Designed and implemented complete database schema for user management system",
-    date: new Date("2024-01-15"),
-    submittedAt: new Date("2024-01-15T10:30:00"),
-    status: LogStatus.PENDING,
-    activities: "Created ER diagrams, implemented tables, set up relationships"
-  },
-  {
-    id: "2",
-    studentName: "Jane Smith",
-    studentEmail: "jane.smith@university.edu", 
-    title: "API Development",
-    description: "Created RESTful APIs for logbook CRUD operations",
-    date: new Date("2024-01-14"),
-    submittedAt: new Date("2024-01-14T14:15:00"),
-    status: LogStatus.PENDING,
-    activities: "Implemented endpoints, added validation, wrote documentation"
-  },
-  {
-    id: "3",
-    studentName: "Mike Johnson",
-    studentEmail: "mike.johnson@university.edu",
-    title: "Frontend Components",
-    description: "Built reusable UI components using React and Tailwind CSS",
-    date: new Date("2024-01-13"),
-    submittedAt: new Date("2024-01-13T09:45:00"),
-    status: LogStatus.PENDING,
-    activities: "Created buttons, cards, forms, and layout components"
+interface LogbookEntry {
+  id: string
+  title: string
+  description: string
+  activities: string
+  challenges?: string
+  learnings?: string
+  date: string
+  status: string
+  student: {
+    user: {
+      name: string
+      email: string
+    }
   }
-]
-
-const statusColors = {
-  [LogStatus.APPROVED]: "bg-green-100 text-green-800",
-  [LogStatus.PENDING]: "bg-yellow-100 text-yellow-800", 
-  [LogStatus.REJECTED]: "bg-red-100 text-red-800",
-  [LogStatus.DRAFT]: "bg-gray-100 text-gray-800"
+  supervisorAssessment?: {
+    competencyScore: number
+    competencyLabel: string
+    competencyDescription: string
+    optionalComment?: string
+    status: string
+  }
 }
 
-const statusLabels = {
-  [LogStatus.APPROVED]: "Approved",
-  [LogStatus.PENDING]: "Pending Review",
-  [LogStatus.REJECTED]: "Rejected",
-  [LogStatus.DRAFT]: "Draft"
-}
+export default function SupervisorReviewPage() {
+  const [entries, setEntries] = useState<LogbookEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedEntry, setSelectedEntry] = useState<LogbookEntry | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
-export default function ReviewPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedEntry, setSelectedEntry] = useState<string | null>(null)
+  useEffect(() => {
+    fetchPendingEntries()
+  }, [])
 
-  const filteredEntries = pendingEntries.filter(entry => {
-    const matchesSearch = entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.description.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesSearch
-  })
-
-  const handleQuickApprove = async (entryId: string) => {
-    // TODO: Implement API call to approve entry
-    console.log("Quick approving entry:", entryId)
+  const fetchPendingEntries = async () => {
+    try {
+      const response = await fetch('/api/supervisor/assessment')
+      if (response.ok) {
+        const data = await response.json()
+        setEntries(data.entries || [])
+      }
+    } catch (error) {
+      console.error('Error fetching entries:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleQuickReject = async (entryId: string) => {
-    // TODO: Implement API call to reject entry
-    console.log("Quick rejecting entry:", entryId)
+  const handleEntrySelect = (entry: LogbookEntry) => {
+    setSelectedEntry(entry)
+  }
+
+  const handleAssessmentSubmit = async (entryId: string, score: number, comment: string, status: string) => {
+    setSubmitting(true)
+    try {
+      const response = await fetch('/api/supervisor/assessment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          logbookEntryId: entryId,
+          competencyScore: score,
+          optionalComment: comment,
+          status
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        // Update the entry in local state
+        setEntries(entries.map(entry => 
+          entry.id === entryId 
+            ? { ...entry, supervisorAssessment: data.assessment }
+            : entry
+        ))
+        setSelectedEntry(null)
+      } else {
+        console.error('Failed to save assessment')
+      }
+    } catch (error) {
+      console.error('Error submitting assessment:', error)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return <Badge className="bg-yellow-600">Pending Review</Badge>
+      case 'APPROVED':
+        return <Badge className="bg-green-600">Approved</Badge>
+      case 'NEEDS_REVISION':
+        return <Badge className="bg-orange-600">Needs Revision</Badge>
+      case 'REJECTED':
+        return <Badge className="bg-red-600">Rejected</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout title="Review Logbook Entries">
+        <div className="space-y-6">
+          <div className="animate-pulse">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="mb-4">
+                <CardContent className="p-6">
+                  <div className="h-4 bg-muted rounded"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </DashboardLayout>
+    )
   }
 
   return (
@@ -114,197 +139,114 @@ export default function ReviewPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Review Entries</h2>
-            <p className="text-muted-foreground">Review and approve student logbook submissions</p>
+            <h2 className="text-2xl font-bold">Pending Reviews</h2>
+            <p className="text-muted-foreground">Review and assess student logbook entries</p>
           </div>
           <div className="flex items-center space-x-2">
             <Badge variant="secondary" className="text-sm">
-              {filteredEntries.length} Pending
+              {entries.length} Pending
             </Badge>
           </div>
         </div>
 
-        {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by student, title, or description..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Entries List */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Student Entries</CardTitle>
+              <CardDescription>
+                Select an entry to review and assess
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {entries.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium">No pending entries</h3>
+                  <p className="text-muted-foreground">All student entries have been reviewed</p>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Entries Table */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Entries</CardTitle>
-                <CardDescription>
-                  {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'} awaiting review
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Student</TableHead>
-                      <TableHead>Entry</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEntries.map((entry) => (
-                      <TableRow 
-                        key={entry.id}
-                        className={`cursor-pointer hover:bg-muted/50 ${
-                          selectedEntry === entry.id ? 'bg-muted' : ''
-                        }`}
-                        onClick={() => setSelectedEntry(entry.id)}
-                      >
-                        <TableCell>
+              ) : (
+                <div className="space-y-4">
+                  {entries.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                        selectedEntry?.id === entry.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:bg-muted'
+                      }`}
+                      onClick={() => handleEntrySelect(entry)}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
                           <div>
-                            <div className="font-medium">{entry.studentName}</div>
-                            <div className="text-sm text-muted-foreground">{entry.studentEmail}</div>
+                            <div className="font-medium">{entry.student.user.name}</div>
+                            <div className="text-sm text-muted-foreground">{entry.student.user.email}</div>
                           </div>
-                        </TableCell>
-                        <TableCell>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {format(new Date(entry.date), 'MMM dd, yyyy')}
+                        </div>
+                        {getStatusBadge(entry.status)}
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="font-medium text-sm text-muted-foreground">Activity</h4>
+                          <p className="font-medium">{entry.title}</p>
+                        </div>
+                        
+                        <div>
+                          <h4 className="font-medium text-sm text-muted-foreground">Description</h4>
+                          <p className="text-sm">{entry.description}</p>
+                        </div>
+
+                        <div>
+                          <h4 className="font-medium text-sm text-muted-foreground">Activities</h4>
+                          <p className="text-sm whitespace-pre-wrap">{entry.activities}</p>
+                        </div>
+
+                        {entry.challenges && (
                           <div>
-                            <div className="font-medium">{entry.title}</div>
-                            <div className="text-sm text-muted-foreground line-clamp-1">
-                              {entry.description}
+                            <h4 className="font-medium text-sm text-muted-foreground">Challenges</h4>
+                            <p className="text-sm">{entry.challenges}</p>
+                          </div>
+                        )}
+
+                        {entry.learnings && (
+                          <div>
+                            <h4 className="font-medium text-sm text-muted-foreground">Learnings</h4>
+                            <p className="text-sm">{entry.learnings}</p>
+                          </div>
+                        )}
+
+                        {entry.supervisorAssessment && (
+                          <div className="mt-4 p-3 bg-muted rounded">
+                            <h4 className="font-medium text-sm mb-2">Previous Assessment</h4>
+                            <div className="text-sm space-y-1">
+                              <div><strong>Competency:</strong> {entry.supervisorAssessment.competencyLabel} ({entry.supervisorAssessment.competencyScore})</div>
+                              <div><strong>Status:</strong> {getStatusBadge(entry.supervisorAssessment.status)}</div>
+                              {entry.supervisorAssessment.optionalComment && (
+                                <div><strong>Comment:</strong> {entry.supervisorAssessment.optionalComment}</div>
+                              )}
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {formatDate(entry.date)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={statusColors[entry.status]}>
-                            {statusLabels[entry.status]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link href={`/supervisor/review/${entry.id}`}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  Review Details
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleQuickApprove(entry.id)}
-                                className="text-green-600"
-                              >
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Quick Approve
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleQuickReject(entry.id)}
-                                className="text-red-600"
-                              >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Quick Reject
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-          {/* Entry Details Preview */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Entry Preview</CardTitle>
-                <CardDescription>
-                  {selectedEntry ? "Selected entry details" : "Select an entry to preview"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {selectedEntry ? (
-                  <div className="space-y-4">
-                    {(() => {
-                      const entry = pendingEntries.find(e => e.id === selectedEntry)
-                      if (!entry) return null
-                      
-                      return (
-                        <>
-                          <div>
-                            <h4 className="font-semibold">{entry.title}</h4>
-                            <p className="text-sm text-muted-foreground">{entry.description}</p>
-                          </div>
-                          
-                          <div>
-                            <h5 className="font-medium text-sm mb-2">Student</h5>
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">{entry.studentName}</span>
-                            </div>
-                          </div>
-
-                          <div>
-                            <h5 className="font-medium text-sm mb-2">Activities</h5>
-                            <p className="text-sm text-muted-foreground">{entry.activities}</p>
-                          </div>
-
-                          <div>
-                            <h5 className="font-medium text-sm mb-2">Submitted</h5>
-                            <p className="text-sm text-muted-foreground">
-                              {formatDate(entry.submittedAt)}
-                            </p>
-                          </div>
-
-                          <div className="flex space-x-2">
-                            <Link href={`/supervisor/review/${entry.id}`}>
-                              <Button size="sm" className="flex-1">
-                                <Eye className="mr-2 h-4 w-4" />
-                                Full Review
-                              </Button>
-                            </Link>
-                          </div>
-                        </>
-                      )
-                    })()}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-sm">Click on an entry to preview details</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          {/* Assessment Form */}
+          <CompetencyReviewForm 
+            selectedEntry={selectedEntry}
+            onAssessmentSubmit={handleAssessmentSubmit}
+            submitting={submitting}
+          />
         </div>
       </div>
     </DashboardLayout>

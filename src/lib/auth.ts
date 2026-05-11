@@ -21,7 +21,14 @@ export const authOptions: NextAuthOptions = {
           where: {
             email: credentials.email
           },
-          include: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            password: true,
+            role: true,
+            isActive: true,
+            mustChangePassword: true,
             studentProfile: true,
             supervisorProfile: true,
             lecturerProfile: true,
@@ -47,6 +54,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          mustChangePassword: user.mustChangePassword,
           profile: user.studentProfile || user.supervisorProfile || user.lecturerProfile || user.adminProfile
         }
       }
@@ -60,6 +68,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = user.role
         token.profile = user.profile
+        token.mustChangePassword = user.mustChangePassword
       }
       return token
     },
@@ -68,8 +77,16 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.sub!
         session.user.role = token.role as UserRole
         session.user.profile = token.profile
+        session.user.mustChangePassword = token.mustChangePassword
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
     }
   },
   pages: {
