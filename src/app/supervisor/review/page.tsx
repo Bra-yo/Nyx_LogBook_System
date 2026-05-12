@@ -12,6 +12,8 @@ import {
 } from "lucide-react"
 import { format } from "date-fns"
 import { CompetencyReviewForm } from "@/components/supervisor/competency-review-form"
+import { getLogbookDisplayStatus, getStatusBadgeProps } from "@/lib/logbook-status"
+import { LogStatus } from "@/types"
 
 interface LogbookEntry {
   id: string
@@ -21,19 +23,28 @@ interface LogbookEntry {
   challenges?: string
   learnings?: string
   date: string
-  status: string
+  status: LogStatus
   student: {
     user: {
       name: string
       email: string
     }
+    regNumber: string
+    department?: {
+      name: string
+    }
   }
-  supervisorAssessment?: {
-    competencyScore: number
+  comments?: Array<{
+    competencyLevel: number
     competencyLabel: string
     competencyDescription: string
     optionalComment?: string
     status: string
+    createdAt: string
+  }>
+  assessments?: {
+    status: string
+    assessedAt?: string
   }
 }
 
@@ -49,10 +60,12 @@ export default function SupervisorReviewPage() {
 
   const fetchPendingEntries = async () => {
     try {
-      const response = await fetch('/api/supervisor/assessment')
+      const response = await fetch('/api/supervisor/review')
       if (response.ok) {
         const data = await response.json()
         setEntries(data.entries || [])
+      } else {
+        console.error('Failed to fetch entries:', response.status)
       }
     } catch (error) {
       console.error('Error fetching entries:', error)
@@ -86,7 +99,7 @@ export default function SupervisorReviewPage() {
         // Update the entry in local state
         setEntries(entries.map(entry => 
           entry.id === entryId 
-            ? { ...entry, supervisorAssessment: data.assessment }
+            ? { ...entry, comments: [...(entry.comments || []), data.assessment] }
             : entry
         ))
         setSelectedEntry(null)
@@ -100,19 +113,10 @@ export default function SupervisorReviewPage() {
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return <Badge className="bg-yellow-600">Pending Review</Badge>
-      case 'APPROVED':
-        return <Badge className="bg-green-600">Approved</Badge>
-      case 'NEEDS_REVISION':
-        return <Badge className="bg-orange-600">Needs Revision</Badge>
-      case 'REJECTED':
-        return <Badge className="bg-red-600">Rejected</Badge>
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
+  const getStatusBadge = (entry: LogbookEntry) => {
+    const displayStatus = getLogbookDisplayStatus(entry)
+    const badgeProps = getStatusBadgeProps(displayStatus)
+    return <Badge className={badgeProps.className}>{badgeProps.label}</Badge>
   }
 
   if (loading) {
@@ -162,8 +166,8 @@ export default function SupervisorReviewPage() {
               {entries.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium">No pending entries</h3>
-                  <p className="text-muted-foreground">All student entries have been reviewed</p>
+                  <h3 className="text-lg font-medium">No student logbook entries available for review</h3>
+                  <p className="text-muted-foreground">No student logbook entries are currently pending review</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -188,7 +192,7 @@ export default function SupervisorReviewPage() {
                         <div className="text-sm text-muted-foreground">
                           {format(new Date(entry.date), 'MMM dd, yyyy')}
                         </div>
-                        {getStatusBadge(entry.status)}
+                        {getStatusBadge(entry)}
                       </div>
 
                       <div className="space-y-3">
@@ -221,14 +225,14 @@ export default function SupervisorReviewPage() {
                           </div>
                         )}
 
-                        {entry.supervisorAssessment && (
+                        {entry.comments && entry.comments.length > 0 && (
                           <div className="mt-4 p-3 bg-muted rounded">
                             <h4 className="font-medium text-sm mb-2">Previous Assessment</h4>
                             <div className="text-sm space-y-1">
-                              <div><strong>Competency:</strong> {entry.supervisorAssessment.competencyLabel} ({entry.supervisorAssessment.competencyScore})</div>
-                              <div><strong>Status:</strong> {getStatusBadge(entry.supervisorAssessment.status)}</div>
-                              {entry.supervisorAssessment.optionalComment && (
-                                <div><strong>Comment:</strong> {entry.supervisorAssessment.optionalComment}</div>
+                              <div><strong>Competency:</strong> {entry.comments[0].competencyLabel} ({entry.comments[0].competencyLevel})</div>
+                              <div><strong>Status:</strong> {getStatusBadge(entry)}</div>
+                              {entry.comments[0].optionalComment && (
+                                <div><strong>Comment:</strong> {entry.comments[0].optionalComment}</div>
                               )}
                             </div>
                           </div>

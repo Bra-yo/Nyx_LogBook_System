@@ -34,16 +34,31 @@ export function AttendanceStats() {
       const response = await fetch('/api/attendance/analytics')
       if (response.ok) {
         const data = await response.json()
-        setStats({
-          totalHours: data.totalHours || 0,
-          averageHours: data.averageHours || 0,
-          totalDays: data.totalDays || 0,
-          presentDays: data.presentDays || 0,
-          absentDays: data.absentDays || 0,
-          lateDays: data.lateDays || 0,
-          overtimeHours: data.overtimeHours || 0,
-          attendanceRate: data.attendanceRate || 0
-        })
+        
+        // Use student-specific data if available, otherwise fall back to overview data
+        if (data.studentStats) {
+          setStats({
+            totalHours: data.studentStats.totalHours || 0,
+            averageHours: data.studentStats.averageHours || 0,
+            totalDays: data.studentStats.totalDays || 0,
+            presentDays: data.studentStats.presentDays || 0,
+            absentDays: data.studentStats.absentDays || 0,
+            lateDays: data.studentStats.lateDays || 0,
+            overtimeHours: data.studentStats.overtimeHours || 0,
+            attendanceRate: data.studentStats.attendanceRate || 0
+          })
+        } else {
+          setStats({
+            totalHours: data.overview?.totalHours || 0,
+            averageHours: data.overview?.averageHours || 0,
+            totalDays: data.overview?.totalDays || 0,
+            presentDays: data.overview?.presentDays || 0,
+            absentDays: data.overview?.absentDays || 0,
+            lateDays: data.overview?.lateDays || 0,
+            overtimeHours: data.overview?.overtimeHours || 0,
+            attendanceRate: data.overview?.attendanceRate || 0
+          })
+        }
       }
     } catch (error) {
       console.error('Error fetching attendance stats:', error)

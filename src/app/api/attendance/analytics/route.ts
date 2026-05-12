@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session?.user?.role || session.user.role !== 'ADMIN') {
+    if (!session?.user?.role || !['ADMIN', 'STUDENT'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -38,6 +38,18 @@ export async function GET(request: NextRequest) {
     if (validatedData.departmentId) {
       departmentFilter.student = {
         departmentId: validatedData.departmentId
+      }
+    }
+
+    // If student, only show their own attendance
+    if (session.user.role === 'STUDENT') {
+      const studentProfile = await prisma.studentProfile.findUnique({
+        where: { userId: session.user.id }
+      })
+      if (studentProfile) {
+        departmentFilter.student = {
+          id: studentProfile.id
+        }
       }
     }
 
@@ -168,8 +180,24 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Get active session for student
+    let activeSessionDuration = 0
+    if (session.user.role === 'STUDENT') {
+      const activeSession = await prisma.attendance.findFirst({
+        where: {
+          studentId: departmentFilter.student.id,
+          status: 'ACTIVE'
+        }
+      })
+      if (activeSession && activeSession.checkInTime) {
+        const now = new Date()
+        const checkInTime = new Date(activeSession.checkInTime)
+        activeSessionDuration = (now.getTime() - checkInTime.getTime()) / (1000 * 60 * 60) // hours
+      }
+    }
+
     // Format response
-    const analytics = {
+    const analytics: any = {
       overview: {
         totalRecords,
         activeSessions,
@@ -196,6 +224,46 @@ export async function GET(request: NextRequest) {
         recordsCount: stat._count.id,
         totalHours: Math.round((stat._sum.hoursWorked || 0) * 100) / 100
       }))
+    }
+
+    // Add student-specific data to response
+    if (session.user.role === 'STUDENT') {
+      const today = new Date()
+      const startOfDay = new Date(today)
+      startOfDay.setHours(0, 0, 0, 0) // Start of day
+      const endOfDay = new Date(today)
+      endOfDay.setHours(23, 59, 59, 999) // End of day
+
+      const todayAttendance = await prisma.attendance.findFirst({
+        where: {
+          studentId: departmentFilter.student.id,
+          checkInTime: {
+            gte: startOfDay,
+            lte: endOfDay
+          },
+          OR: [
+            { status: 'ACTIVE' },
+            { status: 'COMPLETED' }
+          ]
+        }
+      })
+
+      const presentDays = todayAttendance ? 1 : 0
+      const totalDays = 1 // Today
+      const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0
+
+      // Add student-specific data to response
+      analytics.studentStats = {
+        totalHours: Math.round((totalHours._sum.hoursWorked || 0) * 100) / 100 + Math.round(activeSessionDuration * 100) / 100,
+        averageHours: Math.round((averageHours._avg.hoursWorked || 0) * 100) / 100,
+        totalDays,
+        presentDays,
+        absentDays: totalDays - presentDays,
+        lateDays: 0, // TODO: implement late calculation
+        overtimeHours: 0, // TODO: implement overtime calculation
+        attendanceRate,
+        activeSessionDuration: Math.round(activeSessionDuration * 100) / 100
+      }
     }
 
     return NextResponse.json(analytics)

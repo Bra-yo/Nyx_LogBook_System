@@ -7,15 +7,8 @@ export class QRCodeService {
    */
   static async generateQRCodeDataURL(officeLocation: OfficeLocation): Promise<string> {
     try {
-      const qrData = JSON.stringify({
-        type: 'attendance',
-        locationId: officeLocation.id,
-        locationName: officeLocation.name,
-        latitude: officeLocation.latitude,
-        longitude: officeLocation.longitude,
-        radius: officeLocation.radius,
-        timestamp: Date.now()
-      })
+      // Generate QR code with plain text matching qrCodeData field exactly
+      const qrData = officeLocation.qrCodeData
 
       const dataURL = await QRCode.toDataURL(qrData, {
         width: 300,
@@ -38,15 +31,8 @@ export class QRCodeService {
    * Generate QR code data string for office location
    */
   static generateQRCodeData(officeLocation: OfficeLocation): string {
-    return JSON.stringify({
-      type: 'attendance',
-      locationId: officeLocation.id,
-      locationName: officeLocation.name,
-      latitude: officeLocation.latitude,
-      longitude: officeLocation.longitude,
-      radius: officeLocation.radius,
-      timestamp: Date.now()
-    })
+    // Return plain text matching qrCodeData field exactly
+    return officeLocation.qrCodeData
   }
 
   /**

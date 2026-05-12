@@ -80,13 +80,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Supervisor profile not found' }, { status: 404 })
     }
 
-    // Get logbook entry to verify supervisor is assigned
+    // TEMPORARY: Allow supervisors to view all students for now
+    // Get logbook entry without supervisor assignment check
     const logbookEntry = await prisma.logbookEntry.findFirst({
       where: {
-        id: validatedData.logbookEntryId,
-        student: {
-          supervisorId: supervisorProfile.id
-        }
+        id: validatedData.logbookEntryId
       },
       include: {
         student: {
@@ -98,7 +96,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!logbookEntry) {
-      return NextResponse.json({ error: 'Logbook entry not found or you are not assigned to this student' }, { status: 404 })
+      return NextResponse.json({ error: 'Logbook entry not found' }, { status: 404 })
     }
 
     // Get competency level details
@@ -107,13 +105,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid competency score' }, { status: 400 })
     }
 
-    // Check if assessment already exists
+    // TEMPORARY: Allow supervisors to view all students for now
+    // Check if assessment already exists without supervisor filter
     const existingAssessment = await prisma.supervisorComment.findFirst({
       where: {
-        logbookEntryId: validatedData.logbookEntryId,
-        supervisorId: supervisorProfile.id
+        logbookEntryId: validatedData.logbookEntryId
       }
     })
+
+    if (existingAssessment) {
+      return NextResponse.json({ error: 'Assessment already exists for this logbook entry' }, { status: 400 })
+    }
 
     const assessmentData = {
       competencyScore: validatedData.competencyScore,
@@ -123,30 +125,22 @@ export async function POST(request: NextRequest) {
       status: validatedData.status
     }
 
-    let assessment
-    if (existingAssessment) {
-      // Update existing assessment
-      assessment = await prisma.supervisorComment.update({
-        where: { id: existingAssessment.id },
-        data: assessmentData
-      })
-    } else {
-      // Create new assessment
-      assessment = await prisma.supervisorComment.create({
-        data: {
-          logbookEntryId: validatedData.logbookEntryId,
-          supervisorId: supervisorProfile.id,
-          ...assessmentData
-        }
-      })
-    }
+    // Create assessment without supervisorId filter
+    // TEMPORARY: Supervisors/Lecturers can view all students. Restore assignment-based filtering later if required.
+    const assessment = await prisma.supervisorComment.create({
+      data: {
+        logbookEntryId: validatedData.logbookEntryId,
+        supervisorId: supervisorProfile.id, // Keep supervisorId for tracking
+        ...assessmentData
+      }
+    })
 
     return NextResponse.json({
       success: true,
       message: 'Assessment saved successfully',
       assessment: {
         ...assessment,
-        competencyLevel
+        competencyLevels
       }
     })
 
@@ -158,3 +152,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+

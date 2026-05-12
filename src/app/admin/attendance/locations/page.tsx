@@ -48,6 +48,16 @@ export default function OfficeLocationsPage() {
       if (response.ok) {
         const data = await response.json()
         setLocations(data.locations || [])
+      } else {
+        const text = await response.text()
+        console.error('Failed to fetch locations:', text)
+        // Try to parse as JSON for error message
+        try {
+          const errorData = JSON.parse(text)
+          console.error('Error details:', errorData)
+        } catch {
+          console.error('Non-JSON error response:', text)
+        }
       }
     } catch (error) {
       console.error('Error fetching locations:', error)

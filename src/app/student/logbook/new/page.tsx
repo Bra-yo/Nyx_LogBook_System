@@ -75,22 +75,32 @@ export default function NewLogbookEntry() {
     setIsDraft(saveAsDraft)
 
     try {
-      // TODO: Implement API call to save logbook entry
       const entryData = {
         ...formData,
         status: saveAsDraft ? "DRAFT" : "PENDING",
         submittedAt: saveAsDraft ? null : new Date()
       }
 
-      console.log("Saving entry:", entryData)
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await fetch('/api/student/logbook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(entryData)
+      })
 
-      // Redirect to logbook list
-      router.push("/student/logbook")
+      if (response.ok) {
+        // Redirect to logbook list
+        router.push("/student/logbook")
+      } else {
+        const errorData = await response.json()
+        console.error("Error saving entry:", errorData)
+        // Show error message to user
+        alert(errorData.error || 'Failed to save logbook entry')
+      }
     } catch (error) {
       console.error("Error saving entry:", error)
+      alert('Failed to save logbook entry')
     } finally {
       setIsSubmitting(false)
     }

@@ -9,6 +9,16 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { MapPin, QrCode, Plus, Edit, Trash2, Download } from 'lucide-react'
 import { QRCodeService } from '@/lib/qr-code'
+import dynamic from "next/dynamic"
+
+const MapPicker = dynamic(() => import("@/components/map-picker"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] rounded-lg border flex items-center justify-center text-sm text-muted-foreground">
+      Loading map...
+    </div>
+  ),
+})
 
 export default function AdminAttendanceSettingsPage() {
   const [officeLocations, setOfficeLocations] = useState<any[]>([])
@@ -22,8 +32,8 @@ export default function AdminAttendanceSettingsPage() {
     address: '',
     latitude: '',
     longitude: '',
-    radiusMeters: '100',
-    qrToken: '',
+    radiusMeters: '5000',
+    qrToken: 'NYX_ATTENDANCE_TEST_QR_2026',
     isActive: true
   })
 
@@ -37,6 +47,16 @@ export default function AdminAttendanceSettingsPage() {
       if (response.ok) {
         const data = await response.json()
         setOfficeLocations(data.locations || [])
+      } else {
+        const text = await response.text()
+        console.error('Failed to fetch office locations:', text)
+        // Try to parse as JSON for error message
+        try {
+          const errorData = JSON.parse(text)
+          console.error('Error details:', errorData)
+        } catch {
+          console.error('Non-JSON error response:', text)
+        }
       }
     } catch (error) {
       console.error('Failed to fetch office locations:', error)
@@ -76,6 +96,19 @@ export default function AdminAttendanceSettingsPage() {
     }
   }
 
+  const handleEditLocation = (location: any) => {
+    setFormData({
+      name: location.name,
+      address: location.address,
+      latitude: location.latitude.toString(),
+      longitude: location.longitude.toString(),
+      radiusMeters: location.radius.toString(),
+      qrToken: location.qrCodeData,
+      isActive: location.isActive
+    })
+    setShowCreateForm(true)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -104,14 +137,25 @@ export default function AdminAttendanceSettingsPage() {
           address: '',
           latitude: '',
           longitude: '',
-          radiusMeters: '100',
-          qrToken: '',
+          radiusMeters: '5000',
+          qrToken: 'NYX_ATTENDANCE_TEST_QR_2026',
           isActive: true
         })
         fetchOfficeLocations()
       } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to create office location')
+        const text = await response.text()
+        console.error('Failed to create office location:', text)
+        // Try to parse as JSON for error message
+        try {
+          const errorData = JSON.parse(text)
+          if (errorData.error && errorData.error.includes('QR Code Data already exists')) {
+            toast.error('This QR Code Data already belongs to an existing office location. Please edit the existing location or use a different QR Code Data.')
+          } else {
+            toast.error(errorData.error || 'Failed to create office location')
+          }
+        } catch {
+          toast.error('Failed to create office location')
+        }
       }
     } catch (error) {
       toast.error('Failed to create office location')
@@ -151,6 +195,19 @@ export default function AdminAttendanceSettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <h4 className="font-medium text-blue-800 mb-2">⚠️ Important: QR Code Matching</h4>
+                <p className="text-sm text-blue-700">
+                  The QR code data saved here must exactly match the QR code scanned by students. 
+                  For testing, use: <code className="bg-blue-100 px-2 py-1 rounded">NYX_ATTENDANCE_TEST_QR_2026</code>
+                </p>
+                <p className="text-sm text-blue-600 mt-1">
+                  Students will only be able to check in if the scanned QR value matches the qrCodeData field exactly.
+                </p>
+                <p className="text-sm text-blue-600 mt-1">
+                  The generated QR code encodes the QR Code Data exactly. Students can check in only when the scanned value matches this field.
+                </p>
+              </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -197,6 +254,26 @@ export default function AdminAttendanceSettingsPage() {
                       required
                     />
                   </div>
+                </div>
+                
+                {/* Map Picker */}
+                <div className="col-span-full">
+                  <Label>Office Location Map</Label>
+                  <MapPicker
+                    latitude={formData.latitude ? parseFloat(formData.latitude) : undefined}
+                    longitude={formData.longitude ? parseFloat(formData.longitude) : undefined}
+                    onLocationChange={(lat, lng) => {
+                      setFormData({
+                        ...formData,
+                        latitude: lat.toString(),
+                        longitude: lng.toString()
+                      })
+                    }}
+                    className="mt-2"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="radiusMeters">Radius (meters)</Label>
                     <Input
@@ -208,13 +285,17 @@ export default function AdminAttendanceSettingsPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="qrToken">QR Token (optional)</Label>
+                    <Label htmlFor="qrToken">QR Code Data *</Label>
                     <Input
                       id="qrToken"
                       value={formData.qrToken}
                       onChange={(e) => setFormData({...formData, qrToken: e.target.value})}
-                      placeholder="Auto-generated if empty"
+                      placeholder="NYX_ATTENDANCE_TEST_QR_2026"
+                      required
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Must exactly match the QR code students will scan
+                    </p>
                   </div>
                 </div>
                 <Button type="submit">Create Office Location</Button>
@@ -309,6 +390,7 @@ export default function AdminAttendanceSettingsPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleEditLocation(location)}
                           className="flex-1"
                         >
                           <Edit className="h-4 w-4 mr-2" />
@@ -368,6 +450,10 @@ export default function AdminAttendanceSettingsPage() {
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Radius: {selectedLocation.radius} meters
+                  </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
+                    <p className="text-xs font-medium text-yellow-800">QR Code Data (exact):</p>
+                    <p className="text-xs text-yellow-700 font-mono break-all">{selectedLocation.qrCodeData}</p>
                   </div>
                 </div>
               </div>

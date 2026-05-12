@@ -11,7 +11,7 @@ const logbookSchema = z.object({
   challenges: z.string().optional(),
   learnings: z.string().optional(),
   date: z.string().transform((str) => new Date(str)),
-  status: z.enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED']).default('DRAFT'),
+  status: z.enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED']).default('PENDING'),
   attachments: z.array(z.string()).default([])
 })
 
@@ -142,14 +142,17 @@ export async function POST(request: NextRequest) {
 
     // Check if student has checked in today
     const today = new Date()
-    today.setHours(0, 0, 0, 0) // Start of day
-    today.setHours(23, 59, 59, 999) // End of day
+    const startOfDay = new Date(today)
+    startOfDay.setHours(0, 0, 0, 0) // Start of day
+    const endOfDay = new Date(today)
+    endOfDay.setHours(23, 59, 59, 999) // End of day
 
     const todayAttendance = await prisma.attendance.findFirst({
       where: {
         studentId: studentProfile.id,
         checkInTime: {
-          gte: today
+          gte: startOfDay,
+          lte: endOfDay
         },
         OR: [
           { status: 'ACTIVE' },

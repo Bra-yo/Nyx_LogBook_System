@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -30,8 +30,16 @@ interface LogbookEntry {
       email: string
     }
   }
+  comments?: Array<{
+    competencyLevel: number
+    competencyLabel: string
+    competencyDescription: string
+    optionalComment?: string
+    status: string
+    createdAt: string
+  }>
   supervisorAssessment?: {
-    competencyScore: number
+    competencyLevel: number
     competencyLabel: string
     competencyDescription: string
     optionalComment?: string
@@ -41,30 +49,30 @@ interface LogbookEntry {
 
 const competencyLevels = [
   {
-    score: 1,
-    label: 'Novice',
-    description: 'Unable to perform task without continuous guidance.'
+    value: 1,
+    title: "Novice",
+    description: "Unable to perform task without continuous guidance.",
   },
   {
-    score: 2,
-    label: 'Beginner',
-    description: 'Performs task with substantial supervision.'
+    value: 2,
+    title: "Beginner",
+    description: "Performs task with substantial supervision.",
   },
   {
-    score: 3,
-    label: 'Developing Competence',
-    description: 'Performs task with moderate supervision.'
+    value: 3,
+    title: "Developing Competence",
+    description: "Performs task with moderate supervision.",
   },
   {
-    score: 4,
-    label: 'Competent',
-    description: 'Performs independently to acceptable workplace standards.'
+    value: 4,
+    title: "Competent",
+    description: "Performs independently to acceptable workplace standards.",
   },
   {
-    score: 5,
-    label: 'Proficient/Expert',
-    description: 'Performs independently, accurately, efficiently, and can mentor others.'
-  }
+    value: 5,
+    title: "Proficient/Expert",
+    description: "Performs independently, accurately, efficiently, and can mentor others.",
+  },
 ]
 
 interface CompetencyReviewFormProps {
@@ -74,12 +82,33 @@ interface CompetencyReviewFormProps {
 }
 
 export function CompetencyReviewForm({ selectedEntry, onAssessmentSubmit, submitting }: CompetencyReviewFormProps) {
-  const [selectedScore, setSelectedScore] = useState<number>(selectedEntry?.supervisorAssessment?.competencyScore || 3)
-  const [comment, setComment] = useState<string>(selectedEntry?.supervisorAssessment?.optionalComment || "")
+  const [selectedCompetencyLevel, setSelectedCompetencyLevel] = useState<number | null>(null)
+  const [comment, setComment] = useState<string>("")
+
+  // Debug: Log current state
+  console.log("Current selected competency level:", selectedCompetencyLevel)
+
+  // Preselect existing competency level when entry changes
+  useEffect(() => {
+    const latestComment = selectedEntry?.comments?.[0]
+    if (latestComment?.competencyLevel) {
+      setSelectedCompetencyLevel(latestComment.competencyLevel)
+    } else {
+      setSelectedCompetencyLevel(null)
+    }
+    setComment(selectedEntry?.supervisorAssessment?.optionalComment || "")
+  }, [selectedEntry])
 
   const handleSubmitAssessment = async () => {
     if (!selectedEntry) return
-    await onAssessmentSubmit(selectedEntry.id, selectedScore, comment, 'APPROVED')
+    if (!selectedCompetencyLevel) {
+      // Show error - for now use console.error, could add toast
+      console.error("Please select a competency level.")
+      alert("Please select a competency level.")
+      return
+    }
+    console.log("Submitting assessment with competency level:", selectedCompetencyLevel)
+    await onAssessmentSubmit(selectedEntry.id, selectedCompetencyLevel, comment, 'APPROVED')
   }
 
   const getStatusBadge = (status: string) => {
@@ -147,27 +176,31 @@ export function CompetencyReviewForm({ selectedEntry, onAssessmentSubmit, submit
           <Label className="text-base font-medium">Competency Level</Label>
           <div className="grid grid-cols-1 gap-3">
             {competencyLevels.map((level) => (
-              <div
-                key={level.score}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                  selectedScore === level.score
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:bg-muted'
+              <button
+                type="button"
+                key={level.value}
+                onClick={() => {
+                  console.log("Clicked competency level:", level.value)
+                  setSelectedCompetencyLevel(level.value)
+                }}
+                className={`p-4 border rounded-lg cursor-pointer transition text-left w-full ${
+                  selectedCompetencyLevel === level.value
+                    ? 'border-primary bg-primary/10 ring-2 ring-primary'
+                    : 'border-border hover:border-primary/60 hover:bg-accent/40'
                 }`}
-                onClick={() => setSelectedScore(level.score)}
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                    selectedScore === level.score ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'
+                    selectedCompetencyLevel === level.value ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'
                   }`}>
-                    <span className="font-bold">{level.score}</span>
+                    <span className="font-bold">{level.value}</span>
                   </div>
                   <div>
-                    <div className="font-medium">{level.label}</div>
+                    <div className="font-medium">{level.title}</div>
                     <div className="text-sm text-muted-foreground">{level.description}</div>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -192,7 +225,7 @@ export function CompetencyReviewForm({ selectedEntry, onAssessmentSubmit, submit
               variant="outline"
               onClick={() => {
                 setComment("")
-                setSelectedScore(3)
+                setSelectedCompetencyLevel(null)
               }}
               disabled={submitting}
             >
@@ -200,9 +233,9 @@ export function CompetencyReviewForm({ selectedEntry, onAssessmentSubmit, submit
             </Button>
             
             <Button
-              variant={selectedScore >= 3 ? "default" : "outline"}
+              variant={selectedCompetencyLevel && selectedCompetencyLevel >= 3 ? "default" : "outline"}
               onClick={() => handleSubmitAssessment()}
-              disabled={submitting}
+              disabled={submitting || !selectedEntry || !selectedCompetencyLevel}
             >
               {submitting ? (
                 <>

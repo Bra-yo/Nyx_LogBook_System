@@ -20,24 +20,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Student profile not found' }, { status: 404 })
     }
 
-    // Find active attendance session
-    const activeSession = await prisma.attendance.findFirst({
+    // Find today's attendance session (ACTIVE or COMPLETED)
+    const today = new Date()
+    const startOfDay = new Date(today)
+    startOfDay.setHours(0, 0, 0, 0) // Start of day
+    const endOfDay = new Date(today)
+    endOfDay.setHours(23, 59, 59, 999) // End of day
+
+    const todaySession = await prisma.attendance.findFirst({
       where: {
         studentId: studentProfile.id,
-        status: 'ACTIVE'
+        checkInTime: {
+          gte: startOfDay,
+          lte: endOfDay
+        },
+        OR: [
+          { status: 'ACTIVE' },
+          { status: 'COMPLETED' }
+        ]
       },
       include: {
         officeLocation: true
       }
     })
 
-    if (!activeSession) {
+    if (!todaySession) {
       return NextResponse.json({ hasActiveSession: false })
     }
 
     return NextResponse.json({
       hasActiveSession: true,
-      activeSession
+      activeSession: todaySession
     })
 
   } catch (error) {

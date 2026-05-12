@@ -37,6 +37,7 @@ import {
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 import { LogStatus } from "@/types"
+import { getLogbookDisplayStatus, getStatusBadgeProps } from "@/lib/logbook-status"
 
 interface LogbookEntry {
   id: string
@@ -45,6 +46,14 @@ interface LogbookEntry {
   date: string
   status: LogStatus
   supervisorComments: number
+  comments?: Array<{
+    status: string
+    createdAt: string
+  }>
+  assessments?: {
+    status: string
+    assessedAt?: string
+  }
 }
 
 interface LogbookResponse {
@@ -57,19 +66,11 @@ interface LogbookResponse {
   }
 }
 
-const statusColors = {
-  [LogStatus.APPROVED]: "bg-green-100 text-green-800",
-  [LogStatus.PENDING]: "bg-yellow-100 text-yellow-800", 
-  [LogStatus.REJECTED]: "bg-red-100 text-red-800",
-  [LogStatus.DRAFT]: "bg-gray-100 text-gray-800"
-}
-
-const statusLabels = {
-  [LogStatus.APPROVED]: "Approved",
-  [LogStatus.PENDING]: "Pending Review",
-  [LogStatus.REJECTED]: "Rejected",
-  [LogStatus.DRAFT]: "Draft"
-}
+const getStatusBadge = (entry: LogbookEntry) => {
+    const displayStatus = getLogbookDisplayStatus(entry)
+    const badgeProps = getStatusBadgeProps(displayStatus)
+    return <Badge className={badgeProps.className}>{badgeProps.label}</Badge>
+  }
 
 export default function LogbookPage() {
   const [logbookEntries, setLogbookEntries] = useState<LogbookEntry[]>([])
@@ -229,7 +230,11 @@ export default function LogbookPage() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline">
                     <Filter className="mr-2 h-4 w-4" />
-                    {filterStatus === "all" ? "All Status" : statusLabels[filterStatus]}
+                    {filterStatus === "all" ? "All Status" : 
+                   filterStatus === LogStatus.APPROVED ? "Approved" :
+                   filterStatus === LogStatus.PENDING ? "Pending Review" :
+                   filterStatus === LogStatus.REJECTED ? "Rejected" :
+                   filterStatus === LogStatus.DRAFT ? "Draft" : filterStatus}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -304,9 +309,7 @@ export default function LogbookPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={statusColors[entry.status]}>
-                          {statusLabels[entry.status]}
-                        </Badge>
+                        {getStatusBadge(entry)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

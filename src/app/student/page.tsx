@@ -6,13 +6,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { BookOpen, CheckCircle, Clock, TrendingUp, Plus, FileText, Calendar, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { getLogbookDisplayStatus } from "@/lib/logbook-status"
+import { LogStatus } from "@/types"
 
 interface LogbookEntry {
   id: string
   title: string
   description: string
   date: string
-  status: string
+  status: LogStatus
+  comments?: Array<{
+    status: string
+    createdAt: string
+  }>
+  assessments?: {
+    status: string
+    assessedAt?: string
+  }
 }
 
 interface DashboardStats {
@@ -48,13 +58,18 @@ export default function StudentDashboard() {
         const entriesData = await entriesResponse.json()
         const entries = entriesData.entries || []
         
-        // Calculate stats from real data
+        // Calculate stats from real data using status resolver
+        const entriesWithDisplayStatus = entries.map((e: LogbookEntry) => ({
+          ...e,
+          displayStatus: getLogbookDisplayStatus(e)
+        }))
+        
         const calculatedStats: DashboardStats = {
           totalEntries: entries.length,
-          approvedEntries: entries.filter((e: LogbookEntry) => e.status === 'APPROVED').length,
-          pendingReviews: entries.filter((e: LogbookEntry) => e.status === 'PENDING').length,
-          draftEntries: entries.filter((e: LogbookEntry) => e.status === 'DRAFT').length,
-          progressPercentage: entries.length > 0 ? Math.round((entries.filter((e: LogbookEntry) => e.status === 'APPROVED').length / entries.length) * 100) : 0
+          approvedEntries: entriesWithDisplayStatus.filter((e: any) => e.displayStatus === LogStatus.APPROVED).length,
+          pendingReviews: entriesWithDisplayStatus.filter((e: any) => e.displayStatus === LogStatus.PENDING).length,
+          draftEntries: entries.filter((e: LogbookEntry) => e.status === LogStatus.DRAFT).length,
+          progressPercentage: entries.length > 0 ? Math.round((entriesWithDisplayStatus.filter((e: any) => e.displayStatus === LogStatus.APPROVED).length / entries.length) * 100) : 0
         }
         
         setStats(calculatedStats)

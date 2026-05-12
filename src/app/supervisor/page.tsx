@@ -14,6 +14,8 @@ import {
   TrendingUp
 } from "lucide-react"
 import Link from "next/link"
+import { getLogbookDisplayStatus } from "@/lib/logbook-status"
+import { LogStatus } from "@/types"
 
 export default function SupervisorDashboard() {
   const [stats, setStats] = useState({
@@ -24,6 +26,99 @@ export default function SupervisorDashboard() {
   })
 
   const [recentActivity, setRecentActivity] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      // TEMPORARY: Supervisors can view all students. Restore assignment-based filtering later if required.
+      const [studentsResponse, reviewsResponse] = await Promise.all([
+        fetch('/api/supervisor/students?limit=100'), // Get all students
+        fetch('/api/supervisor/review?limit=10') // Get recent entries
+      ])
+
+      if (studentsResponse.ok) {
+        const studentsData = await studentsResponse.json()
+        setStats(prev => ({
+          ...prev,
+          totalStudents: studentsData.students?.length || 0
+        }))
+      }
+
+      if (reviewsResponse.ok) {
+        const reviewsData = await reviewsResponse.json()
+        const entries = reviewsData.entries || []
+        
+        // Calculate display status for all entries
+        const entriesWithDisplayStatus = entries.map((entry: any) => ({
+          ...entry,
+          displayStatus: getLogbookDisplayStatus(entry)
+        }))
+        
+        // Count pending reviews using display status
+        const pendingCount = entriesWithDisplayStatus.filter((entry: any) => entry.displayStatus === LogStatus.PENDING).length
+        
+        // Count approved today
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const approvedTodayCount = entriesWithDisplayStatus.filter((entry: any) => 
+          entry.displayStatus === LogStatus.APPROVED && 
+          new Date(entry.updatedAt) >= today
+        ).length
+
+        // Count weekly submissions
+        const weekAgo = new Date()
+        weekAgo.setDate(weekAgo.getDate() - 7)
+        const weeklyCount = entries.filter((entry: any) => 
+          new Date(entry.createdAt) >= weekAgo
+        ).length
+
+        setStats(prev => ({
+          ...prev,
+          pendingReviews: pendingCount,
+          approvedToday: approvedTodayCount,
+          weeklySubmissions: weeklyCount
+        }))
+
+        // Set recent activity using display status
+        setRecentActivity(entriesWithDisplayStatus.slice(0, 5).map((entry: any) => ({
+          id: entry.id,
+          studentName: entry.student.user.name,
+          entryTitle: entry.title,
+          status: entry.displayStatus.toLowerCase(),
+          submittedAt: new Date(entry.createdAt).toLocaleDateString()
+        })))
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout title="Supervisor Dashboard">
+        <div className="space-y-6">
+          <div className="animate-pulse">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                    <div className="h-8 bg-muted rounded w-1/2"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout title="Supervisor Dashboard">

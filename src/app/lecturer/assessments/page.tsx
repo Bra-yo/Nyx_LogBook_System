@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -35,11 +35,58 @@ import {
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 import { AssessmentStatus } from "@/types"
+import { getLogbookDisplayStatus, getSupervisorStatusBadgeProps } from "@/lib/logbook-status"
 
 export default function LecturerAssessmentsPage() {
   const [assessments, setAssessments] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<AssessmentStatus | "all">("all")
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchAssessments()
+  }, [searchTerm, filterStatus])
+
+  const fetchAssessments = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '100',
+        ...(searchTerm && { search: searchTerm }),
+        ...(filterStatus !== 'all' && { status: filterStatus.toLowerCase() })
+      })
+
+      const response = await fetch(`/api/lecturer/assessments?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        // Transform logbook entries to assessment format
+        const transformedAssessments = (data.entries || []).map((entry: any) => ({
+          id: entry.id,
+          studentName: entry.student.user.name,
+          studentEmail: entry.student.user.email,
+          entryTitle: entry.title,
+          entryDescription: entry.description,
+          date: entry.date,
+          supervisorStatus: entry.comments?.length > 0 ? entry.comments[0].status : null,
+          status: entry.assessments ? 'COMPLETED' : 'NOT_ASSESSED',
+          technicalScore: entry.assessments?.technicalScore || null,
+          communicationScore: entry.assessments?.communicationScore || null,
+          professionalismScore: entry.assessments?.professionalismScore || null,
+          overallScore: entry.assessments?.overallScore || null
+        }))
+        setAssessments(transformedAssessments)
+      } else {
+        console.error('Failed to fetch assessments:', response.status)
+        setAssessments([])
+      }
+    } catch (error) {
+      console.error('Error fetching assessments:', error)
+      setAssessments([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const statusColors = {
     [AssessmentStatus.NOT_ASSESSED]: "bg-gray-100 text-gray-800",
@@ -196,16 +243,23 @@ export default function LecturerAssessmentsPage() {
                   <TableHead>Student</TableHead>
                   <TableHead>Entry</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Supervisor Status</TableHead>
+                  <TableHead>Lecturer Status</TableHead>
                   <TableHead>Scores</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAssessments.length === 0 ? (
+                {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      <div className="text-gray-600">No assessments found.</div>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <div className="text-gray-600">Loading assessments...</div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredAssessments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <div className="text-gray-600">No student logbook entries available for assessment.</div>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -227,6 +281,16 @@ export default function LecturerAssessmentsPage() {
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         {formatDate(assessment.date)}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {assessment.supervisorStatus ? (
+                        (() => {
+                          const badgeProps = getSupervisorStatusBadgeProps(assessment.supervisorStatus)
+                          return <Badge className={badgeProps.className}>{badgeProps.label}</Badge>
+                        })()
+                      ) : (
+                        <Badge variant="outline">Not Reviewed</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge className={statusColors[assessment.status as AssessmentStatus]}>

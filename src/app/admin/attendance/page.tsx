@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -14,7 +15,8 @@ import {
   Activity,
   MapPin,
   ChevronDown,
-  Filter
+  Filter,
+  Settings
 } from "lucide-react"
 import { 
   BarChart, 
@@ -33,13 +35,38 @@ import {
 
 export default function AdminAttendancePage() {
   const [analytics, setAnalytics] = useState<any>(null)
+  const [officeLocations, setOfficeLocations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState('month')
   const [selectedDepartment, setSelectedDepartment] = useState('all')
 
   useEffect(() => {
     fetchAnalytics()
+    fetchOfficeLocations()
   }, [selectedPeriod, selectedDepartment])
+
+  const fetchOfficeLocations = async () => {
+    try {
+      const response = await fetch('/api/admin/attendance/locations')
+      if (response.ok) {
+        const data = await response.json()
+        // Handle different response shapes safely
+        const locations = data.records || data.locations || data.data || []
+        setOfficeLocations(locations)
+      } else {
+        const text = await response.text()
+        console.error('Failed to fetch office locations:', text)
+        try {
+          const errorData = JSON.parse(text)
+          console.error('Error details:', errorData)
+        } catch {
+          console.error('Non-JSON error response:', text)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching office locations:', error)
+    }
+  }
 
   const fetchAnalytics = async () => {
     setLoading(true)
@@ -50,6 +77,13 @@ export default function AdminAttendancePage() {
       })
       
       const response = await fetch(`/api/admin/attendance/analytics?${params}`)
+      
+      if (!response.ok) {
+        const text = await response.text()
+        console.error('Analytics API error:', text)
+        throw new Error(`HTTP ${response.status}: ${text}`)
+      }
+      
       const data = await response.json()
       setAnalytics(data)
     } catch (error) {
@@ -105,6 +139,12 @@ export default function AdminAttendancePage() {
             <Button variant="outline" className="gap-2">
               <Filter className="h-4 w-4" />
               Filters
+            </Button>
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/admin/attendance/settings">
+                <Settings className="h-4 w-4" />
+                Attendance Settings
+              </Link>
             </Button>
             <Button className="gap-2">
               <Calendar className="h-4 w-4" />
@@ -267,18 +307,50 @@ export default function AdminAttendancePage() {
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Office Locations
-              </CardTitle>
-              <CardDescription>
-                Attendance by location
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Office Locations
+                  </CardTitle>
+                  <CardDescription>
+                    Active office locations for attendance tracking
+                  </CardDescription>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/admin/attendance/settings">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage Locations
+                  </Link>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                No office location data available yet
-              </div>
+              {officeLocations.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No office locations configured yet.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {officeLocations.map((location) => (
+                    <div key={location.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <div className="font-medium">{location.name}</div>
+                        <div className="text-sm text-muted-foreground">{location.address}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {location.latitude}, {location.longitude} • {location.radius}m radius
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          QR Data: {location.qrCodeData}
+                        </div>
+                      </div>
+                      <Badge variant={location.isActive ? "default" : "secondary"}>
+                        {location.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -332,9 +404,11 @@ export default function AdminAttendancePage() {
                   <Users className="h-4 w-4 mr-2" />
                   Manage Students
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Manage Locations
+                <Button asChild variant="outline" className="w-full justify-start">
+                  <Link href="/admin/attendance/settings">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Manage Locations
+                  </Link>
                 </Button>
                 <Button variant="outline" className="w-full justify-start">
                   <Calendar className="h-4 w-4 mr-2" />

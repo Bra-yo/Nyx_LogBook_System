@@ -101,7 +101,7 @@ export default function SupervisorAttendancePage() {
           <div>
             <h2 className="text-2xl font-bold">Student Attendance</h2>
             <p className="text-muted-foreground">
-              Monitor attendance of your assigned students
+              Monitor attendance of all students
             </p>
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function SupervisorAttendancePage() {
             <CardContent>
               <div className="text-2xl font-bold">{loading ? '...' : records.length}</div>
               <p className="text-xs text-muted-foreground">
-                Assigned students' attendance
+                All students' attendance
               </p>
             </CardContent>
           </Card>
@@ -225,7 +225,7 @@ export default function SupervisorAttendancePage() {
               </div>
             ) : records.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No attendance records found for your assigned students
+                No attendance records found for any students
               </div>
             ) : (
               <Table>

@@ -35,30 +35,39 @@ export async function POST(request: NextRequest) {
     // Get normalized token from QR data
     const qrToken = qrData.qrCodeData || qrData.qrToken || qrData.token || qrData.officeToken || qrData.raw
 
-    // For plain text QR codes, treat them as test tokens
+    // For plain text QR codes, find matching office location by qrCodeData
     if (!qrData.isJson && qrToken.startsWith('NYX_ATTENDANCE_TEST_QR_')) {
-      // For test QR codes, create a mock office location or use existing test location
-      const testOfficeLocation = await prisma.officeLocation.findFirst({
-        where: { isActive: true }
+      // Find office location that matches the QR code data exactly
+      const matchingOfficeLocation = await prisma.officeLocation.findFirst({
+        where: { 
+          isActive: true,
+          qrCodeData: qrToken 
+        }
       })
       
-      if (!testOfficeLocation) {
-        return NextResponse.json({ error: 'No active office locations found for test QR codes' }, { status: 400 })
+      if (!matchingOfficeLocation) {
+        return NextResponse.json({ 
+          success: false,
+          message: 'Invalid or unregistered attendance QR code. Please contact admin to activate this QR code.'
+        }, { status: 400 })
       }
       
-      // Override qrData with test office location data
+      // Override qrData with matching office location data
       qrData = {
         ...qrData,
         type: 'attendance',
-        locationId: testOfficeLocation.id,
-        locationName: testOfficeLocation.name,
-        latitude: testOfficeLocation.latitude,
-        longitude: testOfficeLocation.longitude,
-        radius: testOfficeLocation.radius,
+        locationId: matchingOfficeLocation.id,
+        locationName: matchingOfficeLocation.name,
+        latitude: matchingOfficeLocation.latitude,
+        longitude: matchingOfficeLocation.longitude,
+        radius: matchingOfficeLocation.radius,
         timestamp: Date.now()
       }
     } else if (!QRCodeService.validateQRCodeData(qrData)) {
-      return NextResponse.json({ error: 'Invalid or unregistered attendance QR code' }, { status: 400 })
+      return NextResponse.json({ 
+        success: false,
+        message: 'Invalid or unregistered attendance QR code. Please contact admin to activate this QR code.'
+      }, { status: 400 })
     }
 
     // Get student profile

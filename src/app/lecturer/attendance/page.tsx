@@ -14,13 +14,17 @@ export default function LecturerAttendancePage() {
 
   const fetchAttendanceRecords = async () => {
     try {
-      const response = await fetch('/api/attendance/history')
+      const response = await fetch('/api/lecturer/attendance?limit=100')
       if (response.ok) {
         const data = await response.json()
-        setAttendanceRecords(data.entries || [])
+        setAttendanceRecords(data.records || [])
+      } else {
+        console.error('Failed to fetch attendance records:', response.status)
+        setAttendanceRecords([])
       }
     } catch (error) {
       console.error('Failed to fetch attendance records:', error)
+      setAttendanceRecords([])
     } finally {
       setLoading(false)
     }
@@ -38,20 +42,20 @@ export default function LecturerAttendancePage() {
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Attendance Management</h1>
-        <p className="text-gray-600 mt-2">View attendance records for your assigned students</p>
+        <p className="text-gray-600 mt-2">View attendance records for all students</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Student Attendance</CardTitle>
           <CardDescription>
-            Attendance records for students assigned to you
+            Attendance records for all students
           </CardDescription>
         </CardHeader>
         <CardContent>
           {attendanceRecords.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-600">No attendance records found for your assigned students.</p>
+              <p className="text-gray-600">No attendance records found for any students.</p>
             </div>
           ) : (
             <div className="space-y-4">
