@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -24,6 +24,13 @@ interface Department {
   }[]
 }
 
+type TaskInput = {
+  title: string
+  description: string
+  expectedOutput: string
+  dueDate: string
+}
+
 export default function NewMilestonePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -36,6 +43,15 @@ export default function NewMilestonePage() {
     learnerId: 'unassigned',
     departmentId: 'none'
   })
+
+  const [tasks, setTasks] = useState<TaskInput[]>([
+    {
+      title: '',
+      description: '',
+      expectedOutput: '',
+      dueDate: '',
+    },
+  ])
 
   useEffect(() => {
     fetchDepartments()
@@ -53,15 +69,56 @@ export default function NewMilestonePage() {
     }
   }
 
+  const addTask = () => {
+    setTasks(prev => [...prev, {
+      title: '',
+      description: '',
+      expectedOutput: '',
+      dueDate: '',
+    }])
+  }
+
+  const removeTask = (index: number) => {
+    if (tasks.length > 1) {
+      setTasks(prev => prev.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateTask = (index: number, field: keyof TaskInput, value: string) => {
+    setTasks(prev => prev.map((task, i) =>
+      i === index ? { ...task, [field]: value } : task
+    ))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      // Validate tasks
+      if (tasks.length === 0) {
+        toast.error('At least one task is required')
+        setLoading(false)
+        return
+      }
+
+      const invalidTasks = tasks.filter(task => !task.title.trim())
+      if (invalidTasks.length > 0) {
+        toast.error('All tasks must have a title')
+        setLoading(false)
+        return
+      }
+
       const submitData = {
         ...formData,
         departmentId: formData.departmentId === 'none' ? '' : formData.departmentId,
-        learnerId: formData.learnerId === 'unassigned' ? '' : formData.learnerId,
+        learnerId: formData.learnerId === 'unassigned' || formData.learnerId === 'no-learners' ? '' : formData.learnerId,
+        tasks: tasks.map(task => ({
+          title: task.title.trim(),
+          description: task.description.trim() || null,
+          expectedOutput: task.expectedOutput.trim() || null,
+          dueDate: task.dueDate || null,
+        })),
       }
 
       const response = await fetch('/api/supervisor/milestones', {
@@ -195,13 +252,97 @@ export default function NewMilestonePage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unassigned">No specific learner</SelectItem>
-                  {selectedDepartment?.students.map((student) => (
-                    <SelectItem key={student.id} value={student.id}>
-                      {student.user.name} ({student.regNumber})
-                    </SelectItem>
-                  ))}
+                  {(selectedDepartment?.students ?? []).length === 0 ? (
+                    <SelectItem value="no-learners" disabled>No learners found in this department</SelectItem>
+                  ) : (
+                    (selectedDepartment?.students ?? []).map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.user?.name ?? "Unnamed Learner"} ({student.regNumber})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Milestone Tasks Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Milestone Tasks / Deliverables</h3>
+                  <p className="text-sm text-muted-foreground">Define the specific tasks the learner needs to complete</p>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addTask}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Task
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {tasks.map((task, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="flex items-start justify-between mb-4">
+                      <h4 className="font-medium">Task {index + 1}</h4>
+                      {tasks.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeTask(index)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor={`task-title-${index}`}>Task Title *</Label>
+                        <Input
+                          id={`task-title-${index}`}
+                          value={task.title}
+                          onChange={(e) => updateTask(index, 'title', e.target.value)}
+                          placeholder="Enter task title"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`task-dueDate-${index}`}>Due Date</Label>
+                        <Input
+                          id={`task-dueDate-${index}`}
+                          type="date"
+                          value={task.dueDate}
+                          onChange={(e) => updateTask(index, 'dueDate', e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mt-4">
+                      <Label htmlFor={`task-description-${index}`}>Task Description</Label>
+                      <Textarea
+                        id={`task-description-${index}`}
+                        value={task.description}
+                        onChange={(e) => updateTask(index, 'description', e.target.value)}
+                        placeholder="Describe what the learner needs to accomplish"
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="space-y-2 mt-4">
+                      <Label htmlFor={`task-expectedOutput-${index}`}>Expected Output</Label>
+                      <Textarea
+                        id={`task-expectedOutput-${index}`}
+                        value={task.expectedOutput}
+                        onChange={(e) => updateTask(index, 'expectedOutput', e.target.value)}
+                        placeholder="What should the learner deliver? (e.g., report, code, presentation)"
+                        rows={2}
+                      />
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
 
             <div className="flex justify-end gap-4">

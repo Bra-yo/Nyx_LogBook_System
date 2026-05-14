@@ -89,13 +89,31 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, startDate, endDate, learnerId, departmentId } = body
+    const { title, description, startDate, endDate, learnerId, departmentId, tasks } = body
 
     if (!title || !startDate || !endDate) {
       return NextResponse.json(
         { message: 'Title, start date, and end date are required' },
         { status: 400 }
       )
+    }
+
+    // Validate tasks
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      return NextResponse.json(
+        { message: 'At least one task is required' },
+        { status: 400 }
+      )
+    }
+
+    // Validate each task has a title
+    for (const task of tasks) {
+      if (!task.title || typeof task.title !== 'string' || !task.title.trim()) {
+        return NextResponse.json(
+          { message: 'All tasks must have a non-empty title' },
+          { status: 400 }
+        )
+      }
     }
 
     // Validate dates
@@ -130,7 +148,15 @@ export async function POST(request: NextRequest) {
         endDate: end,
         mentorId: supervisor.id,
         learnerId: learnerId || null,
-        departmentId: departmentId || null
+        departmentId: departmentId || null,
+        tasks: {
+          create: tasks.map(task => ({
+            title: task.title,
+            description: task.description,
+            expectedOutput: task.expectedOutput,
+            dueDate: task.dueDate ? new Date(task.dueDate) : null,
+          })),
+        },
       },
       include: {
         learner: {
@@ -149,7 +175,17 @@ export async function POST(request: NextRequest) {
               select: { name: true }
             }
           }
-        }
+        },
+        tasks: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            expectedOutput: true,
+            dueDate: true,
+            status: true
+          }
+        },
       }
     })
 
