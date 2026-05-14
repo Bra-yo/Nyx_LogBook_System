@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { MapPin, QrCode, Plus, Edit, Trash2, Download } from 'lucide-react'
+import { MapPin, QrCode, Plus, Edit, Trash2, Download, Printer } from 'lucide-react'
 import { QRCodeService } from '@/lib/qr-code'
 import dynamic from "next/dynamic"
+import Link from "next/link"
 
 const MapPicker = dynamic(() => import("@/components/map-picker"), {
   ssr: false,
@@ -369,6 +370,17 @@ export default function AdminAttendanceSettingsPage() {
                       </div>
 
                       <div className="flex gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="flex-1"
+                        >
+                          <Link href={`/admin/attendance/settings/${location.id}/print`}>
+                            <Printer className="h-4 w-4 mr-2" />
+                            Print QR
+                          </Link>
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"

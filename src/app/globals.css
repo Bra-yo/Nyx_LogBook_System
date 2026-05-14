@@ -203,3 +203,27 @@
   --sidebar-border: 217.2 32.6% 17.5%;
   --sidebar-ring: 224.3 76.3% 94.1%;
 }
+
+/* Print Styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-card {
+    box-shadow: none !important;
+    border: none !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+}

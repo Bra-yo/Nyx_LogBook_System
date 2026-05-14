@@ -15,7 +15,8 @@ import {
   Calendar,
   Bell,
   BarChart3,
-  Clock
+  Clock,
+  QrCode
 } from "lucide-react"
 import { UserRole } from "@/types"
 
@@ -67,6 +68,11 @@ const navigationItems = {
       title: "Dashboard",
       href: "/supervisor",
       icon: LayoutDashboard,
+    },
+    {
+      title: "Office QR Code",
+      href: "/supervisor/office-location/qr/print",
+      icon: QrCode,
     },
     {
       title: "Milestones",
