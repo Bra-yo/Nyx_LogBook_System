@@ -33,8 +33,8 @@ export default function NewMilestonePage() {
     description: '',
     startDate: '',
     endDate: '',
-    learnerId: '',
-    departmentId: ''
+    learnerId: 'unassigned',
+    departmentId: 'none'
   })
 
   useEffect(() => {
@@ -58,12 +58,18 @@ export default function NewMilestonePage() {
     setLoading(true)
 
     try {
+      const submitData = {
+        ...formData,
+        departmentId: formData.departmentId === 'none' ? '' : formData.departmentId,
+        learnerId: formData.learnerId === 'unassigned' ? '' : formData.learnerId,
+      }
+
       const response = await fetch('/api/supervisor/milestones', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       })
 
       if (response.ok) {
@@ -124,14 +130,14 @@ export default function NewMilestonePage() {
                   onValueChange={(value) => setFormData(prev => ({
                     ...prev,
                     departmentId: value,
-                    learnerId: '' // Reset learner when department changes
+                    learnerId: 'unassigned' // Reset learner when department changes
                   }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select department (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No department</SelectItem>
+                    <SelectItem value="none">No department</SelectItem>
                     {departments.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
@@ -182,13 +188,13 @@ export default function NewMilestonePage() {
               <Select
                 value={formData.learnerId}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, learnerId: value }))}
-                disabled={!formData.departmentId}
+                disabled={formData.departmentId === 'none' || !formData.departmentId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={formData.departmentId ? "Select learner (optional)" : "Select department first"} />
+                  <SelectValue placeholder={formData.departmentId && formData.departmentId !== 'none' ? "Select learner (optional)" : "Select department first"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No specific learner</SelectItem>
+                  <SelectItem value="unassigned">No specific learner</SelectItem>
                   {selectedDepartment?.students.map((student) => (
                     <SelectItem key={student.id} value={student.id}>
                       {student.user.name} ({student.regNumber})
