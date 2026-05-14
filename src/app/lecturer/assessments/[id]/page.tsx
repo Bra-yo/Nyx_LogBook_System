@@ -119,7 +119,7 @@ export default function LecturerAssessmentDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Assessment Entry</h1>
-            <p className="text-muted-foreground">Review and evaluate student logbook entry</p>
+            <p className="text-muted-foreground">Review and evaluate learner logbook entry</p>
           </div>
           <Link href="/lecturer/assessments">
             <Button variant="outline">

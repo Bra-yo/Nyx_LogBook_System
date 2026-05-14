@@ -50,63 +50,71 @@ model Department {
   lecturers     LecturerProfile[]
   students      StudentProfile[]
   supervisors   SupervisorProfile[]
+  Milestone     Milestone[]
 
   @@map("departments")
 }
 
 model StudentProfile {
-  id                  String               @id @default(cuid())
-  userId              String               @unique
-  regNumber           String               @unique
-  departmentId        String
-  supervisorId        String?
-  lecturerId          String?
-  year                Int
-  semester            Int
-  internshipCompany   String?
-  internshipStartDate DateTime?
-  internshipEndDate   DateTime?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  assessments         LecturerAssessment[]
-  logbookEntries      LogbookEntry[]
-  attendanceRecords   Attendance[]
-  department          Department           @relation(fields: [departmentId], references: [id])
-  lecturer            LecturerProfile?     @relation(fields: [lecturerId], references: [id])
-  supervisor          SupervisorProfile?   @relation(fields: [supervisorId], references: [id])
-  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                     String                   @id @default(cuid())
+  userId                 String                   @unique
+  regNumber              String                   @unique
+  departmentId           String
+  supervisorId           String?
+  lecturerId             String?
+  year                   Int
+  semester               Int
+  internshipCompany      String?
+  internshipStartDate    DateTime?
+  internshipEndDate      DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  assessments            LecturerAssessment[]
+  logbookEntries         LogbookEntry[]
+  attendanceRecords      Attendance[]
+  department             Department               @relation(fields: [departmentId], references: [id])
+  lecturer               LecturerProfile?         @relation(fields: [lecturerId], references: [id])
+  supervisor             SupervisorProfile?       @relation(fields: [supervisorId], references: [id])
+  user                   User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Milestone              Milestone[]
+  WeeklyMentorTaskReview WeeklyMentorTaskReview[]
 
   @@map("student_profiles")
 }
 
 model SupervisorProfile {
-  id           String              @id @default(cuid())
-  userId       String              @unique
-  departmentId String
-  title        String?
-  company      String?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  students     StudentProfile[]
-  comments     SupervisorComment[]
-  department   Department          @relation(fields: [departmentId], references: [id])
-  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                     String                      @id @default(cuid())
+  userId                 String                      @unique
+  departmentId           String
+  title                  String?
+  company                String?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  students               StudentProfile[]
+  comments               SupervisorComment[]
+  officeLocations        OfficeLocation[]
+  milestoneAssessments   MilestoneMentorAssessment[]
+  department             Department                  @relation(fields: [departmentId], references: [id])
+  user                   User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Milestone              Milestone[]
+  WeeklyMentorTaskReview WeeklyMentorTaskReview[]
 
   @@map("supervisor_profiles")
 }
 
 model LecturerProfile {
-  id           String               @id @default(cuid())
-  userId       String               @unique
-  departmentId String
-  title        String?
-  office       String?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  assessments  LecturerAssessment[]
-  department   Department           @relation(fields: [departmentId], references: [id])
-  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  students     StudentProfile[]
+  id                   String                        @id @default(cuid())
+  userId               String                        @unique
+  departmentId         String
+  title                String?
+  office               String?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+  assessments          LecturerAssessment[]
+  milestoneAssessments MilestoneLecturerAssessment[]
+  department           Department                    @relation(fields: [departmentId], references: [id])
+  user                 User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students             StudentProfile[]
 
   @@map("lecturer_profiles")
 }
@@ -125,23 +133,27 @@ model AdminProfile {
 }
 
 model LogbookEntry {
-  id          String              @id @default(cuid())
-  studentId   String
-  title       String
-  description String
-  activities  String
-  challenges  String?
-  learnings   String?
-  date        DateTime
-  status      LogStatus           @default(DRAFT)
-  attachments String[]            @default([])
-  submittedAt DateTime?
-  reviewedAt  DateTime?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  assessments LecturerAssessment?
-  student     StudentProfile      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  comments    SupervisorComment[]
+  id              String              @id @default(cuid())
+  studentId       String
+  milestoneId     String?
+  milestoneTaskId String?
+  title           String
+  description     String
+  activities      String
+  challenges      String?
+  learnings       String?
+  date            DateTime
+  status          LogStatus           @default(DRAFT)
+  attachments     String[]            @default([])
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  assessments     LecturerAssessment?
+  student         StudentProfile      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  comments        SupervisorComment[]
+  milestone       Milestone?          @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  milestoneTask   MilestoneTask?      @relation(fields: [milestoneTaskId], references: [id])
 
   @@map("logbook_entries")
 }
@@ -221,17 +233,19 @@ model Attendance {
 }
 
 model OfficeLocation {
-  id         String       @id @default(cuid())
+  id         String             @id @default(cuid())
   name       String
   address    String
   latitude   Float
   longitude  Float
-  radius     Float        @default(100) // meters
-  isActive   Boolean      @default(true)
-  qrCodeData String       @unique
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  radius     Float              @default(100) // meters
+  isActive   Boolean            @default(true)
+  qrCodeData String             @unique
+  mentorId   String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
   attendance Attendance[]
+  mentor     SupervisorProfile? @relation(fields: [mentorId], references: [id], onDelete: SetNull)
 
   @@map("office_locations")
 }
@@ -251,9 +265,124 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+model Milestone {
+  id           String          @id @default(cuid())
+  learnerId    String?
+  mentorId     String?
+  departmentId String?
+  title        String
+  description  String?
+  startDate    DateTime
+  endDate      DateTime
+  status       MilestoneStatus @default(PENDING)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  learner            StudentProfile?              @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  mentor             SupervisorProfile?           @relation(fields: [mentorId], references: [id], onDelete: SetNull)
+  department         Department?                  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  entries            LogbookEntry[]
+  tasks              MilestoneTask[]
+  mentorAssessment   MilestoneMentorAssessment?
+  lecturerAssessment MilestoneLecturerAssessment?
+  weeklyReviews      WeeklyMentorTaskReview[]
+
+  @@map("milestones")
+}
+
+model MilestoneTask {
+  id             String              @id @default(cuid())
+  milestoneId    String
+  title          String
+  description    String?
+  expectedOutput String?
+  dueDate        DateTime?
+  status         MilestoneTaskStatus @default(PENDING)
+
+  milestone     Milestone                @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  entries       LogbookEntry[]
+  weeklyReviews WeeklyMentorTaskReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("milestone_tasks")
+}
+
+model MilestoneMentorAssessment {
+  id          String @id @default(cuid())
+  milestoneId String @unique
+  mentorId    String
+
+  competencyLevel Int
+  status          SupervisorReviewStatus @default(PENDING)
+  comment         String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  milestone Milestone         @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  mentor    SupervisorProfile @relation(fields: [mentorId], references: [id])
+
+  @@map("milestone_mentor_assessments")
+}
+
+model MilestoneLecturerAssessment {
+  id          String @id @default(cuid())
+  milestoneId String @unique
+  lecturerId  String
+
+  technicalScore       Int?
+  communicationScore   Int?
+  professionalismScore Int?
+  overallScore         Int?
+  feedback             String?
+  status               String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  milestone Milestone       @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  lecturer  LecturerProfile @relation(fields: [lecturerId], references: [id])
+
+  @@map("milestone_lecturer_assessments")
+}
+
+model WeeklyMentorTaskReview {
+  id              String  @id @default(cuid())
+  milestoneId     String
+  milestoneTaskId String?
+  mentorId        String
+  learnerId       String
+
+  weekStartDate DateTime
+  weekEndDate   DateTime
+
+  competencyLevel Int
+  comment         String?
+  status          SupervisorReviewStatus
+
+  milestone     Milestone         @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  milestoneTask MilestoneTask?    @relation(fields: [milestoneTaskId], references: [id])
+  mentor        SupervisorProfile @relation(fields: [mentorId], references: [id])
+  learner       StudentProfile    @relation(fields: [learnerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("weekly_mentor_task_reviews")
+}
+
 enum AssessmentStatus {
   NOT_ASSESSED
   IN_PROGRESS
+  COMPLETED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  MENTOR_REVIEWED
+  LECTURER_REVIEWED
   COMPLETED
 }
 
@@ -282,4 +411,11 @@ enum SupervisorReviewStatus {
   NEEDS_REVISION
   REJECTED
   PENDING
+}
+
+enum MilestoneTaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  VERIFIED
 }

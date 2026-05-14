@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
+import { TimeGreeting } from "@/components/common/time-greeting"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { 
@@ -30,6 +32,7 @@ function getLecturerAssessment(entry: any) {
 }
 
 export default function LecturerDashboard() {
+  const { data: session } = useSession()
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalAssessments: 0,
@@ -128,7 +131,7 @@ export default function LecturerDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Welcome back, Lecturer!</h2>
+            <TimeGreeting userName={session?.user?.name} />
             <p className="text-muted-foreground">Assess student performance and provide academic guidance</p>
           </div>
           <Link href="/lecturer/assessments">
@@ -143,7 +146,7 @@ export default function LecturerDashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Learners</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>

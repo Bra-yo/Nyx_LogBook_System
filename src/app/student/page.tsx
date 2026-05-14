@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
+import { TimeGreeting } from "@/components/common/time-greeting"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { BookOpen, CheckCircle, Clock, TrendingUp, Plus, FileText, Calendar, Loader2 } from "lucide-react"
@@ -34,6 +36,7 @@ interface DashboardStats {
 }
 
 export default function StudentDashboard() {
+  const { data: session } = useSession()
   const [stats, setStats] = useState<DashboardStats>({
     totalEntries: 0,
     approvedEntries: 0,
@@ -83,11 +86,11 @@ export default function StudentDashboard() {
   }
 
   return (
-    <DashboardLayout title="Student Dashboard">
+    <DashboardLayout title="Learner Dashboard">
       <div className="space-y-6">
         {/* Quick Actions */}
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Welcome back, Student!</h2>
+          <TimeGreeting userName={session?.user?.name} />
           <Link href="/student/logbook/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -132,7 +135,7 @@ export default function StudentDashboard() {
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">{loading ? '...' : stats.pendingReviews}</div>
               <p className="text-xs text-muted-foreground">
-                Awaiting supervisor review
+                Awaiting mentor review
               </p>
             </CardContent>
           </Card>

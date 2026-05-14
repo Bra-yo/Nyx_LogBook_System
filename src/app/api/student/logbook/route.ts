@@ -11,6 +11,8 @@ const logbookSchema = z.object({
   challenges: z.string().optional(),
   learnings: z.string().optional(),
   date: z.string().transform((str) => new Date(str)),
+  milestoneId: z.string().min(1, 'Milestone selection is required'),
+  milestoneTaskId: z.string().min(1, 'Task selection is required'),
   status: z.enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED']).default('PENDING'),
   attachments: z.array(z.string()).default([])
 })
@@ -168,10 +170,26 @@ export async function POST(request: NextRequest) {
       }, { status: 403 })
     }
 
+    // Validate milestone and task
+    const task = await prisma.milestoneTask.findUnique({
+      where: { id: validatedData.milestoneTaskId },
+      include: { milestone: true }
+    })
+
+    if (!task) {
+      return NextResponse.json({ error: 'Selected task not found' }, { status: 400 })
+    }
+
+    if (task.milestone.id !== validatedData.milestoneId) {
+      return NextResponse.json({ error: 'Selected task does not belong to the selected milestone' }, { status: 400 })
+    }
+
     // Create logbook entry
     const entry = await prisma.logbookEntry.create({
       data: {
         studentId: studentProfile.id,
+        milestoneId: validatedData.milestoneId,
+        milestoneTaskId: validatedData.milestoneTaskId,
         title: validatedData.title,
         description: validatedData.description,
         activities: validatedData.activities,

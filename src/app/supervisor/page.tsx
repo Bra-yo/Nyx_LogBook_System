@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
+import { TimeGreeting } from "@/components/common/time-greeting"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { 
@@ -18,6 +20,7 @@ import { getLogbookDisplayStatus } from "@/lib/logbook-status"
 import { LogStatus } from "@/types"
 
 export default function SupervisorDashboard() {
+  const { data: session } = useSession()
   const [stats, setStats] = useState({
     totalStudents: 0,
     pendingReviews: 0,
@@ -121,13 +124,13 @@ export default function SupervisorDashboard() {
   }
 
   return (
-    <DashboardLayout title="Supervisor Dashboard">
+    <DashboardLayout title="Mentor Dashboard">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Welcome back, Supervisor!</h2>
-            <p className="text-muted-foreground">Review and manage student logbook entries</p>
+            <TimeGreeting userName={session?.user?.name} />
+            <p className="text-muted-foreground">Review and manage learner logbook entries</p>
           </div>
           <Link href="/supervisor/review">
             <Button>
@@ -141,13 +144,13 @@ export default function SupervisorDashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Learners</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalStudents}</div>
               <p className="text-xs text-muted-foreground">
-                Under your supervision
+                Assigned Learners
               </p>
             </CardContent>
           </Card>
@@ -197,7 +200,7 @@ export default function SupervisorDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Recent Submissions</CardTitle>
-              <CardDescription>Latest student logbook entries</CardDescription>
+              <CardDescription>Latest learner logbook entries</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

@@ -133,7 +133,7 @@ export default function LecturerReportsPage() {
             <CardContent>
               <div className="text-2xl font-bold">24</div>
               <p className="text-xs text-muted-foreground">
-                Under your supervision
+                Assigned Learners
               </p>
             </CardContent>
           </Card>

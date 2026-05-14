@@ -8,12 +8,24 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon, Save, Send, ArrowLeft } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+
+interface Milestone {
+  id: string
+  title: string
+  description: string | null
+  tasks: {
+    id: string
+    title: string
+    description: string | null
+  }[]
+}
 
 export default function NewLogbookEntry() {
   const router = useRouter()
@@ -24,14 +36,19 @@ export default function NewLogbookEntry() {
     challenges: "",
     learnings: "",
     date: new Date(),
+    milestoneId: "",
+    milestoneTaskId: "",
     attachments: [] as string[]
   })
+  const [milestones, setMilestones] = useState<Milestone[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDraft, setIsDraft] = useState(true)
   const [checkingAttendance, setCheckingAttendance] = useState(true)
+  const [loadingMilestones, setLoadingMilestones] = useState(true)
 
   useEffect(() => {
     checkAttendanceStatus()
+    fetchMilestones()
   }, [])
 
   const checkAttendanceStatus = async () => {
@@ -54,10 +71,33 @@ export default function NewLogbookEntry() {
     }
   }
 
+  const fetchMilestones = async () => {
+    try {
+      setLoadingMilestones(true)
+      const response = await fetch('/api/student/milestones')
+      if (response.ok) {
+        const data = await response.json()
+        setMilestones(data.milestones || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch milestones:', error)
+    } finally {
+      setLoadingMilestones(false)
+    }
+  }
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }))
+  }
+
+  const handleMilestoneChange = (milestoneId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      milestoneId,
+      milestoneTaskId: "" // Reset task when milestone changes
     }))
   }
 
@@ -70,7 +110,15 @@ export default function NewLogbookEntry() {
     }
   }
 
+  const selectedMilestone = milestones.find(m => m.id === formData.milestoneId)
+  const canSubmit = formData.milestoneId && formData.milestoneTaskId && formData.title && formData.description && formData.activities
+
   const handleSubmit = async (saveAsDraft: boolean = true) => {
+    if (!saveAsDraft && !canSubmit) {
+      alert('Please fill in all required fields including milestone and task selection')
+      return
+    }
+
     setIsSubmitting(true)
     setIsDraft(saveAsDraft)
 
@@ -156,6 +204,78 @@ export default function NewLogbookEntry() {
         {/* Form */}
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
+            {/* Milestone and Task Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Milestone & Task Selection</CardTitle>
+                <CardDescription>
+                  Select the milestone and specific task you're working on
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {loadingMilestones ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <span className="ml-2">Loading milestones...</span>
+                  </div>
+                ) : milestones.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground">No milestones available. Contact your mentor.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="milestone">Milestone *</Label>
+                      <Select
+                        value={formData.milestoneId}
+                        onValueChange={handleMilestoneChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a milestone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {milestones.map((milestone) => (
+                            <SelectItem key={milestone.id} value={milestone.id}>
+                              {milestone.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="task">Task *</Label>
+                      <Select
+                        value={formData.milestoneTaskId}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, milestoneTaskId: value }))}
+                        disabled={!formData.milestoneId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={formData.milestoneId ? "Select a task" : "Select milestone first"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedMilestone?.tasks.map((task) => (
+                            <SelectItem key={task.id} value={task.id}>
+                              {task.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+
+                {selectedMilestone && (
+                  <div className="mt-4 p-3 bg-muted rounded-lg">
+                    <h4 className="font-medium">{selectedMilestone.title}</h4>
+                    {selectedMilestone.description && (
+                      <p className="text-sm text-muted-foreground mt-1">{selectedMilestone.description}</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Entry Details</CardTitle>

@@ -144,7 +144,7 @@ export default function SupervisorReviewPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Pending Reviews</h2>
-            <p className="text-muted-foreground">Review and assess student logbook entries</p>
+            <p className="text-muted-foreground">Review and assess learner logbook entries</p>
           </div>
           <div className="flex items-center space-x-2">
             <Badge variant="secondary" className="text-sm">
@@ -166,8 +166,8 @@ export default function SupervisorReviewPage() {
               {entries.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium">No student logbook entries available for review</h3>
-                  <p className="text-muted-foreground">No student logbook entries are currently pending review</p>
+                  <h3 className="text-lg font-medium">No learner logbook entries available for review</h3>
+                  <p className="text-muted-foreground">No learner logbook entries are currently pending review</p>
                 </div>
               ) : (
                 <div className="space-y-4">

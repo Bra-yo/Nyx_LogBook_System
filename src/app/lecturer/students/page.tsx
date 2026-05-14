@@ -115,7 +115,7 @@ export default function LecturerStudentsPage() {
           <div>
             <h2 className="text-2xl font-bold">All Students</h2>
             <p className="text-muted-foreground">
-              View and manage student profiles under your supervision
+              View and manage learner profiles assigned to you
             </p>
           </div>
           <div className="flex items-center space-x-2">

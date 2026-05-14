@@ -161,7 +161,7 @@ export default function StudentProfile() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Student Profile</h2>
+            <h2 className="text-2xl font-bold">Learner Profile</h2>
             <p className="text-muted-foreground">Your academic and internship information</p>
           </div>
           {!editing && (

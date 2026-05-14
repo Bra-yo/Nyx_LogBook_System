@@ -178,7 +178,7 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">{stats.pendingReviews}</div>
               <p className="text-xs text-muted-foreground">
-                Awaiting supervisor review
+                Awaiting mentor review
               </p>
             </CardContent>
           </Card>

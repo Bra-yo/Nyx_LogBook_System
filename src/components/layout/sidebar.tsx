@@ -37,9 +37,14 @@ const navigationItems = {
       icon: Clock,
     },
     {
-      title: "Logbook Entries",
+      title: "Logbook",
       href: "/student/logbook",
       icon: BookOpen,
+    },
+    {
+      title: "Milestones",
+      href: "/student/milestones",
+      icon: FileText,
     },
     {
       title: "Calendar",
@@ -64,7 +69,12 @@ const navigationItems = {
       icon: LayoutDashboard,
     },
     {
-      title: "Students",
+      title: "Milestones",
+      href: "/supervisor/milestones",
+      icon: FileText,
+    },
+    {
+      title: "Learners",
       href: "/supervisor/students",
       icon: Users,
     },
@@ -74,7 +84,7 @@ const navigationItems = {
       icon: Clock,
     },
     {
-      title: "Review Entries",
+      title: "Mentor Reviews",
       href: "/supervisor/review",
       icon: FileText,
     },
@@ -96,7 +106,7 @@ const navigationItems = {
       icon: LayoutDashboard,
     },
     {
-      title: "Students",
+      title: "Learners",
       href: "/lecturer/students",
       icon: Users,
     },
