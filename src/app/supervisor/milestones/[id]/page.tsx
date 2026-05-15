@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { terminology } from '@/lib/terminology'
 import { ArrowLeft, Plus, Calendar, User, Building, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -113,10 +114,10 @@ export default function MilestoneDetailPage() {
   if (!milestone) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold mb-2">Milestone not found</h2>
-        <p className="text-muted-foreground mb-4">The milestone you're looking for doesn't exist.</p>
+        <h2 className="text-2xl font-bold mb-2">Competency milestone not found</h2>
+        <p className="text-muted-foreground mb-4">The competency milestone you're looking for doesn't exist.</p>
         <Button asChild>
-          <Link href="/supervisor/milestones">Back to Milestones</Link>
+          <Link href="/supervisor/milestones">Back to {terminology.milestones}</Link>
         </Button>
       </div>
     )
@@ -179,10 +180,10 @@ export default function MilestoneDetailPage() {
 
 
 
-      {/* Milestone Overview */}
+      {/* Competency Milestone Overview */}
       <Card>
         <CardHeader>
-          <CardTitle>Milestone Overview</CardTitle>
+          <CardTitle>Competency Milestone Overview</CardTitle>
           <CardDescription>
             Created by {milestone.mentor.user.name}
           </CardDescription>
@@ -244,7 +245,7 @@ export default function MilestoneDetailPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Tasks</CardTitle>
-              <CardDescription>Breakdown of work items for this milestone</CardDescription>
+              <CardDescription>Breakdown of work items for this competency milestone</CardDescription>
             </div>
             <Button asChild>
               <Link href={`/supervisor/milestones/${milestone.id}/tasks/new`}>
@@ -260,7 +261,7 @@ export default function MilestoneDetailPage() {
               <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No tasks yet</h3>
               <p className="text-muted-foreground mb-4">
-                Add tasks to break down this milestone into manageable deliverables
+                Add tasks to break down this competency milestone into manageable deliverables
               </p>
               <Button asChild>
                 <Link href={`/supervisor/milestones/${milestone.id}/tasks/new`}>

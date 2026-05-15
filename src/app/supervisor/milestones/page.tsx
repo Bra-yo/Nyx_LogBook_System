@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { terminology } from '@/lib/terminology'
 import { Plus, Calendar, User, Building } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -66,7 +67,7 @@ export default function SupervisorMilestonesPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading milestones...</p>
+          <p className="mt-2 text-muted-foreground">Loading competency milestones...</p>
         </div>
       </div>
     )
@@ -76,13 +77,13 @@ export default function SupervisorMilestonesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Mentor Milestones</h1>
-          <p className="text-muted-foreground">Manage milestones and track learner progress</p>
+          <h1 className="text-3xl font-bold">Mentor {terminology.milestones}</h1>
+          <p className="text-muted-foreground">Manage competency milestones and track learner progress</p>
         </div>
         <Button asChild>
           <Link href="/supervisor/milestones/new">
             <Plus className="h-4 w-4 mr-2" />
-            Create Milestone
+            Create {terminology.milestone}
           </Link>
         </Button>
       </div>
@@ -91,14 +92,14 @@ export default function SupervisorMilestonesPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No milestones yet</h3>
+            <h3 className="text-lg font-semibold mb-2">No competency milestones yet</h3>
             <p className="text-muted-foreground text-center mb-4">
-              Create your first milestone to start tracking learner progress
+              Create your first competency milestone to start tracking learner progress
             </p>
             <Button asChild>
               <Link href="/supervisor/milestones/new">
                 <Plus className="h-4 w-4 mr-2" />
-                Create Milestone
+                Create {terminology.milestone}
               </Link>
             </Button>
           </CardContent>

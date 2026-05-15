@@ -20,14 +20,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Student profile not found' }, { status: 404 })
     }
 
-    // Find today's attendance session (ACTIVE or COMPLETED)
+    // Find current active attendance session regardless of day
+    const activeSession = await prisma.attendance.findFirst({
+      where: {
+        studentId: studentProfile.id,
+        status: 'ACTIVE'
+      },
+      include: {
+        officeLocation: true
+      }
+    })
+
     const today = new Date()
     const startOfDay = new Date(today)
-    startOfDay.setHours(0, 0, 0, 0) // Start of day
+    startOfDay.setHours(0, 0, 0, 0)
     const endOfDay = new Date(today)
-    endOfDay.setHours(23, 59, 59, 999) // End of day
+    endOfDay.setHours(23, 59, 59, 999)
 
-    const todaySession = await prisma.attendance.findFirst({
+    const todaySessions = await prisma.attendance.findMany({
       where: {
         studentId: studentProfile.id,
         checkInTime: {
@@ -41,16 +51,34 @@ export async function GET(request: NextRequest) {
       },
       include: {
         officeLocation: true
+      },
+      orderBy: {
+        checkInTime: 'asc'
       }
     })
 
-    if (!todaySession) {
-      return NextResponse.json({ hasActiveSession: false })
+    let todayTotalHours = todaySessions.reduce((sum, session) => {
+      if (session.status === 'COMPLETED' && typeof session.hoursWorked === 'number') {
+        return sum + session.hoursWorked
+      }
+      return sum
+    }, 0)
+
+    if (activeSession) {
+      const now = new Date()
+      const checkInTime = new Date(activeSession.checkInTime)
+      const elapsedHours = (now.getTime() - checkInTime.getTime()) / (1000 * 60 * 60)
+      todayTotalHours += elapsedHours
     }
 
     return NextResponse.json({
-      hasActiveSession: true,
-      activeSession: todaySession
+      hasActiveSession: Boolean(activeSession),
+      hasAttendanceToday: todaySessions.length > 0,
+      activeSession,
+      todaySessions,
+      todayTotalHours: Math.round(todayTotalHours * 100) / 100,
+      canCheckIn: !activeSession,
+      canCheckOut: Boolean(activeSession)
     })
 
   } catch (error) {

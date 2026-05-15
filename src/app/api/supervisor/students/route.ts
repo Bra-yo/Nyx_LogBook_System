@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeCompanyName } from '@/lib/access-control'
 
 const querySchema = {
   page: 1,
@@ -25,10 +26,25 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const departmentId = searchParams.get('departmentId')
 
+    const supervisor = await prisma.supervisorProfile.findUnique({
+      where: { userId: session.user.id }
+    })
+
+    if (!supervisor) {
+      return NextResponse.json({ error: 'Supervisor profile not found' }, { status: 404 })
+    }
+
+    const company = normalizeCompanyName(supervisor.company)
     const skip = (page - 1) * limit
 
     // Build filters
     const where: any = {}
+
+    if (company) {
+      where.internshipCompany = company
+    } else {
+      return NextResponse.json({ success: true, students: [], pagination: { page, limit, total: 0, pages: 0 } })
+    }
 
     if (search) {
       where.OR = [

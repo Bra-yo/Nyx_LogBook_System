@@ -55,12 +55,10 @@ export default function NewLogbookEntry() {
     try {
       setCheckingAttendance(true)
       
-      // Check if student has checked in today
       const attendanceResponse = await fetch('/api/attendance/active')
       const attendanceData = await attendanceResponse.json()
       
-      if (!attendanceData.hasActiveSession) {
-        // Redirect to attendance page with redirect parameter
+      if (!attendanceData.hasAttendanceToday) {
         router.push('/student/attendance?redirect=/student/logbook/new')
         return
       }
@@ -209,7 +207,7 @@ export default function NewLogbookEntry() {
               <CardHeader>
                 <CardTitle>Milestone & Task Selection</CardTitle>
                 <CardDescription>
-                  Select the milestone and specific task you're working on
+                  Select the competency milestone and specific task you're working on
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -225,7 +223,7 @@ export default function NewLogbookEntry() {
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="milestone">Milestone *</Label>
+                      <Label htmlFor="milestone">Competency Milestone *</Label>
                       <Select
                         value={formData.milestoneId}
                         onValueChange={handleMilestoneChange}

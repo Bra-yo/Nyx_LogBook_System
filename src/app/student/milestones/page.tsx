@@ -6,6 +6,7 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { terminology } from "@/lib/terminology"
 import { 
   Plus, 
   Calendar, 
@@ -108,18 +109,18 @@ export default function LearnerMilestonesPage() {
   }
 
   return (
-    <DashboardLayout title="Learner Milestones">
+    <DashboardLayout title={`Learner ${terminology.milestones}`}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Learner Milestones</h2>
-            <p className="text-muted-foreground">Create and manage internship milestones for mentor and lecturer review</p>
+            <h2 className="text-2xl font-bold">Learner {terminology.milestones}</h2>
+            <p className="text-muted-foreground">Create and manage internship competency milestones for mentor and lecturer review</p>
           </div>
           <Link href="/student/milestones/new">
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
-              Create Milestone
+              Create {terminology.milestone}
             </Button>
           </Link>
         </div>
@@ -130,7 +131,7 @@ export default function LearnerMilestonesPage() {
             <CardContent className="flex items-center justify-center h-64">
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="h-8 w-8 animate-spin" />
-                <p className="text-muted-foreground">Loading milestones...</p>
+                <p className="text-muted-foreground">Loading competency milestones...</p>
               </div>
             </CardContent>
           </Card>
@@ -140,12 +141,12 @@ export default function LearnerMilestonesPage() {
             <CardContent className="flex flex-col items-center justify-center h-64 gap-4">
               <Target className="h-12 w-12 text-muted-foreground" />
               <div className="text-center">
-                <h3 className="text-lg font-semibold mb-2">No milestones created yet</h3>
-                <p className="text-muted-foreground mb-4">Create your first milestone to track your internship progress</p>
+                <h3 className="text-lg font-semibold mb-2">No competency milestones created yet</h3>
+                <p className="text-muted-foreground mb-4">Create your first competency milestone to track your internship progress</p>
                 <Link href="/student/milestones/new">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
-                    Create Milestone
+                    Create {terminology.milestone}
                   </Button>
                 </Link>
               </div>

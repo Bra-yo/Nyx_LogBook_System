@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { terminology } from "@/lib/terminology"
 import {
   Loader2,
   ArrowLeft,
@@ -167,7 +168,7 @@ export default function MilestoneDetailPage() {
 
   if (loading) {
     return (
-      <DashboardLayout title="Milestone">
+      <DashboardLayout title={terminology.milestone}>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
@@ -177,17 +178,17 @@ export default function MilestoneDetailPage() {
 
   if (!milestone) {
     return (
-      <DashboardLayout title="Milestone">
+      <DashboardLayout title={terminology.milestone}>
         <div className="space-y-6">
           <Link href="/student/milestones">
             <Button variant="ghost" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to Milestones
+              Back to {terminology.milestones}
             </Button>
           </Link>
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error || "Milestone not found"}</AlertDescription>
+            <AlertDescription>{error || "Competency milestone not found"}</AlertDescription>
           </Alert>
         </div>
       </DashboardLayout>
@@ -239,7 +240,7 @@ export default function MilestoneDetailPage() {
         {/* Milestone Info */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Milestone Details</CardTitle>
+            <CardTitle className="text-lg">Competency Milestone Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
@@ -345,7 +346,7 @@ export default function MilestoneDetailPage() {
             <CardHeader>
               <CardTitle className="text-lg">Ready to Submit?</CardTitle>
               <CardDescription>
-                Submit this milestone for mentor review once you have added logbook entries
+                Submit this competency milestone for mentor review once you have added logbook entries
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -354,7 +355,7 @@ export default function MilestoneDetailPage() {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      This milestone needs at least one logbook entry before it can be submitted
+                      This competency milestone needs at least one logbook entry before it can be submitted
                     </AlertDescription>
                   </Alert>
                 )}
@@ -376,7 +377,7 @@ export default function MilestoneDetailPage() {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              This milestone has been submitted and is awaiting mentor review. You cannot make changes until the mentor completes their assessment.
+              This competency milestone has been submitted and is awaiting mentor review. You cannot make changes until the mentor completes their assessment.
             </AlertDescription>
           </Alert>
         )}

@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     if (activeSession) {
       return NextResponse.json({
-        error: 'You already have an active check-in session',
+        error: 'You already have an active attendance session. Please check out first.',
         activeSession: {
           id: activeSession.id,
           checkInTime: activeSession.checkInTime,

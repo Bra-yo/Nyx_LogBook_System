@@ -216,16 +216,12 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
       setLocationMessage(data.message || 'Check-in successful!')
       onSuccess(data.attendance)
       
-      // Get redirect parameter
       const redirectUrl = searchParams.get('redirect')
       
-      // Close dialog and redirect
       setTimeout(() => {
         onOpenChange(false)
         if (redirectUrl) {
           router.push(redirectUrl)
-        } else {
-          router.push('/student')
         }
       }, 1500)
 

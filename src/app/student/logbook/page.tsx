@@ -88,21 +88,17 @@ export default function LogbookPage() {
     try {
       setCheckingAttendance(true)
       
-      // Check if student has checked in today
       const attendanceResponse = await fetch('/api/attendance/active')
       const attendanceData = await attendanceResponse.json()
       
-      if (!attendanceData.hasActiveSession) {
-        // Redirect to attendance page with redirect parameter
+      if (!attendanceData.hasAttendanceToday) {
         router.push('/student/attendance?redirect=/student/logbook')
         return
       }
       
-      // If has attendance, fetch logbook entries
       await fetchLogbookEntries()
     } catch (error) {
       console.error('Error checking attendance:', error)
-      // Still try to fetch entries even if attendance check fails
       await fetchLogbookEntries()
     } finally {
       setCheckingAttendance(false)

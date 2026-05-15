@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { terminology } from '@/lib/terminology'
 import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -131,15 +132,15 @@ export default function NewMilestonePage() {
 
       if (response.ok) {
         const data = await response.json()
-        toast.success('Milestone created successfully')
+        toast.success(`${terminology.milestone} created successfully`)
         router.push(`/supervisor/milestones/${data.milestone.id}`)
       } else {
         const error = await response.json()
-        toast.error(error.message || 'Failed to create milestone')
+        toast.error(error.message || `Failed to create ${terminology.milestone.toLowerCase()}`)
       }
     } catch (error) {
-      console.error('Failed to create milestone:', error)
-      toast.error('Failed to create milestone')
+      console.error(`Failed to create ${terminology.milestone.toLowerCase()}:`, error)
+      toast.error(`Failed to create ${terminology.milestone.toLowerCase()}`)
     } finally {
       setLoading(false)
     }
@@ -153,18 +154,18 @@ export default function NewMilestonePage() {
         <Button variant="outline" size="sm" asChild>
           <Link href="/supervisor/milestones">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Milestones
+            Back to {terminology.milestones}
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Create Milestone</h1>
-          <p className="text-muted-foreground">Set up a new milestone for learner tracking</p>
+          <h1 className="text-3xl font-bold">Create {terminology.milestone}</h1>
+          <p className="text-muted-foreground">Set up a new competency milestone for learner tracking</p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Milestone Details</CardTitle>
+          <CardTitle>{terminology.milestone} Details</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -175,7 +176,7 @@ export default function NewMilestonePage() {
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Enter milestone title"
+                  placeholder={`Enter ${terminology.milestone.toLowerCase()} title`}
                   required
                 />
               </div>
@@ -211,7 +212,7 @@ export default function NewMilestonePage() {
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe the milestone objectives and deliverables"
+                placeholder={`Describe the ${terminology.milestone.toLowerCase()} objectives and deliverables`}
                 rows={3}
               />
             </div>
@@ -265,11 +266,11 @@ export default function NewMilestonePage() {
               </Select>
             </div>
 
-            {/* Milestone Tasks Section */}
+            {/* Competency Milestone Tasks Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold">Milestone Tasks / Deliverables</h3>
+                  <h3 className="text-lg font-semibold">{terminology.milestone} Tasks / Deliverables</h3>
                   <p className="text-sm text-muted-foreground">Define the specific tasks the learner needs to complete</p>
                 </div>
                 <Button type="button" variant="outline" size="sm" onClick={addTask}>
@@ -351,7 +352,7 @@ export default function NewMilestonePage() {
               </Button>
               <Button type="submit" disabled={loading}>
                 <Save className="h-4 w-4 mr-2" />
-                {loading ? 'Creating...' : 'Create Milestone'}
+                {loading ? `Creating ${terminology.milestone.toLowerCase()}...` : `Create ${terminology.milestone}`}
               </Button>
             </div>
           </form>

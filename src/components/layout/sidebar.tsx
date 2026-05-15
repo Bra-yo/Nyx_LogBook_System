@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { terminology } from "@/lib/terminology"
 import { Button } from "@/components/ui/button"
 import { 
   LayoutDashboard, 
@@ -43,7 +44,7 @@ const navigationItems = {
       icon: BookOpen,
     },
     {
-      title: "Milestones",
+      title: terminology.milestones,
       href: "/student/milestones",
       icon: FileText,
     },
@@ -75,7 +76,7 @@ const navigationItems = {
       icon: QrCode,
     },
     {
-      title: "Milestones",
+      title: terminology.milestones,
       href: "/supervisor/milestones",
       icon: FileText,
     },

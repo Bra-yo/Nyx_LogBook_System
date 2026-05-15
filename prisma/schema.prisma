@@ -51,8 +51,41 @@ model Department {
   students      StudentProfile[]
   supervisors   SupervisorProfile[]
   Milestone     Milestone[]
+  Project       Project[]
 
   @@map("departments")
+}
+
+model Project {
+  id           String        @id @default(cuid())
+  title        String
+  description  String?
+  companyName  String?
+  departmentId String?
+  mentorId     String?
+  status       ProjectStatus @default(ACTIVE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  department   Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  mentor       SupervisorProfile? @relation(fields: [mentorId], references: [id], onDelete: SetNull)
+  learners     ProjectLearner[]
+  milestones   Milestone[]
+  LogbookEntry LogbookEntry[]
+
+  @@map("projects")
+}
+
+model ProjectLearner {
+  id         String   @id @default(cuid())
+  projectId  String
+  learnerId  String
+  assignedAt DateTime @default(now())
+
+  project Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  learner StudentProfile @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, learnerId])
 }
 
 model StudentProfile {
@@ -78,6 +111,7 @@ model StudentProfile {
   user                   User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   Milestone              Milestone[]
   WeeklyMentorTaskReview WeeklyMentorTaskReview[]
+  ProjectLearner         ProjectLearner[]
 
   @@map("student_profiles")
 }
@@ -98,6 +132,7 @@ model SupervisorProfile {
   user                   User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   Milestone              Milestone[]
   WeeklyMentorTaskReview WeeklyMentorTaskReview[]
+  Project                Project[]
 
   @@map("supervisor_profiles")
 }
@@ -135,6 +170,7 @@ model AdminProfile {
 model LogbookEntry {
   id              String              @id @default(cuid())
   studentId       String
+  projectId       String?
   milestoneId     String?
   milestoneTaskId String?
   title           String
@@ -151,6 +187,7 @@ model LogbookEntry {
   updatedAt       DateTime            @updatedAt
   assessments     LecturerAssessment?
   student         StudentProfile      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  project         Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
   comments        SupervisorComment[]
   milestone       Milestone?          @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
   milestoneTask   MilestoneTask?      @relation(fields: [milestoneTaskId], references: [id])
@@ -267,6 +304,7 @@ model AuditLog {
 
 model Milestone {
   id           String          @id @default(cuid())
+  projectId    String?
   learnerId    String?
   mentorId     String?
   departmentId String?
@@ -278,6 +316,7 @@ model Milestone {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
+  project            Project?                     @relation(fields: [projectId], references: [id], onDelete: SetNull)
   learner            StudentProfile?              @relation(fields: [learnerId], references: [id], onDelete: Cascade)
   mentor             SupervisorProfile?           @relation(fields: [mentorId], references: [id], onDelete: SetNull)
   department         Department?                  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
@@ -411,6 +450,12 @@ enum SupervisorReviewStatus {
   NEEDS_REVISION
   REJECTED
   PENDING
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
 }
 
 enum MilestoneTaskStatus {
