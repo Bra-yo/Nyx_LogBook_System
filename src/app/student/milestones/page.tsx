@@ -115,14 +115,8 @@ export default function LearnerMilestonesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Learner {terminology.milestones}</h2>
-            <p className="text-muted-foreground">Create and manage internship competency milestones for mentor and lecturer review</p>
+            <p className="text-muted-foreground">Competency milestones are assigned through your projects.</p>
           </div>
-          <Link href="/student/milestones/new">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create {terminology.milestone}
-            </Button>
-          </Link>
         </div>
 
         {/* Loading State */}
@@ -141,12 +135,11 @@ export default function LearnerMilestonesPage() {
             <CardContent className="flex flex-col items-center justify-center h-64 gap-4">
               <Target className="h-12 w-12 text-muted-foreground" />
               <div className="text-center">
-                <h3 className="text-lg font-semibold mb-2">No competency milestones created yet</h3>
-                <p className="text-muted-foreground mb-4">Create your first competency milestone to track your internship progress</p>
-                <Link href="/student/milestones/new">
+                <h3 className="text-lg font-semibold mb-2">No competency milestones have been assigned yet</h3>
+                <p className="text-muted-foreground mb-4">Your mentor will assign milestones through your projects.</p>
+                <Link href="/student/projects">
                   <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create {terminology.milestone}
+                    View My Projects
                   </Button>
                 </Link>
               </div>

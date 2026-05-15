@@ -28,11 +28,11 @@ const editUserSchema = z.object({
   semester: z.number().optional(),
   // Supervisor fields
   employeeId: z.string().optional(),
+  company: z.string().optional(),
   organization: z.string().optional(),
-  position: z.string().optional(),
+  title: z.string().optional(),
   // Lecturer fields
   staffNumber: z.string().optional(),
-  title: z.string().optional(),
   office: z.string().optional()
 })
 
@@ -67,12 +67,20 @@ export default function EditUserPage() {
       .then(data => {
         if (data.success) {
           setUser(data.user)
+          const profileDepartmentId = data.user.studentProfile?.departmentId ?? data.user.supervisorProfile?.departmentId ?? data.user.lecturerProfile?.departmentId ?? data.user.adminProfile?.departmentId ?? ''
           reset({
             name: data.user.name,
             email: data.user.email,
             role: data.user.role,
-            departmentId: data.user.departmentId || '',
-            isActive: data.user.isActive
+            departmentId: profileDepartmentId,
+            isActive: data.user.isActive,
+            regNumber: data.user.studentProfile?.regNumber ?? '',
+            year: data.user.studentProfile?.year ?? undefined,
+            semester: data.user.studentProfile?.semester ?? undefined,
+            internshipCompany: data.user.studentProfile?.internshipCompany ?? '',
+            company: data.user.supervisorProfile?.company ?? '',
+            title: data.user.supervisorProfile?.title ?? data.user.lecturerProfile?.title ?? '',
+            office: data.user.lecturerProfile?.office ?? ''
           })
         } else {
           setError('User not found')
@@ -215,19 +223,22 @@ export default function EditUserPage() {
               />
             </div>
             <div>
-              <Label htmlFor="organization">Organization</Label>
+              <Label htmlFor="company">Company *</Label>
               <Input
-                id="organization"
+                id="company"
                 placeholder="Company name"
-                {...register('organization')}
+                {...register('company')}
               />
+              {errors.company && (
+                <p className="text-sm text-red-600">{errors.company.message}</p>
+              )}
             </div>
             <div>
-              <Label htmlFor="position">Position</Label>
+              <Label htmlFor="title">Title</Label>
               <Input
-                id="position"
+                id="title"
                 placeholder="Job title"
-                {...register('position')}
+                {...register('title')}
               />
             </div>
           </div>
@@ -252,11 +263,11 @@ export default function EditUserPage() {
               />
             </div>
             <div>
-              <Label htmlFor="position">Position</Label>
+              <Label htmlFor="title">Title</Label>
               <Input
-                id="position"
+                id="title"
                 placeholder="Job title"
-                {...register('position')}
+                {...register('title')}
               />
             </div>
           </div>

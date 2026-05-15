@@ -160,7 +160,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ success: true, project })
+    return NextResponse.json({
+      success: true,
+      message: selectedLearnerIds.length > 0 ? 'Project created successfully.' : 'Project created without assigned learners.',
+      project
+    })
   } catch (error) {
     console.error('Failed to create supervisor project:', error)
     if (error instanceof z.ZodError) {

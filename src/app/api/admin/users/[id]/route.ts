@@ -16,8 +16,10 @@ const updateUserSchema = z.object({
   regNumber: z.string().optional(),
   year: z.number().optional(),
   semester: z.number().optional(),
+  internshipCompany: z.string().optional(),
   title: z.string().optional(),
   company: z.string().optional(),
+  organization: z.string().optional(),
   office: z.string().optional(),
   permissions: z.array(z.string()).optional()
 })
@@ -107,7 +109,13 @@ export async function PUT(
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id: resolvedParams.id }
+      where: { id: resolvedParams.id },
+      include: {
+        studentProfile: true,
+        supervisorProfile: true,
+        lecturerProfile: true,
+        adminProfile: true
+      }
     })
 
     if (!existingUser) {
@@ -137,6 +145,24 @@ export async function PUT(
       updateData.password = await bcrypt.hash(validatedData.password, 12)
     }
 
+    if (existingUser.role === 'STUDENT') {
+      const currentInternshipCompany = existingUser.studentProfile?.internshipCompany
+      const incomingInternshipCompany = validatedData.internshipCompany
+
+      if ((incomingInternshipCompany === undefined || incomingInternshipCompany === '') && !currentInternshipCompany) {
+        return NextResponse.json({ error: 'Internship company is required for student profiles' }, { status: 400 })
+      }
+    }
+
+    if (existingUser.role === 'SUPERVISOR') {
+      const currentCompany = existingUser.supervisorProfile?.company
+      const incomingCompany = validatedData.company ?? validatedData.organization
+
+      if ((incomingCompany === undefined || incomingCompany === '') && !currentCompany) {
+        return NextResponse.json({ error: 'Company is required for supervisor profiles' }, { status: 400 })
+      }
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       // Update user
       const user = await tx.user.update({
@@ -147,12 +173,13 @@ export async function PUT(
       // Update role-specific profile
       if (existingUser.role === 'STUDENT') {
         const profileUpdate: any = {}
-        if (validatedData.regNumber) profileUpdate.regNumber = validatedData.regNumber
-        if (validatedData.departmentId) profileUpdate.departmentId = validatedData.departmentId
+        if (validatedData.regNumber !== undefined) profileUpdate.regNumber = validatedData.regNumber
+        if (validatedData.departmentId !== undefined) profileUpdate.departmentId = validatedData.departmentId
         if (validatedData.supervisorId !== undefined) profileUpdate.supervisorId = validatedData.supervisorId
         if (validatedData.lecturerId !== undefined) profileUpdate.lecturerId = validatedData.lecturerId
         if (validatedData.year !== undefined) profileUpdate.year = validatedData.year
         if (validatedData.semester !== undefined) profileUpdate.semester = validatedData.semester
+        if (validatedData.internshipCompany !== undefined) profileUpdate.internshipCompany = validatedData.internshipCompany
 
         await tx.studentProfile.update({
           where: { userId: resolvedParams.id },
@@ -160,9 +187,13 @@ export async function PUT(
         })
       } else if (existingUser.role === 'SUPERVISOR') {
         const profileUpdate: any = {}
-        if (validatedData.departmentId) profileUpdate.departmentId = validatedData.departmentId
-        if (validatedData.title) profileUpdate.title = validatedData.title
-        if (validatedData.company) profileUpdate.company = validatedData.company
+        if (validatedData.departmentId !== undefined) profileUpdate.departmentId = validatedData.departmentId
+        if (validatedData.title !== undefined) profileUpdate.title = validatedData.title
+        if (validatedData.company !== undefined) {
+          profileUpdate.company = validatedData.company
+        } else if (validatedData.organization !== undefined) {
+          profileUpdate.company = validatedData.organization
+        }
 
         await tx.supervisorProfile.update({
           where: { userId: resolvedParams.id },
@@ -170,9 +201,9 @@ export async function PUT(
         })
       } else if (existingUser.role === 'LECTURER') {
         const profileUpdate: any = {}
-        if (validatedData.departmentId) profileUpdate.departmentId = validatedData.departmentId
-        if (validatedData.title) profileUpdate.title = validatedData.title
-        if (validatedData.office) profileUpdate.office = validatedData.office
+        if (validatedData.departmentId !== undefined) profileUpdate.departmentId = validatedData.departmentId
+        if (validatedData.title !== undefined) profileUpdate.title = validatedData.title
+        if (validatedData.office !== undefined) profileUpdate.office = validatedData.office
 
         await tx.lecturerProfile.update({
           where: { userId: resolvedParams.id },
@@ -180,7 +211,7 @@ export async function PUT(
         })
       } else if (existingUser.role === 'ADMIN') {
         const profileUpdate: any = {}
-        if (validatedData.departmentId) profileUpdate.departmentId = validatedData.departmentId
+        if (validatedData.departmentId !== undefined) profileUpdate.departmentId = validatedData.departmentId
         if (validatedData.permissions !== undefined) profileUpdate.permissions = validatedData.permissions
 
         await tx.adminProfile.update({

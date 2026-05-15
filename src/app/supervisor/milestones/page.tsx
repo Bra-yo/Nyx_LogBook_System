@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { terminology } from '@/lib/terminology'
-import { Plus, Calendar, User, Building } from 'lucide-react'
+import { Folder, Calendar, User, Building } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 
@@ -78,12 +78,12 @@ export default function SupervisorMilestonesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Mentor {terminology.milestones}</h1>
-          <p className="text-muted-foreground">Manage competency milestones and track learner progress</p>
+          <p className="text-muted-foreground">Legacy competency milestones are still available here for reference.</p>
         </div>
         <Button asChild>
-          <Link href="/supervisor/milestones/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Create {terminology.milestone}
+          <Link href="/supervisor/projects">
+            <Folder className="h-4 w-4 mr-2" />
+            Go to Projects
           </Link>
         </Button>
       </div>
@@ -97,9 +97,9 @@ export default function SupervisorMilestonesPage() {
               Create your first competency milestone to start tracking learner progress
             </p>
             <Button asChild>
-              <Link href="/supervisor/milestones/new">
-                <Plus className="h-4 w-4 mr-2" />
-                Create {terminology.milestone}
+              <Link href="/supervisor/projects">
+                <Folder className="h-4 w-4 mr-2" />
+                Go to Projects
               </Link>
             </Button>
           </CardContent>

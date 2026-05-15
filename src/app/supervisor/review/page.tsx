@@ -157,7 +157,7 @@ export default function SupervisorReviewPage() {
           {/* Entries List */}
           <Card>
             <CardHeader>
-              <CardTitle>Student Entries</CardTitle>
+              <CardTitle>Learner Entries</CardTitle>
               <CardDescription>
                 Select an entry to review and assess
               </CardDescription>
@@ -186,7 +186,7 @@ export default function SupervisorReviewPage() {
                           <User className="h-4 w-4" />
                           <div>
                             <div className="font-medium">{entry.student.user.name}</div>
-                            <div className="text-sm text-muted-foreground">{entry.student.user.email}</div>
+                            <div className="text-sm text-muted-foreground">{entry.student.user.email} • Learner</div>
                           </div>
                         </div>
                         <div className="text-sm text-muted-foreground">

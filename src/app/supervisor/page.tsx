@@ -13,6 +13,8 @@ import {
   CheckCircle, 
   AlertCircle, 
   Eye,
+  Folder,
+  Plus,
   TrendingUp
 } from "lucide-react"
 import Link from "next/link"
@@ -135,7 +137,7 @@ export default function SupervisorDashboard() {
           <Link href="/supervisor/review">
             <Button>
               <Eye className="mr-2 h-4 w-4" />
-              Review Pending
+              Review Pending Learner Entries
             </Button>
           </Link>
         </div>
@@ -230,32 +232,32 @@ export default function SupervisorDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common supervisor tasks</CardDescription>
+              <CardDescription>Common mentor tasks</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
+                <Link href="/supervisor/projects">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Folder className="mr-2 h-4 w-4" />
+                    Manage Projects
+                  </Button>
+                </Link>
+                <Link href="/supervisor/projects/new">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Project
+                  </Button>
+                </Link>
                 <Link href="/supervisor/students">
                   <Button variant="outline" className="w-full justify-start">
                     <Users className="mr-2 h-4 w-4" />
-                    View All Students
+                    View All Learners
                   </Button>
                 </Link>
                 <Link href="/supervisor/review">
                   <Button variant="outline" className="w-full justify-start">
                     <FileText className="mr-2 h-4 w-4" />
-                    Review Pending Entries
-                  </Button>
-                </Link>
-                <Link href="/supervisor/analytics">
-                  <Button variant="outline" className="w-full justify-start">
-                    <TrendingUp className="mr-2 h-4 w-4" />
-                    View Analytics
-                  </Button>
-                </Link>
-                <Link href="/supervisor/notifications">
-                  <Button variant="outline" className="w-full justify-start">
-                    <AlertCircle className="mr-2 h-4 w-4" />
-                    Notifications
+                    Review Pending Learner Entries
                   </Button>
                 </Link>
               </div>

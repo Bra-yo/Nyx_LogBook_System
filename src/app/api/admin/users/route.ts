@@ -13,10 +13,12 @@ const createUserSchema = z.object({
   regNumber: z.string().optional(),
   year: z.coerce.number().int().min(1, "Year must be at least 1").max(5, "Year must be at most 5").optional(),
   semester: z.coerce.number().int().min(1, "Semester must be at least 1").max(2, "Semester must be at most 2").optional(),
+  internshipCompany: z.string().optional(),
   title: z.string().optional(),
   company: z.string().optional(),
   office: z.string().optional(),
-  permissions: z.array(z.string()).optional()
+  permissions: z.array(z.string()).optional(),
+  organization: z.string().optional()
 }).refine((data) => {
   // Department is required for STUDENT, SUPERVISOR, and LECTURER roles
   if (['STUDENT', 'SUPERVISOR', 'LECTURER'].includes(data.role)) {
@@ -44,6 +46,25 @@ const createUserSchema = z.object({
 }, {
   message: 'Registration number is required for student profiles',
   path: ['regNumber']
+}).refine((data) => {
+  // Internship company is required for STUDENT role
+  if (data.role === 'STUDENT') {
+    return data.internshipCompany && data.internshipCompany.length > 0
+  }
+  return true
+}, {
+  message: 'Internship company is required for student profiles',
+  path: ['internshipCompany']
+}).refine((data) => {
+  // Company is required for SUPERVISOR role
+  if (data.role === 'SUPERVISOR') {
+    const company = data.company ?? data.organization
+    return company !== undefined && company !== null && company.length > 0
+  }
+  return true
+}, {
+  message: 'Company is required for supervisor profiles',
+  path: ['company']
 })
 
 const querySchema = z.object({
@@ -226,7 +247,8 @@ export async function POST(request: NextRequest) {
               regNumber: validatedData.regNumber!,
               departmentId: validatedData.departmentId,
               year: validatedData.year!,
-              semester: validatedData.semester || 1
+              semester: validatedData.semester || 1,
+              internshipCompany: validatedData.internshipCompany || null
             }
           })
           break
@@ -240,7 +262,7 @@ export async function POST(request: NextRequest) {
               userId: user.id,
               departmentId: validatedData.departmentId,
               title: validatedData.title || null,
-              company: validatedData.company || null
+              company: validatedData.company || validatedData.organization || null
             }
           })
           break

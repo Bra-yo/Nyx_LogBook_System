@@ -30,7 +30,8 @@ const createUserSchema = z.object({
   internshipLocation: z.string().optional(),
   employeeId: z.string().optional(),
   organization: z.string().optional(),
-  position: z.string().optional(),
+  company: z.string().optional(),
+  title: z.string().optional(),
   staffNumber: z.string().optional()
 }).refine((data) => {
   // Department is required for STUDENT, SUPERVISOR, and LECTURER roles
@@ -59,6 +60,25 @@ const createUserSchema = z.object({
 }, {
   message: 'Registration number is required for student profiles',
   path: ['regNumber']
+}).refine((data) => {
+  // Internship company is required for STUDENT role
+  if (data.role === 'STUDENT') {
+    return data.internshipCompany && data.internshipCompany.length > 0
+  }
+  return true
+}, {
+  message: 'Internship company is required for student profiles',
+  path: ['internshipCompany']
+}).refine((data) => {
+  // Company is required for SUPERVISOR role
+  if (data.role === 'SUPERVISOR') {
+    const company = data.company ?? data.organization
+    return company !== undefined && company !== null && company.length > 0
+  }
+  return true
+}, {
+  message: 'Company is required for supervisor profiles',
+  path: ['company']
 })
 
 type CreateUserFormData = z.infer<typeof createUserSchema>
@@ -93,7 +113,8 @@ export default function NewUserPage() {
       internshipLocation: '',
       employeeId: '',
       organization: '',
-      position: '',
+      company: '',
+      title: '',
       staffNumber: ''
     }
   })
@@ -216,12 +237,15 @@ export default function NewUserPage() {
               />
             </div>
             <div>
-              <Label htmlFor="internshipCompany">Internship Company</Label>
+              <Label htmlFor="internshipCompany">Internship Company *</Label>
               <Input
                 id="internshipCompany"
                 placeholder="Company name"
                 {...register('internshipCompany')}
               />
+              {errors.internshipCompany && (
+                <p className="text-sm text-red-600">{errors.internshipCompany.message}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="internshipLocation">Internship Location</Label>
@@ -246,19 +270,22 @@ export default function NewUserPage() {
               />
             </div>
             <div>
-              <Label htmlFor="organization">Organization</Label>
+              <Label htmlFor="company">Company *</Label>
               <Input
-                id="organization"
+                id="company"
                 placeholder="Company name"
-                {...register('organization')}
+                {...register('company')}
               />
+              {errors.company && (
+                <p className="text-sm text-red-600">{errors.company.message}</p>
+              )}
             </div>
             <div>
-              <Label htmlFor="position">Position</Label>
+              <Label htmlFor="title">Title</Label>
               <Input
-                id="position"
+                id="title"
                 placeholder="Job title"
-                {...register('position')}
+                {...register('title')}
               />
             </div>
           </div>
@@ -284,11 +311,11 @@ export default function NewUserPage() {
               />
             </div>
             <div>
-              <Label htmlFor="position">Position</Label>
+              <Label htmlFor="title">Title</Label>
               <Input
-                id="position"
+                id="title"
                 placeholder="Job title"
-                {...register('position')}
+                {...register('title')}
               />
             </div>
           </div>

@@ -55,29 +55,48 @@ export default function StudentDashboard() {
     try {
       setLoading(true)
       
-      // Fetch logbook entries
-      const entriesResponse = await fetch('/api/student/logbook')
+      const [entriesResponse, projectsResponse] = await Promise.all([
+        fetch('/api/student/logbook'),
+        fetch('/api/student/projects')
+      ])
+
+      let entries: LogbookEntry[] = []
+      let projectTasks: Array<{ status?: string | null }> = []
+
       if (entriesResponse.ok) {
         const entriesData = await entriesResponse.json()
-        const entries = entriesData.entries || []
-        
-        // Calculate stats from real data using status resolver
-        const entriesWithDisplayStatus = entries.map((e: LogbookEntry) => ({
-          ...e,
-          displayStatus: getLogbookDisplayStatus(e)
-        }))
-        
-        const calculatedStats: DashboardStats = {
-          totalEntries: entries.length,
-          approvedEntries: entriesWithDisplayStatus.filter((e: any) => e.displayStatus === LogStatus.APPROVED).length,
-          pendingReviews: entriesWithDisplayStatus.filter((e: any) => e.displayStatus === LogStatus.PENDING).length,
-          draftEntries: entries.filter((e: LogbookEntry) => e.status === LogStatus.DRAFT).length,
-          progressPercentage: entries.length > 0 ? Math.round((entriesWithDisplayStatus.filter((e: any) => e.displayStatus === LogStatus.APPROVED).length / entries.length) * 100) : 0
-        }
-        
-        setStats(calculatedStats)
-        setRecentActivity(entries.slice(0, 3)) // Show only 3 most recent
+        entries = entriesData.entries || []
       }
+
+      if (projectsResponse.ok) {
+        const projectsData = await projectsResponse.json()
+        const projects = projectsData.projects || []
+        projectTasks = projects.flatMap((project: any) =>
+          project.milestones.flatMap((milestone: any) => milestone.tasks)
+        )
+      }
+
+      const entriesWithDisplayStatus = entries.map((e: LogbookEntry) => ({
+        ...e,
+        displayStatus: getLogbookDisplayStatus(e)
+      }))
+      
+      const completedTasks = projectTasks.filter((task) =>
+        ['COMPLETED', 'VERIFIED'].includes(task.status || '')
+      ).length
+      const totalTasks = projectTasks.length
+      const progressPercentage = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100)
+
+      const calculatedStats: DashboardStats = {
+        totalEntries: entries.length,
+        approvedEntries: entriesWithDisplayStatus.filter((e: any) => e.displayStatus === LogStatus.APPROVED).length,
+        pendingReviews: entriesWithDisplayStatus.filter((e: any) => e.displayStatus === LogStatus.PENDING).length,
+        draftEntries: entries.filter((e: LogbookEntry) => e.status === LogStatus.DRAFT).length,
+        progressPercentage
+      }
+      
+      setStats(calculatedStats)
+      setRecentActivity(entries.slice(0, 3)) // Show only 3 most recent
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -148,7 +167,7 @@ export default function StudentDashboard() {
             <CardContent>
               <div className="text-2xl font-bold">{loading ? '...' : `${stats.progressPercentage}%`}</div>
               <p className="text-xs text-muted-foreground">
-                Internship completion
+                Project progress
               </p>
             </CardContent>
           </Card>

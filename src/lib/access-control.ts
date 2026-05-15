@@ -1,30 +1,49 @@
 import type { SupervisorProfile, LecturerProfile, StudentProfile } from '@prisma/client'
 
 export function normalizeCompanyName(value?: string | null) {
-  return value?.trim().toLowerCase() || ''
+  return (value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .trim()
+}
+
+export function companyMatches(a?: string | null, b?: string | null) {
+  const x = normalizeCompanyName(a)
+  const y = normalizeCompanyName(b)
+
+  if (!x || !y) return false
+
+  return x.includes(y) || y.includes(x)
 }
 
 export function canMentorAccessLearner(mentorProfile: SupervisorProfile, learnerProfile: StudentProfile) {
-  const mentorCompany = normalizeCompanyName(mentorProfile.company)
-  const learnerCompany = normalizeCompanyName(learnerProfile.internshipCompany)
+  return companyMatches(mentorProfile.company, learnerProfile.internshipCompany)
+}
 
-  if (!mentorCompany || !learnerCompany) {
-    return false
-  }
-
-  return mentorCompany === learnerCompany
+export function filterMentorAccessibleLearners(
+  mentorProfile: SupervisorProfile,
+  learners: Array<{ internshipCompany?: string | null }>
+) {
+  return learners.filter((learner) =>
+    canMentorAccessLearner(mentorProfile, learner as StudentProfile)
+  )
 }
 
 export function buildMentorProjectWhereClause(mentorProfile: SupervisorProfile) {
-  const companyName = normalizeCompanyName(mentorProfile.company)
   const where: any = {
     OR: [
       { mentorId: mentorProfile.id }
     ]
   }
 
+  const companyName = mentorProfile.company?.trim()
   if (companyName) {
-    where.OR.push({ companyName })
+    where.OR.push({
+      companyName: {
+        contains: companyName,
+        mode: 'insensitive'
+      }
+    })
   }
 
   return where

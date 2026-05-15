@@ -5,37 +5,36 @@ export interface ParsedTask {
 }
 
 function normalizeTaskLine(line: string) {
-  const trimmed = line.trim()
-  return trimmed.replace(/^([-*•]|\d+[\.|\)])\s*/u, '').trim()
+  return line
+    .trim()
+    .replace(/^[-*•]\s*/u, '')
+    .replace(/^\d+[.)]\s*/u, '')
+    .trim()
 }
 
 export function parseTaskText(taskText: string): ParsedTask[] {
-  if (!taskText || !taskText.trim()) {
-    return []
-  }
+  const cleaned = taskText.trim()
 
-  const lines = taskText
+  if (!cleaned) return []
+
+  const lines = cleaned
     .split(/\r?\n/)
     .map((line) => normalizeTaskLine(line))
-    .filter((line) => line.length > 0)
+    .filter(Boolean)
 
-  if (lines.length === 0) {
-    return []
+  if (lines.length > 1) {
+    return lines.map((line) => ({
+      title: line.length > 120 ? line.slice(0, 120) : line,
+      description: line.length > 120 ? line : null,
+      expectedOutput: null
+    }))
   }
 
-  if (lines.length === 1) {
-    const fullText = lines[0]
-    if (fullText.length <= 80) {
-      return [{ title: fullText }]
+  return [
+    {
+      title: cleaned.length > 120 ? cleaned.slice(0, 120) : cleaned,
+      description: cleaned,
+      expectedOutput: null
     }
-
-    return [
-      {
-        title: fullText.slice(0, 80).trim(),
-        description: fullText
-      }
-    ]
-  }
-
-  return lines.map((line) => ({ title: line }))
+  ]
 }

@@ -19,8 +19,8 @@ export default function CreateMilestonePage() {
             </Button>
           </Link>
           <div>
-            <h2 className="text-2xl font-bold">Create Milestone</h2>
-            <p className="text-muted-foreground">Milestone creation for learners</p>
+            <h2 className="text-2xl font-bold">Milestone creation is disabled</h2>
+            <p className="text-muted-foreground">Competency milestones are created by your mentor through your projects.</p>
           </div>
         </div>
 
@@ -29,28 +29,26 @@ export default function CreateMilestonePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-blue-500" />
-              Milestones Created by Mentors
+              Milestones Are Assigned Through Projects
             </CardTitle>
             <CardDescription>
-              Milestone creation has been moved to your mentor/supervisor.
+              Your mentor will assign competency milestones via project management.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-muted-foreground">
               <p>
-                As part of our improved workflow, milestones are now created by your mentor/supervisor.
-                This ensures better alignment with your learning objectives and internship requirements.
+                Learner milestone creation is no longer available here. Your mentor will create milestones and assign tasks in the project workflow.
               </p>
               <p className="mt-2">
-                Your mentor will create milestones and assign specific tasks for you to work on.
-                When creating logbook entries, you'll select from the available milestones and tasks.
+                Use the projects page to view assigned milestones and tasks, or contact your mentor if nothing has been assigned yet.
               </p>
             </div>
 
             <div className="pt-4">
-              <Link href="/student/milestones">
+              <Link href="/student/projects">
                 <Button>
-                  View Available Milestones
+                  View My Projects
                 </Button>
               </Link>
             </div>

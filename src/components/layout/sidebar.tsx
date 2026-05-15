@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   FileText,
+  Folder,
   Calendar,
   Bell,
   BarChart3,
@@ -39,14 +40,14 @@ const navigationItems = {
       icon: Clock,
     },
     {
+      title: terminology.projects,
+      href: "/student/projects",
+      icon: Folder,
+    },
+    {
       title: "Logbook",
       href: "/student/logbook",
       icon: BookOpen,
-    },
-    {
-      title: terminology.milestones,
-      href: "/student/milestones",
-      icon: FileText,
     },
     {
       title: "Calendar",
@@ -76,9 +77,9 @@ const navigationItems = {
       icon: QrCode,
     },
     {
-      title: terminology.milestones,
-      href: "/supervisor/milestones",
-      icon: FileText,
+      title: terminology.projects,
+      href: "/supervisor/projects",
+      icon: Folder,
     },
     {
       title: "Learners",

@@ -11,8 +11,8 @@ const createMilestoneSchema = z.object({
   description: z.string().optional(),
   startDate: z.string().min(1, 'Start date is required'),
   endDate: z.string().min(1, 'End date is required'),
-  learnerId: z.string().optional(),
-  taskText: z.string().min(1, 'Please provide at least one task or deliverable'),
+  learnerId: z.string().nullable().optional(),
+  tasksText: z.string().min(1, 'Please provide at least one task or deliverable'),
 })
 
 export async function POST(
@@ -47,7 +47,14 @@ export async function POST(
     }
 
     const body = await request.json()
-    const validatedData = createMilestoneSchema.parse(body)
+
+    let validatedData
+    try {
+      validatedData = createMilestoneSchema.parse(body)
+    } catch (error) {
+      console.error('Milestone validation error:', error)
+      return NextResponse.json({ error: 'Please check the milestone form and task details.' }, { status: 400 })
+    }
 
     const start = new Date(validatedData.startDate)
     const end = new Date(validatedData.endDate)
@@ -55,7 +62,7 @@ export async function POST(
       return NextResponse.json({ error: 'End date must be after start date' }, { status: 400 })
     }
 
-    const tasks = parseTaskText(validatedData.taskText)
+    const tasks = parseTaskText(validatedData.tasksText)
     if (tasks.length === 0) {
       return NextResponse.json({ error: 'Please provide at least one task or deliverable' }, { status: 400 })
     }
@@ -98,7 +105,8 @@ export async function POST(
   } catch (error) {
     console.error('Failed to create project milestone:', error)
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid request data', details: error.issues }, { status: 400 })
+      console.error('Milestone validation error:', error)
+      return NextResponse.json({ error: 'Please check the milestone form and task details.' }, { status: 400 })
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
