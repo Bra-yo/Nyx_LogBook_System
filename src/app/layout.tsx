@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   description: "Internship/Industrial Attachment Logbook Management System by NYX QUANT SYSTEMS LTD.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

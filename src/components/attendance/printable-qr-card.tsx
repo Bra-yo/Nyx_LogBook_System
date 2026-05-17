@@ -90,7 +90,7 @@ export function PrintableQRCodeCard({
   }, [qrCodeUrl, onDownloadReady])
 
   return (
-    <div className="print-card max-w-md mx-auto bg-white border border-gray-200 rounded-lg p-6 shadow-lg">
+    <div className="print-card w-full max-w-full mx-auto bg-white border border-gray-200 rounded-lg p-6 shadow-lg">
       {/* Header */}
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">NYX LogBook</h1>
@@ -116,10 +116,10 @@ export function PrintableQRCodeCard({
               ref={qrImageRef}
               src={qrCodeUrl}
               alt="QR Code"
-              className="w-64 h-64"
+              className="w-full max-w-[20rem] h-auto"
             />
           ) : (
-            <div className="w-64 h-64 bg-gray-100 animate-pulse rounded-lg flex items-center justify-center">
+            <div className="w-full max-w-[20rem] h-auto bg-gray-100 animate-pulse rounded-lg flex items-center justify-center min-h-[20rem]">
               <span className="text-gray-400">Generating QR...</span>
             </div>
           )}

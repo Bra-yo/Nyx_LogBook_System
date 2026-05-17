@@ -173,7 +173,7 @@ export default function AdminAttendanceSettingsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Attendance Settings</h1>
         <p className="text-gray-600 mt-2">Manage office locations and QR configurations</p>
@@ -346,7 +346,7 @@ export default function AdminAttendanceSettingsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
                         <div>
                           <span className="font-medium">Latitude:</span>
                           <div className="text-muted-foreground">{location.latitude}</div>
@@ -369,7 +369,7 @@ export default function AdminAttendanceSettingsPage() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 pt-2">
+                      <div className="flex flex-col gap-2 pt-2 sm:flex-row">
                         <Button
                           variant="outline"
                           size="sm"
@@ -442,36 +442,35 @@ export default function AdminAttendanceSettingsPage() {
                   <img 
                     src={qrCodeDataURL} 
                     alt="QR Code" 
-                    className="w-64 h-64"
+                    className="w-full max-w-[20rem] h-auto"
                   />
                 ) : (
-                  <div className="w-64 h-64 bg-muted animate-pulse rounded-lg"></div>
+                  <div className="w-full max-w-[20rem] h-auto bg-muted animate-pulse rounded-lg min-h-[20rem] flex items-center justify-center">
+                    <span className="text-muted-foreground">Generating QR Code...</span>
+                  </div>
                 )}
               </div>
 
-              {/* Location Info */}
-              <div className="bg-muted/50 rounded-lg p-4">
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{selectedLocation.name}</span>
-                  </div>
-                  <div className="text-muted-foreground">{selectedLocation.address}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Coordinates: {selectedLocation.latitude}, {selectedLocation.longitude}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Radius: {selectedLocation.radius} meters
-                  </div>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
-                    <p className="text-xs font-medium text-yellow-800">QR Code Data (exact):</p>
-                    <p className="text-xs text-yellow-700 font-mono break-all">{selectedLocation.qrCodeData}</p>
-                  </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <span className="font-medium">{selectedLocation.name}</span>
+                </div>
+                <div className="text-muted-foreground">{selectedLocation.address}</div>
+                <div className="text-xs text-muted-foreground">
+                  Coordinates: {selectedLocation.latitude}, {selectedLocation.longitude}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Radius: {selectedLocation.radius} meters
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
+                  <p className="text-xs font-medium text-yellow-800">QR Code Data (exact):</p>
+                  <p className="text-xs text-yellow-700 font-mono break-all">{selectedLocation.qrCodeData}</p>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
                   variant="outline"
                   onClick={() => handleDownloadQRCode(selectedLocation)}

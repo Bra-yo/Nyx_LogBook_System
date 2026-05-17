@@ -142,13 +142,13 @@ export default function LogbookPage() {
     <DashboardLayout title="Logbook Entries">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-2xl font-bold">Logbook Entries</h2>
             <p className="text-muted-foreground">Manage your internship daily and weekly logs</p>
           </div>
-          <Link href="/student/logbook/new">
-            <Button>
+          <Link href="/student/logbook/new" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               New Entry
             </Button>
@@ -156,7 +156,7 @@ export default function LogbookPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Entries</CardTitle>

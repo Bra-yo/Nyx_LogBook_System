@@ -25,6 +25,7 @@ import { UserRole } from "@/types"
 interface SidebarProps {
   userRole: UserRole
   className?: string
+  onNavigate?: () => void
 }
 
 const navigationItems = {
@@ -178,12 +179,12 @@ const navigationItems = {
   ],
 }
 
-export function Sidebar({ userRole, className }: SidebarProps) {
+export function Sidebar({ userRole, className, onNavigate }: SidebarProps) {
   const pathname = usePathname()
   const navigation = navigationItems[userRole] || []
 
   return (
-    <div className={cn("flex h-full w-64 flex-col bg-card border-r", className)}>
+    <div className={cn("flex h-full min-h-full flex-col bg-card border-r", className)}>
       <div className="flex h-16 items-center border-b px-6">
         <div className="flex items-center space-x-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
@@ -209,6 +210,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
                   "w-full justify-start",
                   isActive && "bg-secondary text-secondary-foreground"
                 )}
+                onClick={onNavigate}
               >
                 <item.icon className="mr-2 h-4 w-4" />
                 {item.title}
