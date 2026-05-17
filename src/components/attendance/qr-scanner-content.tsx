@@ -196,13 +196,18 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
       setLocationStatus('getting')
       setLocationMessage('Verifying attendance location...')
 
+      // Normalize QR code data: remove quotes and extra whitespace
+      const normalizedQrCodeData = qrPayload.token
+        .trim()
+        .replace(/^["']|["']$/g, "")
+
       const response = await fetch('/api/attendance/check-in', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          qrCodeData: qrPayload.token,
+          qrCodeData: normalizedQrCodeData,
           latitude: location.latitude,
           longitude: location.longitude,
           accuracy: location.accuracy,

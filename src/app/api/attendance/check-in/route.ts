@@ -7,11 +7,17 @@ import { QRCodeService } from '@/lib/qr-code'
 import { z } from 'zod'
 
 const checkInSchema = z.object({
-  qrCodeData: z.string(),
+  qrCodeData: z.string().optional(),
+  qrData: z.string().optional(),
+  scannedData: z.string().optional(),
+  code: z.string().optional(),
   latitude: z.number(),
   longitude: z.number(),
   accuracy: z.number().optional()
-})
+}).refine(
+  (data) => data.qrCodeData || data.qrData || data.scannedData || data.code,
+  'QR code data is missing. Must provide one of: qrCodeData, qrData, scannedData, or code'
+)
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,49 +30,47 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = checkInSchema.parse(body)
 
-    // Parse and validate QR code data
-    let qrData
-    try {
-      qrData = QRCodeService.parseQRCodeData(validatedData.qrCodeData)
-    } catch (error) {
-      return NextResponse.json({ error: 'Invalid QR code' }, { status: 400 })
-    }
+    // Extract QR code data from any supported field name
+    const rawQrCodeData = 
+      validatedData.qrCodeData || 
+      validatedData.qrData || 
+      validatedData.scannedData || 
+      validatedData.code
 
-    // Get normalized token from QR data
-    const qrToken = qrData.qrCodeData || qrData.qrToken || qrData.token || qrData.officeToken || qrData.raw
+    // Normalize QR code data: trim and remove quotes
+    const normalizedQrCodeData = String(rawQrCodeData || '')
+      .trim()
+      .replace(/^["']|["']$/g, '')
 
-    // For plain text QR codes, find matching office location by qrCodeData
-    if (!qrData.isJson && qrToken.startsWith('NYX_ATTENDANCE_TEST_QR_')) {
-      // Find office location that matches the QR code data exactly
-      const matchingOfficeLocation = await prisma.officeLocation.findFirst({
-        where: { 
-          isActive: true,
-          qrCodeData: qrToken 
-        }
-      })
-      
-      if (!matchingOfficeLocation) {
-        return NextResponse.json({ 
-          success: false,
-          message: 'Invalid or unregistered attendance QR code. Please contact admin to activate this QR code.'
-        }, { status: 400 })
-      }
-      
-      // Override qrData with matching office location data
-      qrData = {
-        ...qrData,
-        type: 'attendance',
-        locationId: matchingOfficeLocation.id,
-        locationName: matchingOfficeLocation.name,
-        latitude: matchingOfficeLocation.latitude,
-        longitude: matchingOfficeLocation.longitude,
-        radius: matchingOfficeLocation.radius,
-        timestamp: Date.now()
-      }
-    } else if (!QRCodeService.validateQRCodeData(qrData)) {
-      return NextResponse.json({ 
+    // DEBUG: Log received QR code data
+    console.log('CHECK-IN QR RECEIVED:', normalizedQrCodeData)
+    console.log('CHECK-IN QR LENGTH:', normalizedQrCodeData.length)
+
+    // Find matching active office location using ONLY qrCodeData and isActive
+    const officeLocation = await prisma.officeLocation.findFirst({
+      where: {
+        qrCodeData: normalizedQrCodeData,
+        isActive: true,
+      },
+    })
+
+    // DEBUG: Log all active office locations for comparison
+    const activeLocations = await prisma.officeLocation.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, qrCodeData: true }
+    })
+    
+    console.log('ACTIVE OFFICE QR VALUES:', activeLocations.map(l => ({
+      id: l.id,
+      name: l.name,
+      length: l.qrCodeData?.length,
+      matches: l.qrCodeData?.trim() === normalizedQrCodeData
+    })))
+
+    if (!officeLocation) {
+      return NextResponse.json({
         success: false,
-        message: 'Invalid or unregistered attendance QR code. Please contact admin to activate this QR code.'
+        message: 'Invalid or inactive attendance QR code. Please ask your Mentor to print the latest QR code.'
       }, { status: 400 })
     }
 
@@ -98,16 +102,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Get office location
-    const officeLocation = await prisma.officeLocation.findUnique({
-      where: { id: qrData.locationId }
-    })
-
-    if (!officeLocation || !officeLocation.isActive) {
-      return NextResponse.json({ error: 'Invalid or inactive office location' }, { status: 400 })
-    }
-
-    // Verify user location
+    // Verify user location against the officeLocation found by QR
     const locationVerification = GeolocationService.verifyLocation(
       {
         latitude: validatedData.latitude,
@@ -135,7 +130,7 @@ export async function POST(request: NextRequest) {
         checkInLat: validatedData.latitude,
         checkInLng: validatedData.longitude,
         status: 'ACTIVE',
-        qrCodeData: validatedData.qrCodeData,
+        qrCodeData: normalizedQrCodeData,
         ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown'
       },
