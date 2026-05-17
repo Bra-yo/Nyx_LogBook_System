@@ -63,7 +63,7 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
   const [isProcessing, setIsProcessing] = useState(false)
   const [scanner, setScanner] = useState<Html5Qrcode | null>(null)
   const [cameraError, setCameraError] = useState('')
-  const [showRetryButton, setShowRetryButton] = useState(false)
+  const scannerInstanceRef = useRef<Html5Qrcode | null>(null)
   const scannerRef = useRef<HTMLDivElement>(null)
   const hasScannedRef = useRef(false)
   const isProcessingRef = useRef(false)
@@ -83,9 +83,9 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
     setQrData('')
     setIsProcessing(false)
     setCameraError('')
-    setShowRetryButton(false)
     hasScannedRef.current = false
     isProcessingRef.current = false
+    scannerInstanceRef.current = null
     stopScanner()
   }
 
@@ -95,36 +95,32 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
     try {
       setIsScanning(true)
       setCameraError('')
-      
-      const html5QrCode = new Html5Qrcode("qr-reader")
+
+      const html5QrCode = new Html5Qrcode('qr-reader')
+      scannerInstanceRef.current = html5QrCode
       setScanner(html5QrCode)
 
       await html5QrCode.start(
-        { facingMode: "environment" },
+        { facingMode: 'environment' },
         {
           fps: 10,
           qrbox: { width: 250, height: 250 }
         },
-        (decodedText: string, decodedResult: Html5QrcodeResult) => {
-          // Prevent duplicate scans
+        async (decodedText: string, decodedResult: Html5QrcodeResult) => {
           if (hasScannedRef.current) return
           hasScannedRef.current = true
-          
-          // QR code successfully scanned
+
           setQrData(decodedText)
-          setLocationMessage('QR code scanned successfully!')
-          
-          // Stop scanner immediately
-          stopScanner().then(() => {
-            // Automatically start check-in process
-            handleAutomaticCheckIn(decodedText)
-          })
+          setLocationStatus('getting')
+          setLocationMessage('QR code scanned successfully.')
+
+          await stopScanner(html5QrCode)
+          await handleAutomaticCheckIn(decodedText)
         },
         (errorMessage: string) => {
-          // Ignore scan errors (common during continuous scanning)
+          // Ignore scan errors while waiting for a valid QR code
         }
       )
-
     } catch (error) {
       setIsScanning(false)
       setCameraError(error instanceof Error ? error.message : 'Failed to access camera')
@@ -132,16 +128,27 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
     }
   }
 
-  const stopScanner = async () => {
-    if (scanner) {
-      try {
-        await scanner.stop()
-        await scanner.clear()
-      } catch (error) {
-        // Ignore stop/clear errors
-      }
+  const stopScanner = async (scannerInstance?: Html5Qrcode | null) => {
+    const activeScanner = scannerInstance ?? scannerInstanceRef.current ?? scanner
+
+    if (!activeScanner) {
+      setIsScanning(false)
       setScanner(null)
+      return
     }
+
+    try {
+      await activeScanner.stop()
+      await activeScanner.clear()
+    } catch (error) {
+      // Ignore stop/clear errors
+    }
+
+    if (scannerInstanceRef.current === activeScanner) {
+      scannerInstanceRef.current = null
+    }
+
+    setScanner(null)
     setIsScanning(false)
   }
 
@@ -157,41 +164,38 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
 
     try {
       const location = await GeolocationService.getCurrentLocation()
-      setLocationStatus('success')
-      setLocationMessage(`Location acquired: ${GeolocationService.formatCoordinates(location.latitude, location.longitude)}`)
       return location
     } catch (error) {
       setLocationStatus('error')
-      setLocationMessage(error instanceof Error ? error.message : 'Failed to get location')
+      setLocationMessage(
+        error instanceof Error
+          ? error.message
+          : 'Could not get your location. Please try again.'
+      )
       return null
     }
   }
 
-  
   const handleAutomaticCheckIn = async (scannedQrData: string) => {
-    // Prevent multiple processing
     if (isProcessingRef.current) return
     isProcessingRef.current = true
-    
+
     setIsProcessing(true)
     setLocationStatus('getting')
-    setLocationMessage('QR scanned. Verifying location...')
+    setLocationMessage('Getting your location...')
 
     try {
-      // Parse QR code data safely
-      const qrPayload = parseQrPayload(scannedQrData)
-
-      // Get current location
-      setLocationMessage('Getting your location...')
-      const location = await GeolocationService.getCurrentLocation()
-      if (!location) {
-        throw new Error('Location permission is required to check in.')
+      if (!window.isSecureContext) {
+        throw new Error('Location requires HTTPS. Please use the secure live website.')
       }
 
-      setLocationStatus('getting')
-      setLocationMessage('Checking you in...')
+      const qrPayload = parseQrPayload(scannedQrData)
+      setLocationMessage('Getting your location...')
+      const location = await GeolocationService.getCurrentLocation()
 
-      // Send check-in request
+      setLocationStatus('getting')
+      setLocationMessage('Verifying attendance location...')
+
       const response = await fetch('/api/attendance/check-in', {
         method: 'POST',
         headers: {
@@ -201,8 +205,8 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
           qrCodeData: qrPayload.token,
           latitude: location.latitude,
           longitude: location.longitude,
-          accuracy: location.accuracy
-        })
+          accuracy: location.accuracy,
+        }),
       })
 
       const data = await response.json()
@@ -211,25 +215,23 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
         throw new Error(data.error || data.message || 'Check-in failed')
       }
 
-      // Success
       setLocationStatus('success')
-      setLocationMessage(data.message || 'Check-in successful!')
+      setLocationMessage(data.message || 'Check-in successful.')
       onSuccess(data.attendance)
-      
+
       const redirectUrl = searchParams.get('redirect')
-      
       setTimeout(() => {
         onOpenChange(false)
         if (redirectUrl) {
           router.push(redirectUrl)
         }
       }, 1500)
-
     } catch (error) {
       setLocationStatus('error')
-      const errorMessage = error instanceof Error ? error.message : 'Check-in failed'
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Could not get your location. Please try again.'
       setLocationMessage(errorMessage)
-      setShowRetryButton(true)
       isProcessingRef.current = false
     } finally {
       setIsProcessing(false)
@@ -241,8 +243,14 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
     startScanner()
   }
 
+  const handleRetryLocation = async () => {
+    if (!qrData) return
+    setLocationStatus('getting')
+    setLocationMessage('Getting your location...')
+    await handleAutomaticCheckIn(qrData)
+  }
+
   const handleCheckIn = async () => {
-    // Legacy method - now just triggers automatic check-in
     if (!qrData) {
       setLocationMessage('Please scan a QR code first')
       return
@@ -294,7 +302,7 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={stopScanner}
+                      onClick={() => stopScanner()}
                     >
                       <CameraOff className="h-4 w-4 mr-1" />
                       Stop
@@ -347,7 +355,7 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
@@ -356,20 +364,31 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
             >
               Cancel
             </Button>
-            
-            {showRetryButton ? (
-              <Button
-                onClick={handleRetryScan}
-                disabled={isProcessing}
-                className="flex-1"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Scan Again
-              </Button>
+
+            {qrData && locationStatus === 'error' ? (
+              <>
+                <Button
+                  onClick={handleRetryLocation}
+                  disabled={isProcessing}
+                  className="flex-1"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry Location
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleRetryScan}
+                  disabled={isProcessing}
+                  className="flex-1"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Scan Again
+                </Button>
+              </>
             ) : (
               <Button
                 onClick={handleCheckIn}
-                disabled={!qrData || isProcessing || locationStatus === 'error'}
+                disabled={!qrData || isProcessing}
                 className="flex-1"
               >
                 {isProcessing ? (

@@ -56,43 +56,74 @@ export class GeolocationService {
    * Get current user location
    */
   static getCurrentLocation(): Promise<GeolocationData> {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation is not supported by this browser'))
-        return
+    if (!navigator.geolocation) {
+      return Promise.reject(new Error('Geolocation is not supported by this browser.'))
+    }
+
+    if (!window.isSecureContext) {
+      return Promise.reject(
+        new Error('Location requires HTTPS. Please use the secure live website.')
+      )
+    }
+
+    return this.getCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 30000,
+      maximumAge: 60000,
+    }).catch((error: GeolocationPositionError | Error) => {
+      if (
+        'code' in error &&
+        error.code === error.TIMEOUT
+      ) {
+        return this.getCurrentPosition({
+          enableHighAccuracy: false,
+          timeout: 20000,
+          maximumAge: 120000,
+        })
       }
 
+      throw error
+    }).catch((error: GeolocationPositionError | Error) => {
+      throw new Error(this.formatPositionError(error))
+    })
+  }
+
+  private static getCurrentPosition(
+    options: PositionOptions
+  ): Promise<GeolocationData> {
+    return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           resolve({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy,
-            timestamp: position.timestamp
+            timestamp: position.timestamp,
           })
         },
-        (error) => {
-          let message = 'Unable to retrieve your location'
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              message = 'Location permission denied. Please enable location access.'
-              break
-            case error.POSITION_UNAVAILABLE:
-              message = 'Location information is unavailable.'
-              break
-            case error.TIMEOUT:
-              message = 'Location request timed out.'
-              break
-          }
-          reject(new Error(message))
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
+        (error) => reject(error),
+        options
       )
     })
+  }
+
+  private static formatPositionError(
+    error: GeolocationPositionError | Error
+  ): string {
+    if ('code' in error) {
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          return 'Location permission was denied. Please allow location access for this site.'
+        case error.POSITION_UNAVAILABLE:
+          return 'Your location is currently unavailable. Please turn on GPS and try again.'
+        case error.TIMEOUT:
+          return 'Location request timed out. Please move to an open area or try again.'
+        default:
+          return 'Could not get your location. Please try again.'
+      }
+    }
+
+    return error.message || 'Could not get your location. Please try again.'
   }
 
   /**
