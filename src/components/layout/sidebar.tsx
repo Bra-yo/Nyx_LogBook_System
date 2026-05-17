@@ -184,8 +184,8 @@ export function Sidebar({ userRole, className, onNavigate }: SidebarProps) {
   const navigation = navigationItems[userRole] || []
 
   return (
-    <div className={cn("flex h-full min-h-full flex-col bg-card border-r", className)}>
-      <div className="flex h-16 items-center border-b px-6">
+    <div className={cn("flex h-full min-h-full flex-col bg-[#020617] text-white border-r border-white/10", className)}>
+      <div className="flex h-16 items-center border-b border-white/10 px-6">
         <div className="flex items-center space-x-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <span className="text-sm font-bold text-primary-foreground">NYX</span>
@@ -207,8 +207,8 @@ export function Sidebar({ userRole, className, onNavigate }: SidebarProps) {
               <Button
                 variant={isActive ? "secondary" : "ghost"}
                 className={cn(
-                  "w-full justify-start",
-                  isActive && "bg-secondary text-secondary-foreground"
+                  "w-full justify-start text-slate-100 hover:bg-slate-800 hover:text-white",
+                  isActive && "bg-slate-800 text-white"
                 )}
                 onClick={onNavigate}
               >

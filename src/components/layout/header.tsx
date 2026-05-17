@@ -29,7 +29,7 @@ export function Header({ title, onMenuClick }: HeaderProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="inline-flex lg:hidden h-10 w-10 items-center justify-center rounded-md border border-white/15 bg-slate-900 text-white shadow-sm hover:bg-slate-800"
             onClick={onMenuClick}
             aria-label="Open navigation menu"
           >

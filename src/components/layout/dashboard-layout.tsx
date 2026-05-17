@@ -35,14 +35,14 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   return (
     <div className="relative min-h-screen bg-background text-foreground">
       <div
-        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 lg:hidden ${
+        className={`fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
           sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setSidebarOpen(false)}
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 transform border-r bg-card transition-transform duration-300 lg:static lg:translate-x-0 lg:block lg:w-64 ${
+        className={`fixed inset-y-0 left-0 z-[100] w-72 max-w-[85vw] transform border-r border-white/10 bg-[#020617] text-white shadow-2xl transition-transform duration-300 lg:static lg:translate-x-0 lg:block lg:w-64 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
