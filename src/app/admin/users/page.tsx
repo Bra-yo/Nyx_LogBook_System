@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { toast } from 'sonner'
 import { 
   Table,
   TableBody,
@@ -147,13 +148,51 @@ export default function UsersPage() {
   }
 
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
-    // TODO: Implement API call to toggle user status
-    console.log("Toggling user status:", userId, !currentStatus)
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !currentStatus })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.error || 'Unable to update user status.')
+      }
+
+      toast.success(`User has been ${currentStatus ? 'deactivated' : 'activated'}.`)
+      fetchUsers()
+    } catch (error) {
+      console.error('Error toggling user status:', error)
+      toast.error((error as Error).message || 'Failed to update user status.')
+    }
   }
 
   const handleDeleteUser = async (userId: string) => {
-    // TODO: Implement API call to delete user
-    console.log("Deleting user:", userId)
+    const confirmed = window.confirm(
+      'This action will deactivate the user account and preserve their profile data. Continue?'
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.error || 'Unable to deactivate user.')
+      }
+
+      toast.success('User has been deactivated successfully.')
+      fetchUsers()
+    } catch (error) {
+      console.error('Error deactivating user:', error)
+      toast.error((error as Error).message || 'Failed to deactivate user.')
+    }
   }
 
   return (
@@ -405,7 +444,7 @@ export default function UsersPage() {
                               className="text-red-600"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Delete User
+                              Delete Permanently
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

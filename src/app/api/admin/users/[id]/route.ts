@@ -278,7 +278,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete user
+// DELETE - Soft delete / deactivate user by default
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -286,10 +286,12 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions)
     const resolvedParams = await params
-    
+
     if (!session?.user?.role || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const permanent = request.nextUrl.searchParams.get('permanent') === 'true'
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -300,19 +302,42 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Prevent self-deletion
+    // Prevent self-deletion or self-deactivation
     if (resolvedParams.id === session.user.id) {
-      return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 })
+      return NextResponse.json({ error: 'Cannot delete or deactivate your own account' }, { status: 400 })
     }
 
-    // Delete user (cascade will handle related records)
+    if (existingUser.role === 'ADMIN') {
+      const activeAdminCount = await prisma.user.count({
+        where: { role: 'ADMIN', isActive: true }
+      })
+
+      if (activeAdminCount <= 1) {
+        return NextResponse.json({
+          error: 'Cannot deactivate or delete the last active administrator',
+        }, { status: 400 })
+      }
+    }
+
+    if (!permanent) {
+      await prisma.user.update({
+        where: { id: resolvedParams.id },
+        data: { isActive: false }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: 'User has been deactivated instead of deleted'
+      })
+    }
+
     await prisma.user.delete({
       where: { id: resolvedParams.id }
     })
 
     return NextResponse.json({
       success: true,
-      message: 'User deleted successfully'
+      message: 'User deleted permanently'
     })
 
   } catch (error) {

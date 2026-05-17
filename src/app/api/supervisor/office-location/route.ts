@@ -9,7 +9,7 @@ const officeLocationSchema = z.object({
   address: z.string().optional(),
   latitude: z.number(),
   longitude: z.number(),
-  radius: z.number().min(20).max(10000).default(100)
+  radius: z.number().min(20).max(10000).default(500)
 })
 
 export async function GET(request: NextRequest) {
