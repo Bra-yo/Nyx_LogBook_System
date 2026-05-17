@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Printer, Download } from 'lucide-react'
+import { ArrowLeft, Printer, Download, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { PrintableQRCodeCard } from '@/components/attendance/printable-qr-card'
 
@@ -25,7 +24,6 @@ interface OfficeLocation {
 }
 
 export default function MentorQRPrintPage() {
-  const router = useRouter()
   const [officeLocation, setOfficeLocation] = useState<OfficeLocation | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -108,11 +106,17 @@ export default function MentorQRPrintPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Mentor Office QR Code</h1>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
             <p className="text-blue-800">
-              Office location setup will be completed in the mentor onboarding phase.
+              No office location has been configured yet. Set up your mentor office location first, then return to print the QR code.
             </p>
           </div>
           <div className="space-y-3">
             <Button asChild className="w-full">
+              <Link href="/supervisor/office-location">
+                <MapPin className="h-4 w-4 mr-2" />
+                Set Up Office Location
+              </Link>
+            </Button>
+            <Button asChild className="w-full" variant="outline">
               <Link href="/supervisor">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard

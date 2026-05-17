@@ -23,7 +23,7 @@ export function Header({ title, onMenuClick }: HeaderProps) {
   const { data: session } = useSession()
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+    <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-[#020617]/95 backdrop-blur">
       <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <Button

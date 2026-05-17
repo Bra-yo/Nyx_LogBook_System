@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, type FormEvent } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Printer, MapPin, QrCode } from 'lucide-react'
+import { toast } from 'sonner'
+import { ArrowLeft, Printer, QrCode, MapPin as MapIcon } from 'lucide-react'
 import Link from 'next/link'
 
 interface OfficeLocation {
@@ -26,7 +26,6 @@ interface OfficeLocation {
 }
 
 export default function MentorOfficeLocationPage() {
-  const router = useRouter()
   const [officeLocation, setOfficeLocation] = useState<OfficeLocation | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -88,7 +87,7 @@ export default function MentorOfficeLocationPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
-              <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <MapIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Office Location Setup</h3>
               <p className="text-muted-foreground mb-4">
                 Office location setup will be completed in the mentor onboarding phase.
@@ -105,7 +104,7 @@ export default function MentorOfficeLocationPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
+                <MapIcon className="h-5 w-5" />
                 Office Location Details
               </CardTitle>
               <CardDescription>

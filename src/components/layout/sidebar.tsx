@@ -73,8 +73,8 @@ const navigationItems = {
       icon: LayoutDashboard,
     },
     {
-      title: "Office QR Code",
-      href: "/supervisor/office-location/qr/print",
+      title: "Office Location",
+      href: "/supervisor/office-location",
       icon: QrCode,
     },
     {

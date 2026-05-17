@@ -42,14 +42,18 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-[100] w-72 max-w-[85vw] transform border-r border-white/10 bg-[#020617] text-white shadow-2xl transition-transform duration-300 lg:static lg:translate-x-0 lg:block lg:w-64 ${
+        className={`fixed inset-y-0 left-0 z-[100] w-72 max-w-[85vw] transform border-r border-white/10 bg-[#020617] text-white shadow-2xl transition-transform duration-300 lg:hidden ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <Sidebar userRole={userRole} onNavigate={() => setSidebarOpen(false)} />
       </aside>
 
-      <div className="flex min-h-screen flex-col lg:pl-0">
+      <aside className="hidden lg:flex lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:w-64 lg:flex-col lg:bg-[#020617] lg:border-r lg:border-white/10 lg:text-white">
+        <Sidebar userRole={userRole} />
+      </aside>
+
+      <div className="w-full min-h-screen bg-background text-foreground lg:pl-64">
         <Header title={title} onMenuClick={() => setSidebarOpen(true)} />
         <main className="flex-1 min-w-0 w-full overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
           {children}

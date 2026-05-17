@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { z, ZodError } from 'zod'
+
+const officeLocationSchema = z.object({
+  name: z.string().min(1, 'Office name is required'),
+  address: z.string().optional(),
+  latitude: z.number(),
+  longitude: z.number(),
+  radius: z.number().min(20).max(10000).default(100)
+})
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,8 +29,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Supervisor profile not found' }, { status: 404 })
     }
 
-    // Find office location owned by this mentor
-    let officeLocation = await prisma.officeLocation.findFirst({
+    const officeLocation = await prisma.officeLocation.findFirst({
       where: {
         mentorId: supervisor.id,
         isActive: true
@@ -37,32 +45,9 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // TODO: Use mentor-owned office location once onboarding is complete.
-    // For now, fallback to first active location if mentor ownership is not implemented yet
-    if (!officeLocation) {
-      officeLocation = await prisma.officeLocation.findFirst({
-        where: {
-          isActive: true
-        },
-        include: {
-          mentor: {
-            include: {
-              user: {
-                select: { name: true }
-              }
-            }
-          }
-        }
-      })
-    }
-
-    if (!officeLocation) {
-      return NextResponse.json({ message: 'No office location found' }, { status: 404 })
-    }
-
     return NextResponse.json({
       success: true,
-      location: officeLocation
+      location: officeLocation ?? null
     })
   } catch (error) {
     console.error('Failed to fetch mentor office location:', error)
@@ -71,4 +56,103 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+async function handleCreateOrUpdate(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.role !== 'SUPERVISOR') {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supervisor = await prisma.supervisorProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true }
+    })
+
+    if (!supervisor) {
+      return NextResponse.json({ message: 'Supervisor profile not found' }, { status: 404 })
+    }
+
+    const body = await request.json()
+    const data = officeLocationSchema.parse(body)
+
+    const existingOfficeLocation = await prisma.officeLocation.findFirst({
+      where: {
+        mentorId: supervisor.id,
+        isActive: true
+      }
+    })
+
+    const qrCodeData = existingOfficeLocation
+      ? existingOfficeLocation.qrCodeData
+      : `NYX_ATTENDANCE_${supervisor.id}_${crypto.randomUUID()}`
+
+    const location = existingOfficeLocation
+      ? await prisma.officeLocation.update({
+          where: { id: existingOfficeLocation.id },
+          data: {
+            name: data.name,
+            address: data.address ?? '',
+            latitude: data.latitude,
+            longitude: data.longitude,
+            radius: data.radius,
+            isActive: true
+          },
+          include: {
+            mentor: {
+              include: {
+                user: {
+                  select: { name: true }
+                }
+              }
+            }
+          }
+        })
+      : await prisma.officeLocation.create({
+          data: {
+            name: data.name,
+            address: data.address ?? '',
+            latitude: data.latitude,
+            longitude: data.longitude,
+            radius: data.radius,
+            isActive: true,
+            qrCodeData,
+            mentorId: supervisor.id
+          },
+          include: {
+            mentor: {
+              include: {
+                user: {
+                  select: { name: true }
+                }
+              }
+            }
+          }
+        })
+
+    return NextResponse.json({ success: true, location })
+  } catch (error) {
+    console.error('Failed to save mentor office location:', error)
+
+    if (error instanceof ZodError) {
+      return NextResponse.json({
+        message: 'Invalid office location data',
+        issues: error.issues
+      }, { status: 400 })
+    }
+
+    return NextResponse.json(
+      { message: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  return handleCreateOrUpdate(request)
+}
+
+export async function PUT(request: NextRequest) {
+  return handleCreateOrUpdate(request)
 }
