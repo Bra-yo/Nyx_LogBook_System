@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, Users, GraduationCap, BarChart3, ArrowRight } from "lucide-react"
@@ -9,16 +10,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-6">
-          <div className="flex items-center space-x-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">{BRANDING.shortName}</span>
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold">{BRANDING.appName}</h1>
-              <p className="text-xs text-muted-foreground">{BRANDING.organizationName}</p>
-            </div>
-          </div>
+        <div className="container flex h-16 items-center justify-end px-6">
           <Link href="/auth/signin">
             <Button>Sign In</Button>
           </Link>
@@ -27,7 +19,16 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="container px-6 py-24 text-center">
-        <div className="mx-auto max-w-3xl space-y-6">
+        <div className="mx-auto max-w-3xl space-y-8">
+          <div className="mx-auto mb-8 flex h-28 w-28 sm:h-36 sm:w-36 md:h-44 md:w-44 items-center justify-center rounded-2xl bg-white p-3 shadow-lg">
+            <Image
+              src="/bob-grogan-logo.jpg"
+              alt="Bob Grogan Consulting LTD Logo"
+              width={180}
+              height={56}
+              className="mx-auto h-24 w-auto sm:h-32 md:h-40 object-contain"
+            />
+          </div>
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
             Internship Logbook
             <span className="block text-primary">Management System</span>

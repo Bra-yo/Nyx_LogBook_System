@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { signIn, getSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -58,15 +59,20 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo and Title */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">{BRANDING.shortName}</span>
+            <div className="flex items-center justify-center min-w-0">
+              <Image
+                src="/bob-grogan-logo.jpg"
+                alt="Bob Grogan Consulting LTD Logo"
+                width={180}
+                height={56}
+                className="object-contain h-10 w-auto sm:h-12 md:h-14"
+              />
             </div>
           </div>
           <h1 className="text-2xl font-bold">Welcome to {BRANDING.appName}</h1>
           <p className="text-muted-foreground">Sign in to your account</p>
-          <p className="text-xs text-muted-foreground">{BRANDING.organizationName}</p>
         </div>
 
         {/* Sign In Form */}
