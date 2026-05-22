@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { MapPin, QrCode, Plus, Edit, Trash2, Download, Printer } from 'lucide-react'
+import { BRANDING } from '@/lib/branding'
 import { QRCodeService } from '@/lib/qr-code'
 import dynamic from "next/dynamic"
 import Link from "next/link"
@@ -34,7 +35,7 @@ export default function AdminAttendanceSettingsPage() {
     latitude: '',
     longitude: '',
     radiusMeters: '5000',
-    qrToken: 'NYX_ATTENDANCE_TEST_QR_2026',
+    qrToken: 'BGC_ATTENDANCE_TEST_QR_2026',
     isActive: true
   })
 
@@ -125,7 +126,7 @@ export default function AdminAttendanceSettingsPage() {
           latitude: parseFloat(formData.latitude),
           longitude: parseFloat(formData.longitude),
           radius: parseFloat(formData.radiusMeters),
-          qrCodeData: formData.qrToken || `QR_${Date.now()}`,
+          qrCodeData: formData.qrToken || `${BRANDING.qrPrefix}_${Date.now()}`,
           isActive: formData.isActive
         })
       })
@@ -139,7 +140,7 @@ export default function AdminAttendanceSettingsPage() {
           latitude: '',
           longitude: '',
           radiusMeters: '5000',
-          qrToken: 'NYX_ATTENDANCE_TEST_QR_2026',
+          qrToken: 'BGC_ATTENDANCE_TEST_QR_2026',
           isActive: true
         })
         fetchOfficeLocations()
@@ -200,7 +201,7 @@ export default function AdminAttendanceSettingsPage() {
                 <h4 className="font-medium text-blue-800 mb-2">⚠️ Important: QR Code Matching</h4>
                 <p className="text-sm text-blue-700">
                   The QR code data saved here must exactly match the QR code scanned by students. 
-                  For testing, use: <code className="bg-blue-100 px-2 py-1 rounded">NYX_ATTENDANCE_TEST_QR_2026</code>
+                  For testing, use: <code className="bg-blue-100 px-2 py-1 rounded">BGC_ATTENDANCE_TEST_QR_2026</code>
                 </p>
                 <p className="text-sm text-blue-600 mt-1">
                   Students will only be able to check in if the scanned QR value matches the qrCodeData field exactly.
@@ -291,7 +292,7 @@ export default function AdminAttendanceSettingsPage() {
                       id="qrToken"
                       value={formData.qrToken}
                       onChange={(e) => setFormData({...formData, qrToken: e.target.value})}
-                      placeholder="NYX_ATTENDANCE_TEST_QR_2026"
+                      placeholder="BGC_ATTENDANCE_TEST_QR_2026"
                       required
                     />
                     <p className="text-xs text-muted-foreground mt-1">

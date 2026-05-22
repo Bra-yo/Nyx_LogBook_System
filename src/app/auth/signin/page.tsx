@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import { BRANDING } from "@/lib/branding"
 
 export default function SignInPage() {
   const router = useRouter()
@@ -60,12 +61,12 @@ export default function SignInPage() {
         <div className="text-center space-y-2">
           <div className="flex justify-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">NYX</span>
+              <span className="text-lg font-bold text-primary-foreground">{BRANDING.shortName}</span>
             </div>
           </div>
-          <h1 className="text-2xl font-bold">Welcome to LogBook</h1>
+          <h1 className="text-2xl font-bold">Welcome to {BRANDING.appName}</h1>
           <p className="text-muted-foreground">Sign in to your account</p>
-          <p className="text-xs text-muted-foreground">NYX QUANT SYSTEMS LTD.</p>
+          <p className="text-xs text-muted-foreground">{BRANDING.organizationName}</p>
         </div>
 
         {/* Sign In Form */}

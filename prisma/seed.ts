@@ -7,7 +7,7 @@ async function main() {
   console.log('🌱 Starting database seeding...')
 
   // Environment variables for bootstrap admin
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@nyxquant.com'
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@bobgroganconsulting.com'
   const adminPassword = process.env.ADMIN_PASSWORD || 'ChangeMe123'
   const adminName = process.env.ADMIN_NAME || 'System Administrator'
   const defaultUserPassword = process.env.DEFAULT_USER_PASSWORD || 'ChangeMe123'

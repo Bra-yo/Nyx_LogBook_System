@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { BRANDING } from "@/lib/branding"
 import { terminology } from "@/lib/terminology"
 import { Button } from "@/components/ui/button"
 import { 
@@ -188,11 +189,11 @@ export function Sidebar({ userRole, className, onNavigate }: SidebarProps) {
       <div className="flex h-16 items-center border-b border-white/10 px-6">
         <div className="flex items-center space-x-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">NYX</span>
+            <span className="text-sm font-bold text-primary-foreground">{BRANDING.shortName}</span>
           </div>
           <div>
-            <h1 className="text-sm font-semibold">LogBook</h1>
-            <p className="text-xs text-muted-foreground">Quant Systems</p>
+            <h1 className="text-sm font-semibold">{BRANDING.appName}</h1>
+            <p className="text-xs text-muted-foreground">{BRANDING.organizationName}</p>
           </div>
         </div>
       </div>

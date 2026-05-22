@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, Users, GraduationCap, BarChart3, ArrowRight } from "lucide-react"
+import { BRANDING } from "@/lib/branding"
 
 export default function Home() {
   return (
@@ -11,11 +12,11 @@ export default function Home() {
         <div className="container flex h-16 items-center justify-between px-6">
           <div className="flex items-center space-x-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">NYX</span>
+              <span className="text-sm font-bold text-primary-foreground">{BRANDING.shortName}</span>
             </div>
             <div>
-              <h1 className="text-sm font-semibold">LogBook</h1>
-              <p className="text-xs text-muted-foreground">Quant Systems</p>
+              <h1 className="text-sm font-semibold">{BRANDING.appName}</h1>
+              <p className="text-xs text-muted-foreground">{BRANDING.organizationName}</p>
             </div>
           </div>
           <Link href="/auth/signin">
@@ -149,11 +150,11 @@ export default function Home() {
               Ready to streamline your internship management?
             </h2>
             <p className="text-xl mb-8 opacity-90">
-              Join thousands of students and educators already using NYX LogBook
+              Join students and educators using {BRANDING.appName}
             </p>
             <Link href="/auth/signin">
               <Button size="lg" variant="secondary" className="text-lg px-8">
-                Start Using NYX LogBook
+                Start Using {BRANDING.appName}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -165,7 +166,7 @@ export default function Home() {
       <footer className="border-t bg-muted/50">
         <div className="container px-6 py-8">
           <div className="text-center text-sm text-muted-foreground">
-            <p> 2026 NYX QUANT SYSTEMS LTD. All rights reserved.</p>
+            <p>{BRANDING.footerText}</p>
             <p className="mt-2">Premium Internship Management Solution</p>
           </div>
         </div>

@@ -30,8 +30,8 @@ interface SystemSettings {
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SystemSettings>({
-    siteName: "NYX LogBook System",
-    siteDescription: "Internship Logbook Management System",
+    siteName: "Bob Grogan Consulting LTD LogBook System",
+    siteDescription: "A digital internship logbook and attendance management system for Bob Grogan Consulting LTD.",
     allowRegistration: true,
     emailNotifications: true,
     maintenanceMode: false,

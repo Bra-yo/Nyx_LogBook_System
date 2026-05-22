@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "@/components/providers/session-provider";
+import { BRANDING } from "@/lib/branding";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NYX LogBook System",
-  description: "Internship/Industrial Attachment Logbook Management System by NYX QUANT SYSTEMS LTD.",
+  title: BRANDING.systemName,
+  description: `A digital internship logbook and attendance management system for ${BRANDING.organizationName}.`,
 };
 
 export const viewport = {

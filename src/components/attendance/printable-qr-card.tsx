@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { BRANDING } from '@/lib/branding'
 import { QRCodeService } from '@/lib/qr-code'
 
 type PrintableQRCodeCardProps = {
@@ -93,8 +94,8 @@ export function PrintableQRCodeCard({
     <div className="print-card w-full max-w-full mx-auto bg-white border border-gray-200 rounded-lg p-6 shadow-lg">
       {/* Header */}
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">NYX LogBook</h1>
-        <h2 className="text-lg font-semibold text-gray-700">NYX QUANT SYSTEMS LTD.</h2>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">{BRANDING.appName}</h1>
+        <h2 className="text-lg font-semibold text-gray-700">{BRANDING.organizationName}</h2>
       </div>
 
       {/* Office Info */}

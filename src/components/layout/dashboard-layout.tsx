@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Sidebar } from "./sidebar"
 import { Header } from "./header"
 import { UserRole } from "@/types"
+import { BRANDING } from "@/lib/branding"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -60,7 +61,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         </main>
         <footer className="border-t bg-muted/50 px-4 py-4 text-center text-xs sm:text-sm sm:px-6 lg:px-8">
           <p className="break-words text-muted-foreground">
-            © 2026 NYX QUANT SYSTEMS LTD. All rights reserved.
+            {BRANDING.footerText}
           </p>
         </footer>
       </div>

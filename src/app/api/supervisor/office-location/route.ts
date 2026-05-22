@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { BRANDING } from '@/lib/branding'
 import { z, ZodError } from 'zod'
 
 const officeLocationSchema = z.object({
@@ -86,7 +87,7 @@ async function handleCreateOrUpdate(request: NextRequest) {
 
     const qrCodeData = existingOfficeLocation
       ? existingOfficeLocation.qrCodeData
-      : `NYX_ATTENDANCE_${supervisor.id}_${crypto.randomUUID()}`
+      : `${BRANDING.qrPrefix}_${supervisor.id}_${crypto.randomUUID()}`
 
     const location = existingOfficeLocation
       ? await prisma.officeLocation.update({

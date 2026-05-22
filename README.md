@@ -1,6 +1,6 @@
-# NYX LogBook System
+# Bob Grogan Consulting LTD LogBook System
 
-A premium SaaS-grade internship/industrial attachment logbook management system built for NYX QUANT SYSTEMS LTD.
+A premium SaaS-grade internship/industrial attachment logbook management system built for Bob Grogan Consulting LTD.
 
 ##  Features
 
@@ -221,7 +221,7 @@ npm start
 
 ##  License
 
-© 2026 NYX QUANT SYSTEMS LTD. All rights reserved.
+© 2026 Bob Grogan Consulting LTD. All rights reserved.
 
 ##  Support
 
@@ -232,4 +232,4 @@ For technical support or questions:
 
 ---
 
-**Built with ❤️ for NYX QUANT SYSTEMS LTD.**
+**Built with ❤️ for Bob Grogan Consulting LTD.**
