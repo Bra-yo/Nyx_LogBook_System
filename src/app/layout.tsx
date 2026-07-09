@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: BRANDING.systemName,
-  description: `A digital internship logbook and attendance management system for ${BRANDING.organizationName}.`,
+  description: `A digital WorkLog and attendance management system for ${BRANDING.organizationName}.`,
 };
 
 export const viewport = {
@@ -35,9 +35,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col">
-        <SessionProvider>
-          {children}
-        </SessionProvider>
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );

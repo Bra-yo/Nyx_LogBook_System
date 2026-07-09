@@ -1,112 +1,120 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { terminology } from "@/lib/terminology"
-import { 
-  Plus, 
-  Calendar, 
-  FileText, 
-  CheckCircle, 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { terminology } from "@/lib/terminology";
+import {
+  Plus,
+  Calendar,
+  FileText,
+  CheckCircle,
   AlertCircle,
   Loader2,
-  Target
-} from "lucide-react"
-import Link from "next/link"
+  Target,
+} from "lucide-react";
+import Link from "next/link";
 
 interface MilestoneData {
-  id: string
-  title: string
-  description?: string
-  startDate: string
-  endDate: string
-  status: string
-  entryCount: number
+  id: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  entryCount: number;
   mentorAssessment?: {
-    status: string
-    competencyLevel?: number
-  }
+    status: string;
+    competencyLevel?: number;
+  };
   lecturerAssessment?: {
-    status: string
-    overallScore?: number
-  }
-  createdAt: string
+    status: string;
+    overallScore?: number;
+  };
+  createdAt: string;
 }
 
-function getStatusBadgeVariant(status: string): "default" | "secondary" | "outline" {
+function getStatusBadgeVariant(
+  status: string,
+): "default" | "secondary" | "outline" {
   switch (status) {
     case "PENDING":
-      return "secondary"
+      return "secondary";
     case "SUBMITTED":
-      return "outline"
+      return "outline";
     case "MENTOR_REVIEWED":
-      return "default"
+      return "default";
     case "LECTURER_REVIEWED":
-      return "default"
+      return "default";
     case "COMPLETED":
-      return "default"
+      return "default";
     default:
-      return "secondary"
+      return "secondary";
   }
 }
 
 function getStatusLabel(status: string): string {
   switch (status) {
     case "PENDING":
-      return "Draft"
+      return "Draft";
     case "IN_PROGRESS":
-      return "In Progress"
+      return "In Progress";
     case "SUBMITTED":
-      return "Awaiting Mentor Review"
+      return "Awaiting Mentor Review";
     case "MENTOR_REVIEWED":
-      return "Mentor Reviewed"
+      return "Mentor Reviewed";
     case "LECTURER_REVIEWED":
-      return "Lecturer Reviewed"
+      return "Lecturer Reviewed";
     case "COMPLETED":
-      return "Completed"
+      return "Completed";
     default:
-      return status
+      return status;
   }
 }
 
 export default function LearnerMilestonesPage() {
-  const router = useRouter()
-  const [milestones, setMilestones] = useState<MilestoneData[]>([])
-  const [loading, setLoading] = useState(true)
+  const router = useRouter();
+  const [milestones, setMilestones] = useState<MilestoneData[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMilestones()
-  }, [])
+    fetchMilestones();
+  }, []);
 
   const fetchMilestones = async () => {
     try {
-      setLoading(true)
-      const response = await fetch("/api/student/milestones")
-      
+      setLoading(true);
+      const response = await fetch("/api/student/milestones");
+
       if (response.ok) {
-        const data = await response.json()
-        setMilestones(data.milestones || [])
+        const data = await response.json();
+        setMilestones(data.milestones || []);
       } else {
-        console.error("Failed to fetch milestones")
+        console.error("Failed to fetch milestones");
       }
     } catch (error) {
-      console.error("Error fetching milestones:", error)
+      console.error("Error fetching milestones:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
-      year: "numeric"
-    })
-  }
+      year: "numeric",
+    });
+  };
 
   return (
     <DashboardLayout title={`Learner ${terminology.milestones}`}>
@@ -114,8 +122,12 @@ export default function LearnerMilestonesPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Learner {terminology.milestones}</h2>
-            <p className="text-muted-foreground">Competency milestones are assigned through your projects.</p>
+            <h2 className="text-2xl font-bold">
+              Learner {terminology.milestones}
+            </h2>
+            <p className="text-muted-foreground">
+              Competency milestones are assigned through your projects.
+            </p>
           </div>
         </div>
 
@@ -125,7 +137,9 @@ export default function LearnerMilestonesPage() {
             <CardContent className="flex items-center justify-center h-64">
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="h-8 w-8 animate-spin" />
-                <p className="text-muted-foreground">Loading competency milestones...</p>
+                <p className="text-muted-foreground">
+                  Loading competency milestones...
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -135,12 +149,14 @@ export default function LearnerMilestonesPage() {
             <CardContent className="flex flex-col items-center justify-center h-64 gap-4">
               <Target className="h-12 w-12 text-muted-foreground" />
               <div className="text-center">
-                <h3 className="text-lg font-semibold mb-2">No competency milestones have been assigned yet</h3>
-                <p className="text-muted-foreground mb-4">Your mentor will assign milestones through your projects.</p>
+                <h3 className="text-lg font-semibold mb-2">
+                  No competency milestones have been assigned yet
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Your mentor will assign milestones through your projects.
+                </p>
                 <Link href="/student/projects">
-                  <Button>
-                    View My Projects
-                  </Button>
+                  <Button>View My Projects</Button>
                 </Link>
               </div>
             </CardContent>
@@ -149,15 +165,19 @@ export default function LearnerMilestonesPage() {
           /* Milestones Grid */
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {milestones.map((milestone) => (
-              <Card 
+              <Card
                 key={milestone.id}
                 className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => router.push(`/student/milestones/${milestone.id}`)}
+                onClick={() =>
+                  router.push(`/student/milestones/${milestone.id}`)
+                }
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                      <CardTitle className="line-clamp-2">{milestone.title}</CardTitle>
+                      <CardTitle className="line-clamp-2">
+                        {milestone.title}
+                      </CardTitle>
                       <CardDescription className="line-clamp-1 mt-1">
                         {milestone.description || "No description"}
                       </CardDescription>
@@ -171,28 +191,39 @@ export default function LearnerMilestonesPage() {
                   {/* Date Range */}
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    <span>{formatDate(milestone.startDate)} — {formatDate(milestone.endDate)}</span>
+                    <span>
+                      {formatDate(milestone.startDate)} —{" "}
+                      {formatDate(milestone.endDate)}
+                    </span>
                   </div>
 
                   {/* Entry Count */}
                   <div className="flex items-center gap-2 text-sm">
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span>{milestone.entryCount} logbook {milestone.entryCount === 1 ? "entry" : "entries"}</span>
+                    <span>
+                      {milestone.entryCount} work record
+                      {milestone.entryCount === 1 ? "" : "s"}
+                    </span>
                   </div>
 
                   {/* Assessment Status */}
-                  {(milestone.mentorAssessment || milestone.lecturerAssessment) && (
+                  {(milestone.mentorAssessment ||
+                    milestone.lecturerAssessment) && (
                     <div className="space-y-2 pt-2 border-t">
                       {milestone.mentorAssessment && (
                         <div className="flex items-center gap-2 text-sm">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-green-700">Mentor reviewed</span>
+                          <span className="text-green-700">
+                            Mentor reviewed
+                          </span>
                         </div>
                       )}
                       {milestone.lecturerAssessment && (
                         <div className="flex items-center gap-2 text-sm">
                           <CheckCircle className="h-4 w-4 text-blue-600" />
-                          <span className="text-blue-700">Lecturer assessed</span>
+                          <span className="text-blue-700">
+                            Lecturer assessed
+                          </span>
                         </div>
                       )}
                     </div>
@@ -218,5 +249,5 @@ export default function LearnerMilestonesPage() {
         )}
       </div>
     </DashboardLayout>
-  )
+  );
 }

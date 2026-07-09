@@ -1,88 +1,98 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, Printer, Download, MapPin } from 'lucide-react'
-import Link from 'next/link'
-import { PrintableQRCodeCard } from '@/components/attendance/printable-qr-card'
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Printer, Download, MapPin } from "lucide-react";
+import Link from "next/link";
+import { PrintableQRCodeCard } from "@/components/attendance/printable-qr-card";
 
 interface OfficeLocation {
-  id: string
-  name: string
-  address: string
-  latitude: number
-  longitude: number
-  radius: number
-  isActive: boolean
-  qrCodeData: string
-  mentorId: string | null
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
+  isActive: boolean;
+  qrCodeData: string;
+  mentorId: string | null;
   mentor?: {
     user: {
-      name: string
-    }
-  }
+      name: string;
+    };
+  };
 }
 
 export default function MentorQRPrintPage() {
-  const [officeLocation, setOfficeLocation] = useState<OfficeLocation | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [downloadHandler, setDownloadHandler] = useState<(() => void) | null>(null)
-
-  useEffect(() => {
-    fetchMentorOfficeLocation()
-  }, [])
+  const [officeLocation, setOfficeLocation] = useState<OfficeLocation | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [downloadHandler, setDownloadHandler] = useState<(() => void) | null>(
+    null,
+  );
 
   const fetchMentorOfficeLocation = async () => {
     try {
-      setLoading(true)
-      const response = await fetch('/api/supervisor/office-location')
+      setLoading(true);
+      const response = await fetch("/api/supervisor/office-location");
 
       if (response.status === 404) {
-        setError('No office location has been configured yet. Please set up your office location first.')
-        return
+        setError(
+          "No office location has been configured yet. Please set up your office location first.",
+        );
+        return;
       }
 
       if (!response.ok) {
-        throw new Error('Failed to fetch office location')
+        throw new Error("Failed to fetch office location");
       }
 
-      const data = await response.json()
-      setOfficeLocation(data.location)
+      const data = await response.json();
+      setOfficeLocation(data.location);
     } catch (error) {
-      console.error('Failed to fetch office location:', error)
-      setError('Failed to load office location')
+      console.error("Failed to fetch office location:", error);
+      setError("Failed to load office location");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    void fetchMentorOfficeLocation();
+  }, []);
 
   const handlePrint = () => {
-    window.print()
-  }
+    window.print();
+  };
 
   const handleDownload = () => {
     if (downloadHandler) {
-      downloadHandler()
+      downloadHandler();
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading office location...</p>
+          <p className="mt-2 text-muted-foreground">
+            Loading office location...
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-md mx-auto text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Mentor Office QR Code</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Mentor Office QR Code
+          </h1>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
             <p className="text-yellow-800">{error}</p>
           </div>
@@ -96,17 +106,20 @@ export default function MentorQRPrintPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!officeLocation) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-md mx-auto text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Mentor Office QR Code</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Mentor Office QR Code
+          </h1>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
             <p className="text-blue-800">
-              No office location has been configured yet. Set up your mentor office location first, then return to print the QR code.
+              No office location has been configured yet. Set up your mentor
+              office location first, then return to print the QR code.
             </p>
           </div>
           <div className="space-y-3">
@@ -125,7 +138,7 @@ export default function MentorQRPrintPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -142,12 +155,16 @@ export default function MentorQRPrintPage() {
                 </Link>
               </Button>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">Mentor Office QR Code</h1>
-                <p className="text-sm text-gray-600">Print or download this QR code for learners to check in</p>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Mentor Office QR Code
+                </h1>
+                <p className="text-sm text-gray-600">
+                  Print or download this QR code for learners to check in
+                </p>
               </div>
             </div>
           </div>
-          
+
           {/* Action Buttons */}
           <div className="flex gap-2 pt-2 border-t border-gray-100">
             <Button onClick={handleDownload} disabled={!downloadHandler}>
@@ -177,5 +194,5 @@ export default function MentorQRPrintPage() {
         />
       </div>
     </div>
-  )
+  );
 }

@@ -1,54 +1,61 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { 
-  Settings, 
-  Save, 
+import { useState, useEffect } from "react";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Settings,
+  Save,
   RefreshCw,
   Bell,
   Shield,
   Database,
   Mail,
-  Users
-} from "lucide-react"
+  Users,
+} from "lucide-react";
 
 interface SystemSettings {
-  siteName: string
-  siteDescription: string
-  allowRegistration: boolean
-  emailNotifications: boolean
-  maintenanceMode: boolean
-  sessionTimeout: number
-  maxFileSize: number
-  backupFrequency: string
+  siteName: string;
+  siteDescription: string;
+  allowRegistration: boolean;
+  emailNotifications: boolean;
+  maintenanceMode: boolean;
+  sessionTimeout: number;
+  maxFileSize: number;
+  backupFrequency: string;
 }
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SystemSettings>({
-    siteName: "Bob Grogan Consulting LTD LogBook System",
-    siteDescription: "A digital internship logbook and attendance management system for Bob Grogan Consulting LTD.",
+    siteName: "Bob Grogan Consulting LTD WorkLog System",
+    siteDescription:
+      "A digital WorkLog and attendance management system for Bob Grogan Consulting LTD.",
     allowRegistration: true,
     emailNotifications: true,
     maintenanceMode: false,
     sessionTimeout: 24,
     maxFileSize: 10,
-    backupFrequency: "daily"
-  })
-  const [loading, setLoading] = useState(false)
-  const [saving, setSaving] = useState(false)
+    backupFrequency: "daily",
+  });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchSettings()
-  }, [])
+    fetchSettings();
+  }, []);
 
   const fetchSettings = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       // TODO: Implement actual API call
       // const response = await fetch('/api/admin/settings')
       // if (response.ok) {
@@ -56,15 +63,15 @@ export default function AdminSettingsPage() {
       //   setSettings(data.settings)
       // }
     } catch (error) {
-      console.error('Error fetching settings:', error)
+      console.error("Error fetching settings:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const saveSettings = async () => {
     try {
-      setSaving(true)
+      setSaving(true);
       // TODO: Implement actual API call
       // const response = await fetch('/api/admin/settings', {
       //   method: 'POST',
@@ -74,14 +81,14 @@ export default function AdminSettingsPage() {
       // if (response.ok) {
       //   // Show success message
       // }
-      
-      console.log('Saving settings:', settings)
+
+      console.log("Saving settings:", settings);
     } catch (error) {
-      console.error('Error saving settings:', error)
+      console.error("Error saving settings:", error);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const resetToDefaults = async () => {
     try {
@@ -92,12 +99,12 @@ export default function AdminSettingsPage() {
       // if (response.ok) {
       //   await fetchSettings()
       // }
-      
-      console.log('Resetting to defaults...')
+
+      console.log("Resetting to defaults...");
     } catch (error) {
-      console.error('Error resetting settings:', error)
+      console.error("Error resetting settings:", error);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -115,7 +122,7 @@ export default function AdminSettingsPage() {
           </div>
         </div>
       </DashboardLayout>
-    )
+    );
   }
 
   return (
@@ -136,7 +143,7 @@ export default function AdminSettingsPage() {
             </Button>
             <Button onClick={saveSettings} disabled={saving}>
               <Save className="mr-2 h-4 w-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>
@@ -148,9 +155,7 @@ export default function AdminSettingsPage() {
               <Settings className="h-5 w-5" />
               General Settings
             </CardTitle>
-            <CardDescription>
-              Basic system configuration
-            </CardDescription>
+            <CardDescription>Basic system configuration</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
@@ -159,7 +164,12 @@ export default function AdminSettingsPage() {
                 <Input
                   id="siteName"
                   value={settings.siteName}
-                  onChange={(e) => setSettings(prev => ({ ...prev, siteName: e.target.value }))}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      siteName: e.target.value,
+                    }))
+                  }
                   placeholder="Enter site name"
                 />
               </div>
@@ -168,7 +178,12 @@ export default function AdminSettingsPage() {
                 <Input
                   id="siteDescription"
                   value={settings.siteDescription}
-                  onChange={(e) => setSettings(prev => ({ ...prev, siteDescription: e.target.value }))}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      siteDescription: e.target.value,
+                    }))
+                  }
                   placeholder="Enter site description"
                 />
               </div>
@@ -198,7 +213,12 @@ export default function AdminSettingsPage() {
               <input
                 type="checkbox"
                 checked={settings.allowRegistration}
-                onChange={(e) => setSettings(prev => ({ ...prev, allowRegistration: e.target.checked }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    allowRegistration: e.target.checked,
+                  }))
+                }
                 className="w-4 h-4"
               />
             </div>
@@ -212,7 +232,12 @@ export default function AdminSettingsPage() {
               <input
                 type="checkbox"
                 checked={settings.emailNotifications}
-                onChange={(e) => setSettings(prev => ({ ...prev, emailNotifications: e.target.checked }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    emailNotifications: e.target.checked,
+                  }))
+                }
                 className="w-4 h-4"
               />
             </div>
@@ -222,7 +247,12 @@ export default function AdminSettingsPage() {
                 id="sessionTimeout"
                 type="number"
                 value={settings.sessionTimeout}
-                onChange={(e) => setSettings(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    sessionTimeout: parseInt(e.target.value),
+                  }))
+                }
                 min="1"
                 max="168"
               />
@@ -237,9 +267,7 @@ export default function AdminSettingsPage() {
               <Database className="h-5 w-5" />
               System Configuration
             </CardTitle>
-            <CardDescription>
-              Technical system settings
-            </CardDescription>
+            <CardDescription>Technical system settings</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -248,7 +276,12 @@ export default function AdminSettingsPage() {
                 id="maxFileSize"
                 type="number"
                 value={settings.maxFileSize}
-                onChange={(e) => setSettings(prev => ({ ...prev, maxFileSize: parseInt(e.target.value) }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    maxFileSize: parseInt(e.target.value),
+                  }))
+                }
                 min="1"
                 max="100"
               />
@@ -258,7 +291,12 @@ export default function AdminSettingsPage() {
               <select
                 id="backupFrequency"
                 value={settings.backupFrequency}
-                onChange={(e) => setSettings(prev => ({ ...prev, backupFrequency: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    backupFrequency: e.target.value,
+                  }))
+                }
                 className="w-full p-2 border rounded-md"
               >
                 <option value="hourly">Hourly</option>
@@ -296,9 +334,7 @@ export default function AdminSettingsPage() {
               <Mail className="h-5 w-5" />
               Email Configuration
             </CardTitle>
-            <CardDescription>
-              SMTP and email delivery settings
-            </CardDescription>
+            <CardDescription>SMTP and email delivery settings</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-8 text-muted-foreground">
@@ -309,5 +345,5 @@ export default function AdminSettingsPage() {
         </Card>
       </div>
     </DashboardLayout>
-  )
+  );
 }

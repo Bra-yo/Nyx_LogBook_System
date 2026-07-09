@@ -26,6 +26,7 @@ model User {
   sessions           Session[]
   studentProfile     StudentProfile?
   supervisorProfile  SupervisorProfile?
+  workerProfile      WorkerProfile?
 
   @@map("users")
 }
@@ -58,21 +59,30 @@ model Department {
 }
 
 model Project {
-  id           String        @id @default(cuid())
-  title        String
-  description  String?
-  companyName  String?
-  departmentId String?
-  mentorId     String?
-  status       ProjectStatus @default(ACTIVE)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id              String          @id @default(cuid())
+  projectCode     String?         @unique
+  title           String
+  projectName     String?
+  description     String?
+  companyName     String?
+  departmentId    String?
+  supervisorId    String?
+  mentorId        String?
+  status          ProjectStatus   @default(ACTIVE)
+  startDate       DateTime?
+  expectedEndDate DateTime?
+  actualEndDate   DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  department   Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  mentor       SupervisorProfile? @relation(fields: [mentorId], references: [id], onDelete: SetNull)
-  learners     ProjectLearner[]
-  milestones   Milestone[]
-  LogbookEntry LogbookEntry[]
+  department      Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  supervisor      SupervisorProfile? @relation("SupervisorProjects", fields: [supervisorId], references: [id], onDelete: SetNull)
+  mentor          SupervisorProfile? @relation("MentorProjects", fields: [mentorId], references: [id], onDelete: SetNull)
+  learners        ProjectLearner[]
+  projectMembers  ProjectMember[]
+  tasks           Task[]
+  milestones      Milestone[]
+  LogbookEntry    LogbookEntry[]
 
   @@map("projects")
 }
@@ -117,6 +127,98 @@ model StudentProfile {
   @@map("student_profiles")
 }
 
+model WorkerProfile {
+  id                 String            @id @default(cuid())
+  userId             String            @unique
+  erpEmployeeId      String?
+  staffNumber        String?           @unique
+  firstName          String?
+  middleName         String?
+  lastName           String?
+  fullName           String?
+  email              String?
+  phoneNumber        String?
+  department         String?
+  jobTitle           String?
+  employmentStatus   String?
+  nationalId         String?
+  dateEmployed       DateTime?
+  gender             String?
+  lastSyncTime       DateTime?
+  erpUpdatedAt       DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendanceRecords  Attendance[]
+  workerWorkLogs     TaskWorkLog[]
+  assignedTasks      Task[]            @relation("AssignedTasks")
+  projectMemberships ProjectMember[]
+
+  @@map("worker_profiles")
+}
+
+model ProjectMember {
+  id        String        @id @default(cuid())
+  projectId String
+  workerId  String
+  joinedAt  DateTime      @default(now())
+
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  worker  WorkerProfile @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, workerId])
+  @@map("project_members")
+}
+
+model Task {
+  id               String        @id @default(cuid())
+  projectId        String
+  assignedWorkerId String?
+  taskTitle        String
+  taskDescription  String?
+  priority         TaskPriority  @default(MEDIUM)
+  status           TaskStatus    @default(PENDING)
+  expectedStartDate DateTime?
+  expectedEndDate   DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedWorker WorkerProfile? @relation("AssignedTasks", fields: [assignedWorkerId], references: [id], onDelete: SetNull)
+  workLogs       TaskWorkLog[]
+
+  @@map("tasks")
+}
+
+model TaskWorkLog {
+  id                   String            @id @default(cuid())
+  taskId               String
+  workerId             String
+  workDate             DateTime
+  startTime            DateTime?
+  endTime              DateTime?
+  hoursWorked          Float?
+  progressDescription  String
+  achievements         String?
+  challenges           String?
+  completionPercentage Int?
+  supervisorComments   String?
+  status               LogStatus         @default(DRAFT)
+  submittedAt          DateTime?
+  reviewedAt           DateTime?
+  reviewedBy           String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  task                   Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  worker                 WorkerProfile     @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  reviewedBySupervisor  SupervisorProfile? @relation("ReviewedTaskWorkLogs", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@unique([taskId, workerId, workDate])
+  @@map("worker_work_logs")
+}
+
 model SupervisorProfile {
   id                     String                      @id @default(cuid())
   userId                 String                      @unique
@@ -133,7 +235,9 @@ model SupervisorProfile {
   user                   User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   Milestone              Milestone[]
   WeeklyMentorTaskReview WeeklyMentorTaskReview[]
-  Project                Project[]
+  supervisedProjects     Project[]                   @relation("SupervisorProjects")
+  mentoredProjects       Project[]                   @relation("MentorProjects")
+  reviewedTaskWorkLogs   TaskWorkLog[]               @relation("ReviewedTaskWorkLogs")
 
   @@map("supervisor_profiles")
 }
@@ -249,7 +353,8 @@ model Notification {
 
 model Attendance {
   id               String           @id @default(cuid())
-  studentId        String
+  studentId        String?
+  workerId         String?
   officeLocationId String
   checkInTime      DateTime
   checkOutTime     DateTime?
@@ -265,7 +370,8 @@ model Attendance {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   officeLocation   OfficeLocation   @relation(fields: [officeLocationId], references: [id])
-  student          StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student          StudentProfile?  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  worker           WorkerProfile?   @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
   @@map("attendance")
 }
@@ -438,6 +544,7 @@ enum UserRole {
   SUPERVISOR
   LECTURER
   ADMIN
+  WORKER
 }
 
 enum AttendanceStatus {
@@ -457,6 +564,19 @@ enum ProjectStatus {
   ACTIVE
   COMPLETED
   ARCHIVED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
 enum MilestoneTaskStatus {

@@ -1,93 +1,137 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import * as z from 'zod'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { toast } from 'sonner'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { toast } from "sonner";
 
-const createUserSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  role: z.enum(['STUDENT', 'SUPERVISOR', 'LECTURER', 'ADMIN'], {
-    message: 'Please select a valid role'
-  }),
-  departmentId: z.string().optional(),
-  isActive: z.boolean(),
-  // Role-specific fields
-  regNumber: z.string().optional(),
-  year: z.number().min(1, "Year must be at least 1").max(5, "Year must be at most 5").optional(),
-  semester: z.number().min(1, "Semester must be at least 1").max(2, "Semester must be at most 2").optional(),
-  course: z.string().optional(),
-  institution: z.string().optional(),
-  internshipCompany: z.string().optional(),
-  internshipLocation: z.string().optional(),
-  employeeId: z.string().optional(),
-  organization: z.string().optional(),
-  company: z.string().optional(),
-  title: z.string().optional(),
-  staffNumber: z.string().optional()
-}).refine((data) => {
-  // Department is required for STUDENT, SUPERVISOR, and LECTURER roles
-  if (['STUDENT', 'SUPERVISOR', 'LECTURER'].includes(data.role)) {
-    return data.departmentId && data.departmentId.length > 0
-  }
-  return true
-}, {
-  message: 'Department is required for this role',
-  path: ['departmentId']
-}).refine((data) => {
-  // Year is required for STUDENT role
-  if (data.role === 'STUDENT') {
-    return data.year !== undefined && data.year !== null
-  }
-  return true
-}, {
-  message: 'Year is required for student profiles',
-  path: ['year']
-}).refine((data) => {
-  // Registration number is required for STUDENT role
-  if (data.role === 'STUDENT') {
-    return data.regNumber && data.regNumber.length > 0
-  }
-  return true
-}, {
-  message: 'Registration number is required for student profiles',
-  path: ['regNumber']
-}).refine((data) => {
-  // Internship company is required for STUDENT role
-  if (data.role === 'STUDENT') {
-    return data.internshipCompany && data.internshipCompany.length > 0
-  }
-  return true
-}, {
-  message: 'Internship company is required for student profiles',
-  path: ['internshipCompany']
-}).refine((data) => {
-  // Company is required for SUPERVISOR role
-  if (data.role === 'SUPERVISOR') {
-    const company = data.company ?? data.organization
-    return company !== undefined && company !== null && company.length > 0
-  }
-  return true
-}, {
-  message: 'Company is required for supervisor profiles',
-  path: ['company']
-})
+const createUserSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Invalid email address"),
+    role: z.enum(["STUDENT", "SUPERVISOR", "LECTURER", "ADMIN", "WORKER"], {
+      message: "Please select a valid role",
+    }),
+    departmentId: z.string().optional(),
+    isActive: z.boolean(),
+    // Role-specific fields
+    regNumber: z.string().optional(),
+    year: z
+      .number()
+      .min(1, "Year must be at least 1")
+      .max(5, "Year must be at most 5")
+      .optional(),
+    semester: z
+      .number()
+      .min(1, "Semester must be at least 1")
+      .max(2, "Semester must be at most 2")
+      .optional(),
+    course: z.string().optional(),
+    institution: z.string().optional(),
+    internshipCompany: z.string().optional(),
+    internshipLocation: z.string().optional(),
+    employeeId: z.string().optional(),
+    organization: z.string().optional(),
+    company: z.string().optional(),
+    title: z.string().optional(),
+    staffNumber: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // Department is required for STUDENT, SUPERVISOR, and LECTURER roles
+      if (["STUDENT", "SUPERVISOR", "LECTURER"].includes(data.role)) {
+        return data.departmentId && data.departmentId.length > 0;
+      }
+      return true;
+    },
+    {
+      message: "Department is required for this role",
+      path: ["departmentId"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Year is required for STUDENT role
+      if (data.role === "STUDENT") {
+        return data.year !== undefined && data.year !== null;
+      }
+      return true;
+    },
+    {
+      message: "Year is required for student profiles",
+      path: ["year"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Registration number is required for STUDENT role
+      if (data.role === "STUDENT") {
+        return data.regNumber && data.regNumber.length > 0;
+      }
+      return true;
+    },
+    {
+      message: "Registration number is required for student profiles",
+      path: ["regNumber"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Internship company is required for STUDENT role
+      if (data.role === "STUDENT") {
+        return data.internshipCompany && data.internshipCompany.length > 0;
+      }
+      return true;
+    },
+    {
+      message: "Internship company is required for student profiles",
+      path: ["internshipCompany"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Company is required for SUPERVISOR role
+      if (data.role === "SUPERVISOR") {
+        const company = data.company ?? data.organization;
+        return company !== undefined && company !== null && company.length > 0;
+      }
+      return true;
+    },
+    {
+      message: "Company is required for supervisor profiles",
+      path: ["company"],
+    },
+  );
 
-type CreateUserFormData = z.infer<typeof createUserSchema>
+type CreateUserFormData = z.infer<typeof createUserSchema>;
 
 export default function NewUserPage() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([])
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [departments, setDepartments] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
@@ -95,81 +139,83 @@ export default function NewUserPage() {
     handleSubmit,
     formState: { errors },
     reset,
-    setValue
+    setValue,
   } = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
-      name: '',
-      email: '',
-      role: 'STUDENT',
-      departmentId: '',
+      name: "",
+      email: "",
+      role: "STUDENT",
+      departmentId: "",
       isActive: true,
-      regNumber: '',
+      regNumber: "",
       year: undefined,
       semester: undefined,
-      course: '',
-      institution: '',
-      internshipCompany: '',
-      internshipLocation: '',
-      employeeId: '',
-      organization: '',
-      company: '',
-      title: '',
-      staffNumber: ''
-    }
-  })
+      course: "",
+      institution: "",
+      internshipCompany: "",
+      internshipLocation: "",
+      employeeId: "",
+      organization: "",
+      company: "",
+      title: "",
+      staffNumber: "",
+    },
+  });
 
   // Fetch departments on mount
   useEffect(() => {
-    fetch('/api/departments')
-      .then(res => res.json())
-      .then(data => {
+    fetch("/api/departments")
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
-          setDepartments(data.departments)
+          setDepartments(data.departments);
         }
       })
-      .catch(err => {
-        console.error('Failed to fetch departments:', err)
-        toast.error('Failed to load departments')
-      })
-  }, [])
+      .catch((err) => {
+        console.error("Failed to fetch departments:", err);
+        toast.error("Failed to load departments");
+      });
+  }, []);
 
   const onSubmit = async (data: CreateUserFormData) => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      const response = await fetch('/api/admin/users', {
-        method: 'POST',
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(data)
-      })
+        body: JSON.stringify(data),
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (result.success) {
-        toast.success(`User created successfully. Default password is ChangeMe123. The user will be required to change it after first login.`)
-        reset()
-        router.push('/admin/users')
+        toast.success(
+          `User created successfully. Default password is ChangeMe123. The user will be required to change it after first login.`,
+        );
+        reset();
+        router.push("/admin/users");
       } else {
-        setError(result.error || 'Failed to create user')
-        toast.error(result.error || 'Failed to create user')
+        setError(result.error || "Failed to create user");
+        toast.error(result.error || "Failed to create user");
       }
     } catch (err) {
-      setError('An unexpected error occurred')
-      toast.error('Failed to create user')
+      setError("An unexpected error occurred");
+      toast.error("Failed to create user");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const renderRoleSpecificFields = () => {
-    const role = watch('role')
+    const role = watch("role");
 
     switch (role) {
-      case 'STUDENT':
+      case "STUDENT":
         return (
           <div className="space-y-6">
             <div>
@@ -177,17 +223,22 @@ export default function NewUserPage() {
               <Input
                 id="regNumber"
                 placeholder="e.g., CS/2023/001"
-                {...register('regNumber')}
+                {...register("regNumber")}
               />
               {errors.regNumber && (
-                <p className="text-sm text-red-600">{errors.regNumber.message}</p>
+                <p className="text-sm text-red-600">
+                  {errors.regNumber.message}
+                </p>
               )}
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="year">Year *</Label>
-                <Select value={watch('year')?.toString() || ''} onValueChange={(value) => setValue('year', parseInt(value))}>
+                <Select
+                  value={watch("year")?.toString() || ""}
+                  onValueChange={(value) => setValue("year", parseInt(value))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select year" />
                   </SelectTrigger>
@@ -200,12 +251,19 @@ export default function NewUserPage() {
                   </SelectContent>
                 </Select>
                 {errors.year && (
-                  <p className="text-sm text-red-600 mt-2">{errors.year.message}</p>
+                  <p className="text-sm text-red-600 mt-2">
+                    {errors.year.message}
+                  </p>
                 )}
               </div>
               <div>
                 <Label htmlFor="semester">Semester</Label>
-                <Select value={watch('semester')?.toString() || ''} onValueChange={(value) => setValue('semester', parseInt(value))}>
+                <Select
+                  value={watch("semester")?.toString() || ""}
+                  onValueChange={(value) =>
+                    setValue("semester", parseInt(value))
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select semester" />
                   </SelectTrigger>
@@ -215,17 +273,19 @@ export default function NewUserPage() {
                   </SelectContent>
                 </Select>
                 {errors.semester && (
-                  <p className="text-sm text-red-600 mt-2">{errors.semester.message}</p>
+                  <p className="text-sm text-red-600 mt-2">
+                    {errors.semester.message}
+                  </p>
                 )}
               </div>
             </div>
-            
+
             <div>
               <Label htmlFor="course">Course</Label>
               <Input
                 id="course"
                 placeholder="e.g., Computer Science"
-                {...register('course')}
+                {...register("course")}
               />
             </div>
             <div>
@@ -233,7 +293,7 @@ export default function NewUserPage() {
               <Input
                 id="institution"
                 placeholder="University name"
-                {...register('institution')}
+                {...register("institution")}
               />
             </div>
             <div>
@@ -241,10 +301,12 @@ export default function NewUserPage() {
               <Input
                 id="internshipCompany"
                 placeholder="Company name"
-                {...register('internshipCompany')}
+                {...register("internshipCompany")}
               />
               {errors.internshipCompany && (
-                <p className="text-sm text-red-600">{errors.internshipCompany.message}</p>
+                <p className="text-sm text-red-600">
+                  {errors.internshipCompany.message}
+                </p>
               )}
             </div>
             <div>
@@ -252,13 +314,13 @@ export default function NewUserPage() {
               <Input
                 id="internshipLocation"
                 placeholder="City, Country"
-                {...register('internshipLocation')}
+                {...register("internshipLocation")}
               />
             </div>
           </div>
-        )
-      
-      case 'SUPERVISOR':
+        );
+
+      case "SUPERVISOR":
         return (
           <div className="space-y-6">
             <div>
@@ -266,7 +328,7 @@ export default function NewUserPage() {
               <Input
                 id="employeeId"
                 placeholder="Staff number"
-                {...register('employeeId')}
+                {...register("employeeId")}
               />
             </div>
             <div>
@@ -274,7 +336,7 @@ export default function NewUserPage() {
               <Input
                 id="company"
                 placeholder="Company name"
-                {...register('company')}
+                {...register("company")}
               />
               {errors.company && (
                 <p className="text-sm text-red-600">{errors.company.message}</p>
@@ -285,13 +347,13 @@ export default function NewUserPage() {
               <Input
                 id="title"
                 placeholder="Job title"
-                {...register('title')}
+                {...register("title")}
               />
             </div>
           </div>
-        )
-      
-      case 'LECTURER':
+        );
+
+      case "LECTURER":
         return (
           <div className="space-y-6">
             <div>
@@ -299,7 +361,7 @@ export default function NewUserPage() {
               <Input
                 id="staffNumber"
                 placeholder="Employee ID"
-                {...register('staffNumber')}
+                {...register("staffNumber")}
               />
             </div>
             <div>
@@ -307,7 +369,7 @@ export default function NewUserPage() {
               <Input
                 id="institution"
                 placeholder="University name"
-                {...register('institution')}
+                {...register("institution")}
               />
             </div>
             <div>
@@ -315,16 +377,16 @@ export default function NewUserPage() {
               <Input
                 id="title"
                 placeholder="Job title"
-                {...register('title')}
+                {...register("title")}
               />
             </div>
           </div>
-        )
-      
+        );
+
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <div className="container mx-auto py-6">
@@ -333,7 +395,8 @@ export default function NewUserPage() {
           <CardHeader>
             <CardTitle>Create New User</CardTitle>
             <CardDescription>
-              Add a new user to the system. They will receive a default password and be required to change it on first login.
+              Add a new user to the system. They will receive a default password
+              and be required to change it on first login.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -350,10 +413,12 @@ export default function NewUserPage() {
                   <Input
                     id="name"
                     placeholder="Full name"
-                    {...register('name')}
+                    {...register("name")}
                   />
                   {errors.name && (
-                    <p className="text-sm text-red-600">{errors.name.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.name.message}
+                    </p>
                   )}
                 </div>
 
@@ -363,16 +428,21 @@ export default function NewUserPage() {
                     id="email"
                     type="email"
                     placeholder="user@example.com"
-                    {...register('email')}
+                    {...register("email")}
                   />
                   {errors.email && (
-                    <p className="text-sm text-red-600">{errors.email.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.email.message}
+                    </p>
                   )}
                 </div>
 
                 <div>
                   <Label htmlFor="role">Role *</Label>
-                  <Select value={watch('role')} onValueChange={(value) => setValue('role', value as any)}>
+                  <Select
+                    value={watch("role")}
+                    onValueChange={(value) => setValue("role", value as any)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
@@ -384,43 +454,65 @@ export default function NewUserPage() {
                     </SelectContent>
                   </Select>
                   {errors.role && (
-                    <p className="text-sm text-red-600">{errors.role.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.role.message}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="departmentId">Department *</Label>
-                  {departments.length === 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-sm text-amber-600">No departments found. Please create a department first.</p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => router.push('/admin/departments')}
-                        className="w-full"
-                      >
-                        Create Department
-                      </Button>
+                  {watch("role") === "WORKER" ? (
+                    <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-3 text-sm text-muted-foreground">
+                      Worker accounts do not require a department.
                     </div>
                   ) : (
-                    <Select value={watch('departmentId') || ''} onValueChange={(value) => setValue('departmentId', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {departments.map((dept) => (
-                          <SelectItem key={dept.id} value={dept.id}>
-                            {dept.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {errors.departmentId && (
-                    <p className="text-sm text-red-600">{errors.departmentId.message}</p>
-                  )}
-                  {watch('role') === 'ADMIN' && (
-                    <p className="text-xs text-gray-500 mt-2">Department is optional for admin users</p>
+                    <>
+                      <Label htmlFor="departmentId">Department *</Label>
+                      {departments.length === 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-sm text-amber-600">
+                            No departments found. Please create a department
+                            first.
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => router.push("/admin/departments")}
+                            className="w-full"
+                          >
+                            Create Department
+                          </Button>
+                        </div>
+                      ) : (
+                        <Select
+                          value={watch("departmentId") || ""}
+                          onValueChange={(value) =>
+                            setValue("departmentId", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select department" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {departments.map((dept) => (
+                              <SelectItem key={dept.id} value={dept.id}>
+                                {dept.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {errors.departmentId && (
+                        <p className="text-sm text-red-600">
+                          {errors.departmentId.message}
+                        </p>
+                      )}
+                      {watch("role") === "ADMIN" && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Department is optional for admin users
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -428,7 +520,7 @@ export default function NewUserPage() {
                   <input
                     type="checkbox"
                     id="isActive"
-                    {...register('isActive')}
+                    {...register("isActive")}
                     className="rounded border-gray-300"
                   />
                   <Label htmlFor="isActive" className="text-sm">
@@ -442,17 +534,17 @@ export default function NewUserPage() {
             </form>
           </CardContent>
           <CardFooter>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               onClick={handleSubmit(onSubmit)}
               disabled={isLoading}
               className="w-full"
             >
-              {isLoading ? 'Creating...' : 'Create User'}
+              {isLoading ? "Creating..." : "Create User"}
             </Button>
           </CardFooter>
         </Card>
       </div>
     </div>
-  )
+  );
 }

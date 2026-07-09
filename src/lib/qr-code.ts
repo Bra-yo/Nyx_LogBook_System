@@ -1,29 +1,48 @@
-import QRCode from 'qrcode'
-import { OfficeLocation } from '@/types'
+import QRCode from "qrcode";
+import { OfficeLocation } from "@/types";
+
+export interface ParsedQRCodeData {
+  isJson: boolean;
+  raw: string;
+  qrCodeData: string;
+  qrToken?: string;
+  token?: string;
+  officeToken?: string;
+  type?: string;
+  locationId?: string;
+  locationName?: string;
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
+  timestamp?: string;
+  [key: string]: unknown;
+}
 
 export class QRCodeService {
   /**
    * Generate QR code data URL for office location
    */
-  static async generateQRCodeDataURL(officeLocation: OfficeLocation): Promise<string> {
+  static async generateQRCodeDataURL(
+    officeLocation: OfficeLocation,
+  ): Promise<string> {
     try {
       // Generate QR code with plain text matching qrCodeData field exactly
-      const qrData = officeLocation.qrCodeData
+      const qrData = officeLocation.qrCodeData;
 
       const dataURL = await QRCode.toDataURL(qrData, {
         width: 300,
         margin: 2,
         color: {
-          dark: '#000000',
-          light: '#ffffff'
+          dark: "#000000",
+          light: "#ffffff",
         },
-        errorCorrectionLevel: 'H'
-      })
+        errorCorrectionLevel: "H",
+      });
 
-      return dataURL
+      return dataURL;
     } catch (error) {
-      console.error('Error generating QR code:', error)
-      throw new Error('Failed to generate QR code')
+      console.error("Error generating QR code:", error);
+      throw new Error("Failed to generate QR code");
     }
   }
 
@@ -32,29 +51,29 @@ export class QRCodeService {
    */
   static generateQRCodeData(officeLocation: OfficeLocation): string {
     // Return plain text matching qrCodeData field exactly
-    return officeLocation.qrCodeData
+    return officeLocation.qrCodeData;
   }
 
   /**
    * Parse QR code data safely
    */
-  static parseQRCodeData(qrData: string): any {
-    const cleaned = qrData.trim()
+  static parseQRCodeData(qrData: string): ParsedQRCodeData {
+    const cleaned = qrData.trim();
 
     try {
-      const parsed = JSON.parse(cleaned)
+      const parsed = JSON.parse(cleaned) as Record<string, unknown>;
 
       return {
         isJson: true,
         raw: cleaned,
         ...parsed,
         qrCodeData:
-          parsed.qrCodeData ||
-          parsed.qrToken ||
-          parsed.token ||
-          parsed.officeToken ||
+          (parsed["qrCodeData"] as string | undefined) ||
+          (parsed["qrToken"] as string | undefined) ||
+          (parsed["token"] as string | undefined) ||
+          (parsed["officeToken"] as string | undefined) ||
           cleaned,
-      }
+      };
     } catch (error) {
       // Return plain text as-is
       return {
@@ -63,46 +82,49 @@ export class QRCodeService {
         qrCodeData: cleaned,
         qrToken: cleaned,
         token: cleaned,
-      }
+      };
     }
   }
 
   /**
    * Validate QR code data format
    */
-  static validateQRCodeData(data: any): boolean {
+  static validateQRCodeData(data: unknown): data is ParsedQRCodeData {
+    if (!data || typeof data !== "object") return false;
+    const d = data as ParsedQRCodeData;
     return (
-      data &&
-      data.type === 'attendance' &&
-      data.locationId &&
-      data.locationName &&
-      typeof data.latitude === 'number' &&
-      typeof data.longitude === 'number' &&
-      typeof data.radius === 'number' &&
-      data.timestamp
-    )
+      d.type === "attendance" &&
+      typeof d.locationId === "string" &&
+      typeof d.locationName === "string" &&
+      typeof d.latitude === "number" &&
+      typeof d.longitude === "number" &&
+      typeof d.radius === "number" &&
+      typeof d.timestamp === "string"
+    );
   }
 
   /**
    * Generate QR code for download
    */
-  static async generateDownloadableQRCode(officeLocation: OfficeLocation): Promise<Buffer> {
+  static async generateDownloadableQRCode(
+    officeLocation: OfficeLocation,
+  ): Promise<Buffer> {
     try {
-      const qrData = this.generateQRCodeData(officeLocation)
+      const qrData = this.generateQRCodeData(officeLocation);
       const buffer = await QRCode.toBuffer(qrData, {
         width: 512,
         margin: 2,
         color: {
-          dark: '#000000',
-          light: '#ffffff'
+          dark: "#000000",
+          light: "#ffffff",
         },
-        errorCorrectionLevel: 'H'
-      })
+        errorCorrectionLevel: "H",
+      });
 
-      return buffer
+      return buffer;
     } catch (error) {
-      console.error('Error generating downloadable QR code:', error)
-      throw new Error('Failed to generate downloadable QR code')
+      console.error("Error generating downloadable QR code:", error);
+      throw new Error("Failed to generate downloadable QR code");
     }
   }
 }

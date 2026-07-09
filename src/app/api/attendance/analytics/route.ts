@@ -1,55 +1,60 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { z } from "zod";
 
 const analyticsSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  departmentId: z.string().optional()
-})
+  departmentId: z.string().optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.role || !['ADMIN', 'STUDENT'].includes(session.user.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const session = await getServerSession(authOptions);
+
+    if (
+      !session?.user?.role ||
+      !["ADMIN", "STUDENT"].includes(session.user.role)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url)
-    const validatedData = analyticsSchema.parse(Object.fromEntries(searchParams))
+    const { searchParams } = new URL(request.url);
+    const validatedData = analyticsSchema.parse(
+      Object.fromEntries(searchParams),
+    );
 
     // Build date filter
-    const dateFilter: any = {}
+    const dateFilter: any = {};
     if (validatedData.startDate || validatedData.endDate) {
-      dateFilter.checkInTime = {}
+      dateFilter.checkInTime = {};
       if (validatedData.startDate) {
-        dateFilter.checkInTime.gte = new Date(validatedData.startDate)
+        dateFilter.checkInTime.gte = new Date(validatedData.startDate);
       }
       if (validatedData.endDate) {
-        dateFilter.checkInTime.lte = new Date(validatedData.endDate)
+        dateFilter.checkInTime.lte = new Date(validatedData.endDate);
       }
     }
 
     // Build department filter
-    const departmentFilter: any = {}
+    const departmentFilter: any = {};
     if (validatedData.departmentId) {
       departmentFilter.student = {
-        departmentId: validatedData.departmentId
-      }
+        departmentId: validatedData.departmentId,
+      };
     }
 
     // If student, only show their own attendance
-    if (session.user.role === 'STUDENT') {
+    if (session.user.role === "STUDENT") {
       const studentProfile = await prisma.studentProfile.findUnique({
-        where: { userId: session.user.id }
-      })
+        where: { userId: session.user.id },
+      });
       if (studentProfile) {
         departmentFilter.student = {
-          id: studentProfile.id
-        }
+          id: studentProfile.id,
+        };
       }
     }
 
@@ -62,137 +67,142 @@ export async function GET(request: NextRequest) {
       averageHours,
       dailyStats,
       topStudents,
-      departmentStats
+      departmentStats,
     ] = await Promise.all([
       // Total attendance records
       prisma.attendance.count({
         where: {
           ...dateFilter,
-          ...departmentFilter
-        }
+          ...departmentFilter,
+        },
       }),
-      
+
       // Active sessions
       prisma.attendance.count({
         where: {
-          status: 'ACTIVE',
+          status: "ACTIVE",
           ...dateFilter,
-          ...departmentFilter
-        }
+          ...departmentFilter,
+        },
       }),
-      
+
       // Completed sessions
       prisma.attendance.count({
         where: {
-          status: 'COMPLETED',
+          status: "COMPLETED",
           ...dateFilter,
-          ...departmentFilter
-        }
+          ...departmentFilter,
+        },
       }),
-      
+
       // Total hours worked
       prisma.attendance.aggregate({
         where: {
-          status: 'COMPLETED',
+          status: "COMPLETED",
           ...dateFilter,
-          ...departmentFilter
+          ...departmentFilter,
         },
         _sum: {
-          hoursWorked: true
-        }
+          hoursWorked: true,
+        },
       }),
-      
+
       // Average hours per session
       prisma.attendance.aggregate({
         where: {
-          status: 'COMPLETED',
+          status: "COMPLETED",
           ...dateFilter,
-          ...departmentFilter
+          ...departmentFilter,
         },
         _avg: {
-          hoursWorked: true
-        }
+          hoursWorked: true,
+        },
       }),
-      
+
       // Daily statistics
       prisma.attendance.groupBy({
-        by: ['checkInTime'],
+        by: ["checkInTime"],
         where: {
           ...dateFilter,
-          ...departmentFilter
+          ...departmentFilter,
         },
         _count: {
-          id: true
+          id: true,
         },
         _sum: {
-          hoursWorked: true
-        }
+          hoursWorked: true,
+        },
       }),
-      
+
       // Top students by hours
       prisma.attendance.groupBy({
-        by: ['studentId'],
+        by: ["studentId"],
         where: {
-          status: 'COMPLETED',
+          status: "COMPLETED",
           ...dateFilter,
-          ...departmentFilter
+          ...departmentFilter,
         },
         _sum: {
-          hoursWorked: true
+          hoursWorked: true,
         },
         _count: {
-          id: true
+          id: true,
         },
         orderBy: {
           _sum: {
-            hoursWorked: 'desc'
-          }
+            hoursWorked: "desc",
+          },
         },
-        take: 10
+        take: 10,
       }),
-      
+
       // Department statistics
       prisma.attendance.groupBy({
-        by: ['studentId'],
+        by: ["studentId"],
         where: {
-          status: 'COMPLETED',
-          ...dateFilter
+          status: "COMPLETED",
+          ...dateFilter,
         },
         _sum: {
-          hoursWorked: true
+          hoursWorked: true,
         },
         _count: {
-          id: true
-        }
-      })
-    ])
+          id: true,
+        },
+      }),
+    ]);
 
     // Get student details for top students
+    const studentIds = topStudents
+      .map((student) => student.studentId)
+      .filter((id): id is string => id !== null);
+
     const topStudentsWithDetails = await prisma.studentProfile.findMany({
       where: {
         id: {
-          in: topStudents.map(student => student.studentId)
-        }
+          in: studentIds,
+        },
       },
       include: {
         user: true,
-        department: true
-      }
-    })
+        department: true,
+      },
+    });
 
     // Get active session for student
-    let activeSessionDuration = 0
-    if (session.user.role === 'STUDENT') {
+    let activeSessionDuration = 0;
+    if (session.user.role === "STUDENT") {
       const activeSession = await prisma.attendance.findFirst({
         where: {
           studentId: departmentFilter.student.id,
-          status: 'ACTIVE'
-        }
-      })
+          status: "ACTIVE",
+        },
+      });
       if (activeSession && activeSession.checkInTime) {
-        const now = new Date()
-        const checkInTime = new Date(activeSession.checkInTime)
-        activeSessionDuration = (now.getTime() - checkInTime.getTime()) / (1000 * 60 * 60) // hours
+        const now = new Date();
+        const checkInTime = new Date(activeSession.checkInTime);
+        activeSessionDuration =
+          (now.getTime() - checkInTime.getTime()) / (1000 * 60 * 60); // hours
       }
     }
 
@@ -203,76 +213,88 @@ export async function GET(request: NextRequest) {
         activeSessions,
         completedSessions,
         totalHours: Math.round((totalHours._sum.hoursWorked || 0) * 100) / 100,
-        averageHours: Math.round((averageHours._avg.hoursWorked || 0) * 100) / 100,
-        completionRate: totalRecords > 0 ? Math.round((completedSessions / totalRecords) * 100) : 0
+        averageHours:
+          Math.round((averageHours._avg.hoursWorked || 0) * 100) / 100,
+        completionRate:
+          totalRecords > 0
+            ? Math.round((completedSessions / totalRecords) * 100)
+            : 0,
       },
-      
+
       topStudents: topStudents.map((student, index) => {
-        const studentDetails = topStudentsWithDetails.find(detail => detail.id === student.studentId)
+        const studentDetails = topStudentsWithDetails.find(
+          (detail) => detail.id === student.studentId,
+        );
         return {
           rank: index + 1,
-          studentName: studentDetails?.user.name || 'Unknown',
-          studentEmail: studentDetails?.user.email || 'unknown',
-          department: studentDetails?.department.name || 'Unknown',
+          studentName: studentDetails?.user.name || "Unknown",
+          studentEmail: studentDetails?.user.email || "unknown",
+          department: studentDetails?.department.name || "Unknown",
           totalHours: Math.round((student._sum.hoursWorked || 0) * 100) / 100,
-          sessionsCount: student._count.id
-        }
+          sessionsCount: student._count.id,
+        };
       }),
-      
-      dailyStats: dailyStats.map(stat => ({
-        date: stat.checkInTime.toISOString().split('T')[0],
+
+      dailyStats: dailyStats.map((stat) => ({
+        date: stat.checkInTime.toISOString().split("T")[0],
         recordsCount: stat._count.id,
-        totalHours: Math.round((stat._sum.hoursWorked || 0) * 100) / 100
-      }))
-    }
+        totalHours: Math.round((stat._sum.hoursWorked || 0) * 100) / 100,
+      })),
+    };
 
     // Add student-specific data to response
-    if (session.user.role === 'STUDENT') {
-      const today = new Date()
-      const startOfDay = new Date(today)
-      startOfDay.setHours(0, 0, 0, 0) // Start of day
-      const endOfDay = new Date(today)
-      endOfDay.setHours(23, 59, 59, 999) // End of day
+    if (session.user.role === "STUDENT") {
+      const today = new Date();
+      const startOfDay = new Date(today);
+      startOfDay.setHours(0, 0, 0, 0); // Start of day
+      const endOfDay = new Date(today);
+      endOfDay.setHours(23, 59, 59, 999); // End of day
 
       const todayAttendance = await prisma.attendance.findFirst({
         where: {
           studentId: departmentFilter.student.id,
           checkInTime: {
             gte: startOfDay,
-            lte: endOfDay
+            lte: endOfDay,
           },
-          OR: [
-            { status: 'ACTIVE' },
-            { status: 'COMPLETED' }
-          ]
-        }
-      })
+          OR: [{ status: "ACTIVE" }, { status: "COMPLETED" }],
+        },
+      });
 
-      const presentDays = todayAttendance ? 1 : 0
-      const totalDays = 1 // Today
-      const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0
+      const presentDays = todayAttendance ? 1 : 0;
+      const totalDays = 1; // Today
+      const attendanceRate =
+        totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
 
       // Add student-specific data to response
       analytics.studentStats = {
-        totalHours: Math.round((totalHours._sum.hoursWorked || 0) * 100) / 100 + Math.round(activeSessionDuration * 100) / 100,
-        averageHours: Math.round((averageHours._avg.hoursWorked || 0) * 100) / 100,
+        totalHours:
+          Math.round((totalHours._sum.hoursWorked || 0) * 100) / 100 +
+          Math.round(activeSessionDuration * 100) / 100,
+        averageHours:
+          Math.round((averageHours._avg.hoursWorked || 0) * 100) / 100,
         totalDays,
         presentDays,
         absentDays: totalDays - presentDays,
         lateDays: 0, // TODO: implement late calculation
         overtimeHours: 0, // TODO: implement overtime calculation
         attendanceRate,
-        activeSessionDuration: Math.round(activeSessionDuration * 100) / 100
-      }
+        activeSessionDuration: Math.round(activeSessionDuration * 100) / 100,
+      };
     }
 
-    return NextResponse.json(analytics)
-
+    return NextResponse.json(analytics);
   } catch (error) {
-    console.error('Get attendance analytics error:', error)
+    console.error("Get attendance analytics error:", error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid request parameters', details: error.issues }, { status: 400 })
+      return NextResponse.json(
+        { error: "Invalid request parameters", details: error.issues },
+        { status: 400 },
+      );
     }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

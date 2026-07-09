@@ -1,50 +1,78 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import * as z from 'zod'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { toast } from 'sonner'
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 
-const editUserSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  role: z.enum(['STUDENT', 'SUPERVISOR', 'LECTURER', 'ADMIN']),
-  departmentId: z.string().min(1, 'Department is required'),
-  isActive: z.boolean(),
-  // Student fields
-  regNumber: z.string().optional(),
-  course: z.string().optional(),
-  institution: z.string().optional(),
-  internshipCompany: z.string().optional(),
-  internshipLocation: z.string().optional(),
-  year: z.number().optional(),
-  semester: z.number().optional(),
-  // Supervisor fields
-  employeeId: z.string().optional(),
-  company: z.string().optional(),
-  organization: z.string().optional(),
-  title: z.string().optional(),
-  // Lecturer fields
-  staffNumber: z.string().optional(),
-  office: z.string().optional()
-})
+const editUserSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Invalid email address"),
+    role: z.enum(["STUDENT", "SUPERVISOR", "LECTURER", "ADMIN", "WORKER"]),
+    departmentId: z.string().optional(),
+    isActive: z.boolean(),
+    // Student fields
+    regNumber: z.string().optional(),
+    course: z.string().optional(),
+    institution: z.string().optional(),
+    internshipCompany: z.string().optional(),
+    internshipLocation: z.string().optional(),
+    year: z.number().optional(),
+    semester: z.number().optional(),
+    // Supervisor fields
+    employeeId: z.string().optional(),
+    company: z.string().optional(),
+    organization: z.string().optional(),
+    title: z.string().optional(),
+    // Lecturer fields
+    staffNumber: z.string().optional(),
+    office: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (["STUDENT", "SUPERVISOR", "LECTURER"].includes(data.role)) {
+        return data.departmentId && data.departmentId.length > 0;
+      }
+      return true;
+    },
+    {
+      message: "Department is required for this role",
+      path: ["departmentId"],
+    },
+  );
 
-type EditUserFormData = z.infer<typeof editUserSchema>
+type EditUserFormData = z.infer<typeof editUserSchema>;
 
 export default function EditUserPage() {
-  const router = useRouter()
-  const params = useParams()
-  const [isLoading, setIsLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
-  const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([])
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const params = useParams();
+  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [departments, setDepartments] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
@@ -52,121 +80,139 @@ export default function EditUserPage() {
     formState: { errors },
     setValue,
     reset,
-    watch
+    watch,
   } = useForm<EditUserFormData>({
-    resolver: zodResolver(editUserSchema)
-  })
+    resolver: zodResolver(editUserSchema),
+  });
 
   // Fetch user data and departments on mount
   useEffect(() => {
-    const userId = params.id as string
-    
+    const userId = params.id as string;
+
     // Fetch user data
     fetch(`/api/admin/users/${userId}`)
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
-          setUser(data.user)
-          const profileDepartmentId = data.user.studentProfile?.departmentId ?? data.user.supervisorProfile?.departmentId ?? data.user.lecturerProfile?.departmentId ?? data.user.adminProfile?.departmentId ?? ''
+          setUser(data.user);
+          const profileDepartmentId =
+            data.user.studentProfile?.departmentId ??
+            data.user.supervisorProfile?.departmentId ??
+            data.user.lecturerProfile?.departmentId ??
+            data.user.adminProfile?.departmentId ??
+            "";
           reset({
             name: data.user.name,
             email: data.user.email,
             role: data.user.role,
             departmentId: profileDepartmentId,
             isActive: data.user.isActive,
-            regNumber: data.user.studentProfile?.regNumber ?? '',
+            regNumber: data.user.studentProfile?.regNumber ?? "",
             year: data.user.studentProfile?.year ?? undefined,
             semester: data.user.studentProfile?.semester ?? undefined,
-            internshipCompany: data.user.studentProfile?.internshipCompany ?? '',
-            company: data.user.supervisorProfile?.company ?? '',
-            title: data.user.supervisorProfile?.title ?? data.user.lecturerProfile?.title ?? '',
-            office: data.user.lecturerProfile?.office ?? ''
-          })
+            internshipCompany:
+              data.user.studentProfile?.internshipCompany ?? "",
+            company: data.user.supervisorProfile?.company ?? "",
+            title:
+              data.user.supervisorProfile?.title ??
+              data.user.lecturerProfile?.title ??
+              "",
+            office: data.user.lecturerProfile?.office ?? "",
+          });
         } else {
-          setError('User not found')
-          toast.error('User not found')
+          setError("User not found");
+          toast.error("User not found");
         }
       })
-      .catch(err => {
-        console.error('Failed to fetch user:', err)
-        setError('Failed to load user')
-        toast.error('Failed to load user')
-      })
+      .catch((err) => {
+        console.error("Failed to fetch user:", err);
+        setError("Failed to load user");
+        toast.error("Failed to load user");
+      });
 
     // Fetch departments
-    fetch('/api/departments')
-      .then(res => res.json())
-      .then(data => {
+    fetch("/api/departments")
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
-          setDepartments(data.departments)
+          setDepartments(data.departments);
         }
       })
-      .catch(err => {
-        console.error('Failed to fetch departments:', err)
-        toast.error('Failed to load departments')
-      })
-  }, [params.id, reset])
+      .catch((err) => {
+        console.error("Failed to fetch departments:", err);
+        toast.error("Failed to load departments");
+      });
+  }, [params.id, reset]);
 
   const onSubmit = async (data: EditUserFormData) => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
       const response = await fetch(`/api/admin/users/${params.id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(data)
-      })
+        body: JSON.stringify(data),
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (result.success) {
-        toast.success('User updated successfully')
-        router.push('/admin/users')
+        toast.success("User updated successfully");
+        router.push("/admin/users");
       } else {
-        setError(result.error || 'Failed to update user')
-        toast.error(result.error || 'Failed to update user')
+        setError(result.error || "Failed to update user");
+        toast.error(result.error || "Failed to update user");
       }
     } catch (err) {
-      setError('An unexpected error occurred')
-      toast.error('Failed to update user')
+      setError("An unexpected error occurred");
+      toast.error("Failed to update user");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleResetPassword = async () => {
-    if (!confirm('Are you sure you want to reset this user\'s password to the default? They will be required to change it on next login.')) {
-      return
+    if (
+      !confirm(
+        "Are you sure you want to reset this user's password to the default? They will be required to change it on next login.",
+      )
+    ) {
+      return;
     }
 
     try {
-      const response = await fetch(`/api/admin/users/${params.id}/reset-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      })
+      const response = await fetch(
+        `/api/admin/users/${params.id}/reset-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (result.success) {
-        toast.success('Password reset successfully. User will need to change it on next login.')
+        toast.success(
+          "Password reset successfully. User will need to change it on next login.",
+        );
       } else {
-        toast.error(result.error || 'Failed to reset password')
+        toast.error(result.error || "Failed to reset password");
       }
     } catch (err) {
-      toast.error('Failed to reset password')
+      toast.error("Failed to reset password");
     }
-  }
+  };
 
   const renderRoleSpecificFields = () => {
-    const role = watch('role')
+    const role = watch("role");
 
     switch (role) {
-      case 'STUDENT':
+      case "STUDENT":
         return (
           <div className="space-y-4">
             <div>
@@ -174,7 +220,7 @@ export default function EditUserPage() {
               <Input
                 id="regNumber"
                 placeholder="e.g., CS/2023/001"
-                {...register('regNumber')}
+                {...register("regNumber")}
               />
             </div>
             <div>
@@ -182,7 +228,7 @@ export default function EditUserPage() {
               <Input
                 id="course"
                 placeholder="e.g., Computer Science"
-                {...register('course')}
+                {...register("course")}
               />
             </div>
             <div>
@@ -190,7 +236,7 @@ export default function EditUserPage() {
               <Input
                 id="institution"
                 placeholder="University name"
-                {...register('institution')}
+                {...register("institution")}
               />
             </div>
             <div>
@@ -198,7 +244,7 @@ export default function EditUserPage() {
               <Input
                 id="internshipCompany"
                 placeholder="Company name"
-                {...register('internshipCompany')}
+                {...register("internshipCompany")}
               />
             </div>
             <div>
@@ -206,12 +252,12 @@ export default function EditUserPage() {
               <Input
                 id="internshipLocation"
                 placeholder="City, Country"
-                {...register('internshipLocation')}
+                {...register("internshipLocation")}
               />
             </div>
           </div>
-        )
-      case 'SUPERVISOR':
+        );
+      case "SUPERVISOR":
         return (
           <div className="space-y-4">
             <div>
@@ -219,7 +265,7 @@ export default function EditUserPage() {
               <Input
                 id="employeeId"
                 placeholder="Staff number"
-                {...register('employeeId')}
+                {...register("employeeId")}
               />
             </div>
             <div>
@@ -227,7 +273,7 @@ export default function EditUserPage() {
               <Input
                 id="company"
                 placeholder="Company name"
-                {...register('company')}
+                {...register("company")}
               />
               {errors.company && (
                 <p className="text-sm text-red-600">{errors.company.message}</p>
@@ -238,12 +284,12 @@ export default function EditUserPage() {
               <Input
                 id="title"
                 placeholder="Job title"
-                {...register('title')}
+                {...register("title")}
               />
             </div>
           </div>
-        )
-      case 'LECTURER':
+        );
+      case "LECTURER":
         return (
           <div className="space-y-4">
             <div>
@@ -251,7 +297,7 @@ export default function EditUserPage() {
               <Input
                 id="staffNumber"
                 placeholder="Employee ID"
-                {...register('staffNumber')}
+                {...register("staffNumber")}
               />
             </div>
             <div>
@@ -259,7 +305,7 @@ export default function EditUserPage() {
               <Input
                 id="institution"
                 placeholder="University name"
-                {...register('institution')}
+                {...register("institution")}
               />
             </div>
             <div>
@@ -267,15 +313,15 @@ export default function EditUserPage() {
               <Input
                 id="title"
                 placeholder="Job title"
-                {...register('title')}
+                {...register("title")}
               />
             </div>
           </div>
-        )
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   if (!user) {
     return (
@@ -284,7 +330,7 @@ export default function EditUserPage() {
           <p>Loading user data...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -311,10 +357,12 @@ export default function EditUserPage() {
                   <Input
                     id="name"
                     placeholder="Full name"
-                    {...register('name')}
+                    {...register("name")}
                   />
                   {errors.name && (
-                    <p className="text-sm text-red-600">{errors.name.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.name.message}
+                    </p>
                   )}
                 </div>
 
@@ -324,16 +372,21 @@ export default function EditUserPage() {
                     id="email"
                     type="email"
                     placeholder="user@example.com"
-                    {...register('email')}
+                    {...register("email")}
                   />
                   {errors.email && (
-                    <p className="text-sm text-red-600">{errors.email.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.email.message}
+                    </p>
                   )}
                 </div>
 
                 <div>
                   <Label htmlFor="role">Role *</Label>
-                  <Select value={watch('role')} onValueChange={(value) => setValue('role', value as any)}>
+                  <Select
+                    value={watch("role")}
+                    onValueChange={(value) => setValue("role", value as any)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
@@ -345,34 +398,43 @@ export default function EditUserPage() {
                     </SelectContent>
                   </Select>
                   {errors.role && (
-                    <p className="text-sm text-red-600">{errors.role.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.role.message}
+                    </p>
                   )}
                 </div>
 
-                <div>
-                  <Label htmlFor="departmentId">Department *</Label>
-                  <Select value={watch('departmentId')} onValueChange={(value) => setValue('departmentId', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.departmentId && (
-                    <p className="text-sm text-red-600">{errors.departmentId.message}</p>
-                  )}
-                </div>
+                {watch("role") !== "WORKER" && (
+                  <div>
+                    <Label htmlFor="departmentId">Department *</Label>
+                    <Select
+                      value={watch("departmentId") || ""}
+                      onValueChange={(value) => setValue("departmentId", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.id}>
+                            {dept.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.departmentId && (
+                      <p className="text-sm text-red-600">
+                        {errors.departmentId.message}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     id="isActive"
-                    {...register('isActive')}
+                    {...register("isActive")}
                     className="rounded border-gray-300"
                   />
                   <Label htmlFor="isActive" className="text-sm">
@@ -397,21 +459,21 @@ export default function EditUserPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.push('/admin/users')}
+                onClick={() => router.push("/admin/users")}
               >
                 Cancel
               </Button>
             </div>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               onClick={handleSubmit(onSubmit)}
               disabled={isLoading}
             >
-              {isLoading ? 'Updating...' : 'Update User'}
+              {isLoading ? "Updating..." : "Update User"}
             </Button>
           </CardFooter>
         </Card>
       </div>
     </div>
-  )
+  );
 }

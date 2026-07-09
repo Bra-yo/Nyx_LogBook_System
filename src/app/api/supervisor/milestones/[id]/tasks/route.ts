@@ -1,47 +1,86 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params
+  const { id } = await params;
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || session.user.role !== 'SUPERVISOR') {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "SUPERVISOR") {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     // Verify milestone exists and belongs to this supervisor
     const milestone = await prisma.milestone.findUnique({
       where: { id },
-      select: { mentorId: true }
-    })
+      select: { mentorId: true },
+    });
 
     if (!milestone) {
-      return NextResponse.json({ message: 'Milestone not found' }, { status: 404 })
+      return NextResponse.json(
+        { message: "Milestone not found" },
+        { status: 404 },
+      );
     }
 
     // Get supervisor profile
     const supervisor = await prisma.supervisorProfile.findUnique({
       where: { userId: session.user.id },
-      select: { id: true }
-    })
+      select: { id: true },
+    });
 
     if (!supervisor || milestone.mentorId !== supervisor.id) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json()
-    const { title, description, expectedOutput, dueDate } = body
+    const body = await request.json();
+    const { title, description, expectedOutput, dueDate, assignedWorkerId } =
+      body;
 
     if (!title) {
       return NextResponse.json(
-        { message: 'Task title is required' },
-        { status: 400 }
-      )
+        { message: "Task title is required" },
+        { status: 400 },
+      );
+    }
+
+    // If assignedWorkerId provided, ensure the worker belongs to the same project as the milestone
+    if (assignedWorkerId) {
+      const milestoneWithProject = await prisma.milestone.findUnique({
+        where: { id },
+        select: { projectId: true },
+      });
+      if (!milestoneWithProject || !milestoneWithProject.projectId) {
+        return NextResponse.json(
+          {
+            message:
+              "Cannot assign worker: milestone is not linked to a project",
+          },
+          { status: 400 },
+        );
+      }
+
+      const membership = await prisma.projectMember.findUnique({
+        where: {
+          projectId_workerId: {
+            projectId: milestoneWithProject.projectId,
+            workerId: assignedWorkerId,
+          },
+        },
+      });
+      if (!membership) {
+        return NextResponse.json(
+          {
+            message:
+              "Assigned worker must be a member of the milestone project",
+          },
+          { status: 400 },
+        );
+      }
     }
 
     const task = await prisma.milestoneTask.create({
@@ -50,19 +89,19 @@ export async function POST(
         title,
         description,
         expectedOutput,
-        dueDate: dueDate ? new Date(dueDate) : null
-      }
-    })
+        dueDate: dueDate ? new Date(dueDate) : null,
+      },
+    });
 
     return NextResponse.json({
       success: true,
-      task
-    })
+      task,
+    });
   } catch (error) {
-    console.error('Failed to create task:', error)
+    console.error("Failed to create task:", error);
     return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    )
+      { message: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

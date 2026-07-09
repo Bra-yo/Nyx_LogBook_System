@@ -1,30 +1,38 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { 
-  Users, 
-  GraduationCap, 
-  Eye, 
-  BarChart3, 
+import { useState, useEffect } from "react";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Users,
+  GraduationCap,
+  Eye,
+  BarChart3,
   TrendingUp,
   FileText,
   Settings,
-  Activity
-} from "lucide-react"
-import Link from "next/link"
+  Activity,
+  BriefcaseBusiness,
+} from "lucide-react";
+import Link from "next/link";
 
 interface DashboardStats {
-  totalStudents: number
-  totalSupervisors: number
-  totalLecturers: number
-  totalAdmins: number
-  totalDepartments: number
-  weeklySubmissions: number
-  pendingReviews: number
-  systemUptime: string
+  totalStudents: number;
+  totalSupervisors: number;
+  totalLecturers: number;
+  totalAdmins: number;
+  totalWorkers: number;
+  totalDepartments: number;
+  weeklySubmissions: number;
+  pendingReviews: number;
+  systemUptime: string;
 }
 
 export default function AdminDashboard() {
@@ -33,55 +41,56 @@ export default function AdminDashboard() {
     totalSupervisors: 0,
     totalLecturers: 0,
     totalAdmins: 0,
+    totalWorkers: 0,
     totalDepartments: 0,
     weeklySubmissions: 0,
     pendingReviews: 0,
-    systemUptime: "99.9%"
-  })
-  const [isLoading, setIsLoading] = useState(true)
+    systemUptime: "99.9%",
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchStats()
-  }, [])
+    fetchStats();
+  }, []);
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/admin/stats')
-      const data = await response.json()
-      
+      const response = await fetch("/api/admin/stats");
+      const data = await response.json();
+
       if (data.success) {
-        setStats(data.stats)
+        setStats(data.stats);
       }
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      console.error("Error fetching stats:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const [recentActivity, setRecentActivity] = useState<any[]>([])
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchRecentActivity()
-  }, [])
+    fetchRecentActivity();
+  }, []);
 
   const fetchRecentActivity = async () => {
     try {
       // TODO: Implement real activity logging API
       // For now, show empty state
-      setRecentActivity([])
+      setRecentActivity([]);
     } catch (error) {
-      console.error('Error fetching recent activity:', error)
-      setRecentActivity([])
+      console.error("Error fetching recent activity:", error);
+      setRecentActivity([]);
     }
-  }
+  };
 
   const activityIcons = {
     user: Users,
     entry: FileText,
     assessment: GraduationCap,
-    system: Settings
-  }
+    system: Settings,
+  };
 
   return (
     <DashboardLayout title="Admin Dashboard">
@@ -90,7 +99,9 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">System Administration</h2>
-            <p className="text-muted-foreground">Manage users and oversee system operations</p>
+            <p className="text-muted-foreground">
+              Manage users and oversee system operations
+            </p>
           </div>
           <Link href="/admin/users/new">
             <Button>
@@ -101,14 +112,18 @@ export default function AdminDashboard() {
         </div>
 
         {/* System Stats */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Students
+              </CardTitle>
               <Users className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.totalStudents}</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {stats.totalStudents}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Active student accounts
               </p>
@@ -121,7 +136,9 @@ export default function AdminDashboard() {
               <Eye className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.totalSupervisors}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {stats.totalSupervisors}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Industry supervisors
               </p>
@@ -134,9 +151,24 @@ export default function AdminDashboard() {
               <GraduationCap className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{stats.totalLecturers}</div>
+              <div className="text-2xl font-bold text-purple-600">
+                {stats.totalLecturers}
+              </div>
+              <p className="text-xs text-muted-foreground">Academic staff</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Workers</CardTitle>
+              <BriefcaseBusiness className="h-4 w-4 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600">
+                {stats.totalWorkers}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Academic staff
+                Operational staff accounts
               </p>
             </CardContent>
           </Card>
@@ -147,7 +179,9 @@ export default function AdminDashboard() {
               <Settings className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{stats.totalDepartments}</div>
+              <div className="text-2xl font-bold text-orange-600">
+                {stats.totalDepartments}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Academic departments
               </p>
@@ -159,11 +193,15 @@ export default function AdminDashboard() {
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Weekly Submissions</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Weekly Submissions
+              </CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.weeklySubmissions}</div>
+              <div className="text-2xl font-bold">
+                {stats.weeklySubmissions}
+              </div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-green-600">+12%</span> from last week
               </p>
@@ -172,11 +210,15 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Pending Reviews
+              </CardTitle>
               <TrendingUp className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.pendingReviews}</div>
+              <div className="text-2xl font-bold text-yellow-600">
+                {stats.pendingReviews}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Awaiting mentor review
               </p>
@@ -185,7 +227,9 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Admins</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Admins
+              </CardTitle>
               <Settings className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -202,7 +246,9 @@ export default function AdminDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Recent System Activity</CardTitle>
-              <CardDescription>Latest system events and user actions</CardDescription>
+              <CardDescription>
+                Latest system events and user actions
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {recentActivity.length === 0 ? (
@@ -212,19 +258,31 @@ export default function AdminDashboard() {
               ) : (
                 <div className="space-y-4">
                   {recentActivity.map((activity) => {
-                    const Icon = activityIcons[activity.type as keyof typeof activityIcons]
+                    const Icon =
+                      activityIcons[
+                        activity.type as keyof typeof activityIcons
+                      ];
                     return (
-                      <div key={activity.id} className="flex items-center space-x-4">
+                      <div
+                        key={activity.id}
+                        className="flex items-center space-x-4"
+                      >
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
                           <Icon className="h-4 w-4" />
                         </div>
                         <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium">{activity.action}</p>
-                          <p className="text-xs text-muted-foreground">{activity.user}</p>
+                          <p className="text-sm font-medium">
+                            {activity.action}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {activity.user}
+                          </p>
                         </div>
-                        <div className="text-xs text-muted-foreground">{activity.time}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {activity.time}
+                        </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               )}
@@ -274,5 +332,5 @@ export default function AdminDashboard() {
         </div>
       </div>
     </DashboardLayout>
-  )
+  );
 }

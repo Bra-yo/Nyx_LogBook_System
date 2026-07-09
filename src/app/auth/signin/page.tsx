@@ -1,59 +1,69 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { signIn, getSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Eye, EyeOff } from "lucide-react"
-import Link from "next/link"
-import { BRANDING } from "@/lib/branding"
+import { useState } from "react";
+import { signIn, getSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
+import { BRANDING } from "@/lib/branding";
 
 export default function SignInPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
     try {
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
-      })
+      });
 
       if (result?.error) {
-        setError("Invalid email or password")
+        setError("Invalid email or password");
       } else if (result?.ok) {
         // Get session to determine user role and redirect
-        const session = await getSession()
+        const session = await getSession();
         if (session) {
           const roleRedirects = {
             STUDENT: "/student",
             SUPERVISOR: "/supervisor",
             LECTURER: "/lecturer",
-            ADMIN: "/admin"
-          }
-          router.push(roleRedirects[session.user.role as keyof typeof roleRedirects])
+            ADMIN: "/admin",
+            WORKER: "/worker",
+          };
+          router.push(
+            roleRedirects[session.user.role as keyof typeof roleRedirects] ||
+              "/",
+          );
         }
       }
     } catch (error) {
-      setError("An error occurred during sign in")
+      setError("An error occurred during sign in");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -63,16 +73,18 @@ export default function SignInPage() {
           <div className="flex justify-center">
             <div className="flex items-center justify-center min-w-0">
               <Image
-                src="/bob-grogan-logo.jpg"
+                src="/bob-grogan-logo.png"
                 alt="Bob Grogan Consulting LTD Logo"
                 width={180}
                 height={56}
-                className="object-contain h-10 w-auto sm:h-12 md:h-14"
+                className="object-contain h-10 w-auto sm:h-12 md:h-20"
               />
             </div>
           </div>
           <h1 className="text-2xl font-bold">Welcome to {BRANDING.appName}</h1>
-          <p className="text-muted-foreground">Sign in to your account</p>
+          <p className="text-muted-foreground">
+            Sign in to your WorkLog account
+          </p>
         </div>
 
         {/* Sign In Form */}
@@ -80,7 +92,7 @@ export default function SignInPage() {
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
             <CardDescription>
-              Enter your credentials to access your account
+              Enter your credentials to access your WorkLog account
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -133,11 +145,7 @@ export default function SignInPage() {
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -150,15 +158,19 @@ export default function SignInPage() {
             </form>
 
             <div className="mt-4 text-center text-sm">
-              <span className="text-muted-foreground">Don't have an account?</span>{" "}
-              <Link href="/auth/signup" className="text-primary hover:underline">
+              <span className="text-muted-foreground">
+                Don't have an account?
+              </span>{" "}
+              <Link
+                href="/auth/signup"
+                className="text-primary hover:underline"
+              >
                 Contact your administrator
               </Link>
             </div>
           </CardContent>
         </Card>
-
-              </div>
+      </div>
     </div>
-  )
+  );
 }

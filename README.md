@@ -1,10 +1,11 @@
-# Bob Grogan Consulting LTD LogBook System
+# Bob Grogan Consulting LTD WorkLog System
 
-A premium SaaS-grade internship/industrial attachment logbook management system built for Bob Grogan Consulting LTD.
+A premium SaaS-grade WorkLog management system built for Bob Grogan Consulting LTD.
 
-##  Features
+## Features
 
 ### Core System
+
 - **Role-Based Access Control (RBAC)** with 4 distinct roles
 - **Modern UI/UX** with dark theme and glassmorphism effects
 - **Responsive Design** optimized for mobile and desktop
@@ -12,21 +13,24 @@ A premium SaaS-grade internship/industrial attachment logbook management system 
 - **Advanced Analytics** and reporting capabilities
 
 ### Student Module
-- ✅ Create and manage logbook entries
-- ✅ Track internship progress with visual indicators
+
+- ✅ Create and manage work records
+- ✅ Track work progress with visual indicators
 - ✅ View supervisor comments and lecturer feedback
 - ✅ Generate weekly, monthly, and full internship reports
 - ✅ File attachment support (infrastructure ready)
 - ✅ Draft and submission workflow
 
 ### Supervisor Module
-- ✅ Review and approve student logbook entries
+
+- ✅ Review and approve student work records
 - ✅ Add detailed comments and ratings
 - ✅ Quick approve/reject functionality
 - ✅ Track assigned students' progress
 - ✅ Analytics dashboard with submission trends
 
 ### Lecturer Module
+
 - ✅ Assess student performance across multiple criteria
 - ✅ Technical, communication, and professionalism scoring
 - ✅ Academic feedback system
@@ -34,15 +38,17 @@ A premium SaaS-grade internship/industrial attachment logbook management system 
 - ✅ Student progress tracking
 
 ### Admin Module
+
 - ✅ Comprehensive user management system
 - ✅ Department management and organization
 - ✅ System analytics and insights
 - ✅ User role assignment and permissions
 - ✅ System activity monitoring and logs
 
-##  Tech Stack
+## Tech Stack
 
 ### Frontend
+
 - **Next.js 15** with App Router
 - **TypeScript** for type safety
 - **TailwindCSS** for styling
@@ -51,12 +57,14 @@ A premium SaaS-grade internship/industrial attachment logbook management system 
 - **Lucide React** icons
 
 ### Backend
+
 - **Next.js API Routes** and Server Actions
 - **NextAuth.js** for authentication
 - **Prisma ORM** for database management
 - **PostgreSQL** database
 
 ### Additional Libraries
+
 - **React Hook Form + Zod** for form validation
 - **Zustand** for state management
 - **Recharts** for data visualization
@@ -64,7 +72,7 @@ A premium SaaS-grade internship/industrial attachment logbook management system 
 - **jsPDF** for PDF generation
 - **date-fns** for date manipulation
 
-##  Project Structure
+## Project Structure
 
 ```
 src/
@@ -83,16 +91,18 @@ src/
 └── prisma/                       # Database schema and migrations
 ```
 
-##  Getting Started
+## Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
+
+- Node.js 18+
 - PostgreSQL database
 - npm or yarn
 
 ### Installation
 
 1. **Clone and install dependencies:**
+
    ```bash
    git clone <repository-url>
    cd log_book
@@ -100,39 +110,43 @@ src/
    ```
 
 2. **Environment Setup:**
+
    ```bash
    cp env.example .env
    ```
-   
+
    Configure your `.env` file with:
    - Database connection string
    - NextAuth secret
    - UploadThing credentials
 
 3. **Database Setup:**
+
    ```bash
    npx prisma migrate dev
    npx prisma generate
    ```
 
 4. **Start Development Server:**
+
    ```bash
    npm run dev
    ```
 
    Visit [http://localhost:3000](http://localhost:3000)
 
-##  Authentication
+## Authentication
 
 The system uses role-based authentication with the following roles:
 
 ### Demo Accounts
+
 - **Student:** `student@demo.com` / `password123`
 - **Supervisor:** `supervisor@demo.com` / `password123`
 - **Lecturer:** `lecturer@demo.com` / `password123`
 - **Admin:** `admin@demo.com` / `password123`
 
-##  Database Schema
+## Database Schema
 
 The system includes comprehensive database models:
 
@@ -141,16 +155,17 @@ The system includes comprehensive database models:
 - **SupervisorProfiles** - Supervisor details
 - **LecturerProfiles** - Lecturer information
 - **AdminProfiles** - Administrator configuration
-- **LogbookEntries** - Student log submissions
+- **LogbookEntries** - Student work submissions
 - **SupervisorComments** - Supervisor feedback
 - **LecturerAssessments** - Academic evaluations
 - **Departments** - Organizational structure
 - **Notifications** - System notifications
 - **AuditLogs** - Activity tracking
 
-##  Design System
+## Design System
 
 ### UI Features
+
 - **Dark theme** by default
 - **Glassmorphism** effects for modern aesthetics
 - **Smooth animations** with Framer Motion
@@ -158,19 +173,20 @@ The system includes comprehensive database models:
 - **Accessibility** following WCAG guidelines
 
 ### Component Library
+
 - Built with **ShadCN UI** components
 - **TailwindCSS** for consistent styling
 - **Lucide icons** for cohesive iconography
 - **Custom components** for specific use cases
 
-##  Responsive Design
+## Responsive Design
 
 - **Mobile:** Optimized for phones and tablets
 - **Tablet:** Enhanced layouts for medium screens
 - **Desktop:** Full-featured experience for large screens
 - **Adaptive navigation** based on screen size
 
-##  Security Features
+## Security Features
 
 - **JWT-based authentication** with NextAuth
 - **Role-based authorization** middleware
@@ -180,9 +196,10 @@ The system includes comprehensive database models:
 - **Password hashing** with bcrypt
 - **Activity logging** for audit trails
 
-##  Analytics & Reporting
+## Analytics & Reporting
 
 ### Student Reports
+
 - Weekly progress summaries
 - Monthly performance reports
 - Complete internship documentation
@@ -190,28 +207,31 @@ The system includes comprehensive database models:
 - Supervisor comment integration
 
 ### Admin Analytics
+
 - User activity metrics
 - Submission trends and patterns
 - Department-wise statistics
 - System performance monitoring
 - Export capabilities
 
-##  Deployment
+## Deployment
 
 ### Production Build
+
 ```bash
 npm run build
 npm start
 ```
 
 ### Environment Variables
+
 - `DATABASE_URL` - PostgreSQL connection
 - `NEXTAUTH_URL` - Application URL
 - `NEXTAUTH_SECRET` - JWT secret key
 - `UPLOADTHING_SECRET` - File upload service
 - `UPLOADTHING_APP_ID` - UploadThing app ID
 
-##  Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -219,13 +239,14 @@ npm start
 4. Add tests if applicable
 5. Submit a pull request
 
-##  License
+## License
 
 © 2026 Bob Grogan Consulting LTD. All rights reserved.
 
-##  Support
+## Support
 
 For technical support or questions:
+
 - Contact the development team
 - Check the documentation
 - Review demo accounts for testing

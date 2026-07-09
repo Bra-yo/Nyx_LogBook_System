@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { BRANDING } from "@/lib/branding"
-import { terminology } from "@/lib/terminology"
-import { Button } from "@/components/ui/button"
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Users, 
-  GraduationCap, 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { BRANDING } from "@/lib/branding";
+import { terminology } from "@/lib/terminology";
+import { Button } from "@/components/ui/button";
+import {
+  LayoutDashboard,
+  BookOpen,
+  Users,
+  GraduationCap,
   Settings,
   LogOut,
   FileText,
@@ -19,14 +19,15 @@ import {
   Bell,
   BarChart3,
   Clock,
-  QrCode
-} from "lucide-react"
-import { UserRole } from "@/types"
+  QrCode,
+  UserCircle2,
+} from "lucide-react";
+import { UserRole } from "@/types";
 
 interface SidebarProps {
-  userRole: UserRole
-  className?: string
-  onNavigate?: () => void
+  userRole: UserRole;
+  className?: string;
+  onNavigate?: () => void;
 }
 
 const navigationItems = {
@@ -47,7 +48,7 @@ const navigationItems = {
       icon: Folder,
     },
     {
-      title: "Logbook",
+      title: "WorkLog",
       href: "/student/logbook",
       icon: BookOpen,
     },
@@ -141,6 +142,33 @@ const navigationItems = {
       icon: BarChart3,
     },
   ],
+  [UserRole.WORKER]: [
+    {
+      title: "Dashboard",
+      href: "/worker",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Attendance",
+      href: "/worker/attendance",
+      icon: Clock,
+    },
+    {
+      title: "Work Log",
+      href: "/worker/logbook",
+      icon: BookOpen,
+    },
+    {
+      title: "Profile",
+      href: "/worker/profile",
+      icon: UserCircle2,
+    },
+    {
+      title: "Settings",
+      href: "/worker/settings",
+      icon: Settings,
+    },
+  ],
   [UserRole.ADMIN]: [
     {
       title: "Dashboard",
@@ -178,38 +206,42 @@ const navigationItems = {
       icon: Settings,
     },
   ],
-}
+};
 
 export function Sidebar({ userRole, className, onNavigate }: SidebarProps) {
-  const pathname = usePathname()
-  const navigation = navigationItems[userRole] || []
+  const pathname = usePathname();
+  const navigation = navigationItems[userRole] || [];
 
   return (
-    <div className={cn("flex h-full min-h-full flex-col bg-[#020617] text-white border-r border-white/10", className)}>
+    <div
+      className={cn(
+        "flex h-full min-h-full flex-col bg-[#020617] text-white border-r border-white/10",
+        className,
+      )}
+    >
       <div className="flex h-16 items-center border-b border-white/10 px-6">
         <div className="flex items-center space-x-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">{BRANDING.shortName}</span>
-          </div>
+          
           <div>
-            <h1 className="text-sm font-semibold">{BRANDING.appName}</h1>
-            <p className="text-xs text-muted-foreground">{BRANDING.organizationName}</p>
+            <h1 className="text-sm font-semibold">{BRANDING.organizationName}</h1>
+            
           </div>
         </div>
       </div>
 
       <nav className="flex-1 space-y-1 p-4">
         {navigation.map((item) => {
-          const isActive = pathname === item.href || 
-            (item.href !== "/student" && pathname.startsWith(item.href))
-          
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/student" && pathname.startsWith(item.href));
+
           return (
             <Link key={item.href} href={item.href}>
               <Button
                 variant={isActive ? "secondary" : "ghost"}
                 className={cn(
                   "w-full justify-start text-slate-100 hover:bg-slate-800 hover:text-white",
-                  isActive && "bg-slate-800 text-white"
+                  isActive && "bg-slate-800 text-white",
                 )}
                 onClick={onNavigate}
               >
@@ -217,7 +249,7 @@ export function Sidebar({ userRole, className, onNavigate }: SidebarProps) {
                 {item.title}
               </Button>
             </Link>
-          )
+          );
         })}
       </nav>
 
@@ -230,5 +262,5 @@ export function Sidebar({ userRole, className, onNavigate }: SidebarProps) {
         </Link>
       </div>
     </div>
-  )
+  );
 }

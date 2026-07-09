@@ -1,32 +1,33 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { Html5Qrcode, Html5QrcodeResult } from "html5-qrcode"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { 
-  QrCode, 
-  Camera, 
-  MapPin, 
-  Loader2, 
-  CheckCircle, 
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Html5Qrcode, Html5QrcodeResult } from "html5-qrcode";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  QrCode,
+  Camera,
+  Loader2,
+  CheckCircle,
   AlertCircle,
-  X,
   CameraOff,
-  RefreshCw
-} from "lucide-react"
-import { GeolocationService } from "@/lib/geolocation"
-import { QRCodeService } from "@/lib/qr-code"
-import { useRouter, useSearchParams } from "next/navigation"
+  RefreshCw,
+} from "lucide-react";
+import { GeolocationService } from "@/lib/geolocation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Safe QR parser function
 function parseQrPayload(raw: string) {
-  const cleaned = raw.trim()
+  const cleaned = raw.trim();
 
   try {
-    const parsed = JSON.parse(cleaned)
+    const parsed = JSON.parse(cleaned);
 
     return {
       isJson: true,
@@ -38,173 +39,192 @@ function parseQrPayload(raw: string) {
         parsed.officeToken ||
         parsed.qrCodeData ||
         cleaned,
-    }
+    };
   } catch {
     return {
       isJson: false,
       raw: cleaned,
       parsed: null,
       token: cleaned,
-    }
+    };
   }
 }
 
 interface QRScannerContentProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSuccess: (attendance: any) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: (attendance: unknown) => void;
 }
 
-export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerContentProps) {
-  const [isScanning, setIsScanning] = useState(false)
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'getting' | 'success' | 'error'>('idle')
-  const [locationMessage, setLocationMessage] = useState('')
-  const [qrData, setQrData] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [scanner, setScanner] = useState<Html5Qrcode | null>(null)
-  const [cameraError, setCameraError] = useState('')
-  const scannerInstanceRef = useRef<Html5Qrcode | null>(null)
-  const scannerRef = useRef<HTMLDivElement>(null)
-  const hasScannedRef = useRef(false)
-  const isProcessingRef = useRef(false)
-  const router = useRouter()
-  const searchParams = useSearchParams()
+export function QRScannerContent({
+  open,
+  onOpenChange,
+  onSuccess,
+}: QRScannerContentProps) {
+  const [isScanning, setIsScanning] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<
+    "idle" | "getting" | "success" | "error"
+  >("idle");
+  const [locationMessage, setLocationMessage] = useState("");
+  const [qrData, setQrData] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [scanner, setScanner] = useState<Html5Qrcode | null>(null);
+  const [cameraError, setCameraError] = useState("");
+  const scannerInstanceRef = useRef<Html5Qrcode | null>(null);
+  const scannerRef = useRef<HTMLDivElement>(null);
+  const hasScannedRef = useRef(false);
+  const isProcessingRef = useRef(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  useEffect(() => {
-    if (open) {
-      resetState()
-    }
-  }, [open])
+  const stopScanner = useCallback(
+    async (scannerInstance?: Html5Qrcode | null) => {
+      const activeScanner =
+        scannerInstance ?? scannerInstanceRef.current ?? scanner;
+
+      if (!activeScanner) {
+        setIsScanning(false);
+        setScanner(null);
+        return;
+      }
+
+      try {
+        await activeScanner.stop();
+        await activeScanner.clear();
+      } catch (error) {
+        // Ignore stop/clear errors
+      }
+
+      if (scannerInstanceRef.current === activeScanner) {
+        scannerInstanceRef.current = null;
+      }
+
+      setScanner(null);
+      setIsScanning(false);
+    },
+    [scanner],
+  );
 
   const resetState = () => {
-    setIsScanning(false)
-    setLocationStatus('idle')
-    setLocationMessage('')
-    setQrData('')
-    setIsProcessing(false)
-    setCameraError('')
-    hasScannedRef.current = false
-    isProcessingRef.current = false
-    scannerInstanceRef.current = null
-    stopScanner()
-  }
+    setIsScanning(false);
+    setLocationStatus("idle");
+    setLocationMessage("");
+    setQrData("");
+    setIsProcessing(false);
+    setCameraError("");
+    hasScannedRef.current = false;
+    isProcessingRef.current = false;
+    scannerInstanceRef.current = null;
+    void stopScanner();
+  };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const timer = window.setTimeout(() => {
+      resetState();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [open, resetState]);
 
   const startScanner = async () => {
-    if (!scannerRef.current) return
+    if (!scannerRef.current) return;
 
     try {
-      setIsScanning(true)
-      setCameraError('')
+      setIsScanning(true);
 
-      const html5QrCode = new Html5Qrcode('qr-reader')
-      scannerInstanceRef.current = html5QrCode
-      setScanner(html5QrCode)
+      const html5QrCode = new Html5Qrcode("qr-reader");
+      scannerInstanceRef.current = html5QrCode;
+      setScanner(html5QrCode);
 
       await html5QrCode.start(
-        { facingMode: 'environment' },
+        { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: { width: 250, height: 250 }
+          qrbox: { width: 250, height: 250 },
         },
         async (decodedText: string, decodedResult: Html5QrcodeResult) => {
-          if (hasScannedRef.current) return
-          hasScannedRef.current = true
+          if (hasScannedRef.current) return;
+          hasScannedRef.current = true;
 
-          setQrData(decodedText)
-          setLocationStatus('getting')
-          setLocationMessage('QR code scanned successfully.')
+          setQrData(decodedText);
+          setLocationStatus("getting");
+          setLocationMessage("QR code scanned successfully.");
 
-          await stopScanner(html5QrCode)
-          await handleAutomaticCheckIn(decodedText)
+          await stopScanner(html5QrCode);
+          await handleAutomaticCheckIn(decodedText);
         },
         (errorMessage: string) => {
           // Ignore scan errors while waiting for a valid QR code
-        }
-      )
+        },
+      );
     } catch (error) {
-      setIsScanning(false)
-      setCameraError(error instanceof Error ? error.message : 'Failed to access camera')
-      setLocationMessage('Camera access denied or not available')
+      setIsScanning(false);
+      setCameraError(
+        error instanceof Error ? error.message : "Failed to access camera",
+      );
+      setLocationMessage("Camera access denied or not available");
     }
-  }
-
-  const stopScanner = async (scannerInstance?: Html5Qrcode | null) => {
-    const activeScanner = scannerInstance ?? scannerInstanceRef.current ?? scanner
-
-    if (!activeScanner) {
-      setIsScanning(false)
-      setScanner(null)
-      return
-    }
-
-    try {
-      await activeScanner.stop()
-      await activeScanner.clear()
-    } catch (error) {
-      // Ignore stop/clear errors
-    }
-
-    if (scannerInstanceRef.current === activeScanner) {
-      scannerInstanceRef.current = null
-    }
-
-    setScanner(null)
-    setIsScanning(false)
-  }
+  };
 
   useEffect(() => {
     return () => {
-      stopScanner()
-    }
-  }, [])
+      void stopScanner();
+    };
+  }, [stopScanner]);
 
   const getCurrentLocation = async () => {
-    setLocationStatus('getting')
-    setLocationMessage('Getting your location...')
+    setLocationStatus("getting");
+    setLocationMessage("Getting your location...");
 
     try {
-      const location = await GeolocationService.getCurrentLocation()
-      return location
+      const location = await GeolocationService.getCurrentLocation();
+      return location;
     } catch (error) {
-      setLocationStatus('error')
+      setLocationStatus("error");
       setLocationMessage(
         error instanceof Error
           ? error.message
-          : 'Could not get your location. Please try again.'
-      )
-      return null
+          : "Could not get your location. Please try again.",
+      );
+      return null;
     }
-  }
+  };
 
   const handleAutomaticCheckIn = async (scannedQrData: string) => {
-    if (isProcessingRef.current) return
-    isProcessingRef.current = true
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
 
-    setIsProcessing(true)
-    setLocationStatus('getting')
-    setLocationMessage('Getting your location...')
+    setIsProcessing(true);
+    setLocationStatus("getting");
+    setLocationMessage("Getting your location...");
 
     try {
       if (!window.isSecureContext) {
-        throw new Error('Location requires HTTPS. Please use the secure live website.')
+        throw new Error(
+          "Location requires HTTPS. Please use the secure live website.",
+        );
       }
 
-      const qrPayload = parseQrPayload(scannedQrData)
-      setLocationMessage('Getting your location...')
-      const location = await GeolocationService.getCurrentLocation()
+      const qrPayload = parseQrPayload(scannedQrData);
+      setLocationMessage("Getting your location...");
+      const location = await GeolocationService.getCurrentLocation();
 
-      setLocationStatus('getting')
-      setLocationMessage('Verifying attendance location...')
+      setLocationStatus("getting");
+      setLocationMessage("Verifying attendance location...");
 
       // Normalize QR code data: remove quotes and extra whitespace
       const normalizedQrCodeData = qrPayload.token
         .trim()
-        .replace(/^["']|["']$/g, "")
+        .replace(/^["']|["']$/g, "");
 
-      const response = await fetch('/api/attendance/check-in', {
-        method: 'POST',
+      const response = await fetch("/api/attendance/check-in", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           qrCodeData: normalizedQrCodeData,
@@ -212,58 +232,58 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
           longitude: location.longitude,
           accuracy: location.accuracy,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || 'Check-in failed')
+        throw new Error(data.error || data.message || "Check-in failed");
       }
 
-      setLocationStatus('success')
-      setLocationMessage(data.message || 'Check-in successful.')
-      onSuccess(data.attendance)
+      setLocationStatus("success");
+      setLocationMessage(data.message || "Check-in successful.");
+      onSuccess(data.attendance);
 
-      const redirectUrl = searchParams.get('redirect')
+      const redirectUrl = searchParams.get("redirect");
       setTimeout(() => {
-        onOpenChange(false)
+        onOpenChange(false);
         if (redirectUrl) {
-          router.push(redirectUrl)
+          router.push(redirectUrl);
         }
-      }, 1500)
+      }, 1500);
     } catch (error) {
-      setLocationStatus('error')
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Could not get your location. Please try again.'
-      setLocationMessage(errorMessage)
-      isProcessingRef.current = false
+      setLocationStatus("error");
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Could not get your location. Please try again.";
+      setLocationMessage(errorMessage);
+      isProcessingRef.current = false;
     } finally {
-      setIsProcessing(false)
+      setIsProcessing(false);
     }
-  }
+  };
 
   const handleRetryScan = () => {
-    resetState()
-    startScanner()
-  }
+    resetState();
+    startScanner();
+  };
 
   const handleRetryLocation = async () => {
-    if (!qrData) return
-    setLocationStatus('getting')
-    setLocationMessage('Getting your location...')
-    await handleAutomaticCheckIn(qrData)
-  }
+    if (!qrData) return;
+    setLocationStatus("getting");
+    setLocationMessage("Getting your location...");
+    await handleAutomaticCheckIn(qrData);
+  };
 
   const handleCheckIn = async () => {
     if (!qrData) {
-      setLocationMessage('Please scan a QR code first')
-      return
+      setLocationMessage("Please scan a QR code first");
+      return;
     }
-    await handleAutomaticCheckIn(qrData)
-  }
+    await handleAutomaticCheckIn(qrData);
+  };
 
-  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -317,23 +337,36 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
               )}
 
               {/* Camera View */}
-              <div 
-                id="qr-reader" 
+              <div
+                id="qr-reader"
                 ref={scannerRef}
                 className="w-full max-w-sm mx-auto rounded-lg overflow-hidden bg-black"
-                style={{ minHeight: '250px' }}
+                style={{ minHeight: "250px" }}
               />
             </div>
           </div>
 
           {/* Location Status */}
           {locationMessage && (
-            <Alert className={locationStatus === 'error' ? 'border-destructive' : 
-                             locationStatus === 'success' ? 'border-green-200' : ''}>
+            <Alert
+              className={
+                locationStatus === "error"
+                  ? "border-destructive"
+                  : locationStatus === "success"
+                    ? "border-green-200"
+                    : ""
+              }
+            >
               <div className="flex items-center gap-2">
-                {locationStatus === 'getting' && <Loader2 className="h-4 w-4 animate-spin" />}
-                {locationStatus === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
-                {locationStatus === 'error' && <AlertCircle className="h-4 w-4 text-destructive" />}
+                {locationStatus === "getting" && (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+                {locationStatus === "success" && (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                )}
+                {locationStatus === "error" && (
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                )}
                 <AlertDescription className="text-sm">
                   {locationMessage}
                 </AlertDescription>
@@ -350,10 +383,10 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
               </div>
               <p className="text-xs text-muted-foreground break-all">
                 {(() => {
-                  const qrPayload = parseQrPayload(qrData)
+                  const qrPayload = parseQrPayload(qrData);
                   return qrPayload.isJson
                     ? JSON.stringify(qrPayload.parsed, null, 2)
-                    : qrPayload.raw
+                    : qrPayload.raw;
                 })()}
               </p>
             </div>
@@ -370,7 +403,7 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
               Cancel
             </Button>
 
-            {qrData && locationStatus === 'error' ? (
+            {qrData && locationStatus === "error" ? (
               <>
                 <Button
                   onClick={handleRetryLocation}
@@ -408,5 +441,5 @@ export function QRScannerContent({ open, onOpenChange, onSuccess }: QRScannerCon
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

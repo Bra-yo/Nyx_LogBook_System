@@ -1,15 +1,27 @@
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, Users, GraduationCap, BarChart3, ArrowRight } from "lucide-react"
-import { BRANDING } from "@/lib/branding"
+import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  BookOpen,
+  Users,
+  GraduationCap,
+  BriefcaseBusiness,
+  ArrowRight,
+} from "lucide-react";
+import { BRANDING } from "@/lib/branding";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+    <div className="min-h-screen bg-linear-to-br from-background to-muted/20">
       {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="container flex h-16 items-center justify-end px-6">
           <Link href="/auth/signin">
             <Button>Sign In</Button>
@@ -22,7 +34,7 @@ export default function Home() {
         <div className="mx-auto max-w-3xl space-y-8">
           <div className="mx-auto mb-8 flex h-28 w-28 sm:h-36 sm:w-36 md:h-44 md:w-44 items-center justify-center rounded-2xl bg-white p-3 shadow-lg">
             <Image
-              src="/bob-grogan-logo.jpg"
+              src="/bob-grogan-logo.png"
               alt="Bob Grogan Consulting LTD Logo"
               width={180}
               height={56}
@@ -30,12 +42,12 @@ export default function Home() {
             />
           </div>
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-            Internship Logbook
+            WorkLog
             <span className="block text-primary">Management System</span>
           </h1>
           <p className="text-xl text-muted-foreground">
-            A comprehensive platform for students, supervisors, and lecturers to manage 
-            internship experiences with real-time tracking and assessments.
+            A comprehensive platform for users to manage work records, real-time
+            tracking, and assessments.
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Link href="/auth/signin">
@@ -59,24 +71,24 @@ export default function Home() {
             Tailored experiences for every user type
           </p>
         </div>
-        
+
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <Card className="text-center hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                 <BookOpen className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle>Students</CardTitle>
+              <CardTitle>Learners</CardTitle>
               <CardDescription>
                 Submit daily/weekly logs, track progress, and receive feedback
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="text-sm text-left space-y-2 text-muted-foreground">
-                <li>• Create and manage logbook entries</li>
+                <li>• Create and manage work records</li>
                 <li>• Upload attachments and documents</li>
                 <li>• View supervisor comments</li>
-                <li>• Track internship progress</li>
+                <li>• Track work progress</li>
               </ul>
             </CardContent>
           </Card>
@@ -124,19 +136,19 @@ export default function Home() {
           <Card className="text-center hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                <BarChart3 className="h-6 w-6 text-primary" />
+                <BriefcaseBusiness className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle>Administrators</CardTitle>
+              <CardTitle>Workers</CardTitle>
               <CardDescription>
-                Manage users and oversee system operations
+                Check in with QR codes, manage daily work logs, and track assigned tasks
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="text-sm text-left space-y-2 text-muted-foreground">
-                <li>• User management</li>
-                <li>• System analytics</li>
-                <li>• Department management</li>
-                <li>• Export reports</li>
+                <li>• Check in and out with QR codes</li>
+                <li>• Maintain daily work records</li>
+                <li>• Track assigned tasks and outputs</li>
+                <li>• Sync work records with ERP systems</li>
               </ul>
             </CardContent>
           </Card>
@@ -151,7 +163,7 @@ export default function Home() {
               Ready to streamline your internship management?
             </h2>
             <p className="text-xl mb-8 opacity-90">
-              Join students and educators using {BRANDING.appName}
+              Join teams using {BRANDING.appName}
             </p>
             <Link href="/auth/signin">
               <Button size="lg" variant="secondary" className="text-lg px-8">
@@ -168,10 +180,10 @@ export default function Home() {
         <div className="container px-6 py-8">
           <div className="text-center text-sm text-muted-foreground">
             <p>{BRANDING.footerText}</p>
-            <p className="mt-2">Premium Internship Management Solution</p>
+            <p className="mt-2">Premium WorkLog Management Solution</p>
           </div>
         </div>
       </footer>
     </div>
-  )
+  );
 }
