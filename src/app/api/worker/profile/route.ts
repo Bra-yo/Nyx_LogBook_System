@@ -5,11 +5,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 
 const profileUpdateSchema = z.object({
-  erpEmployeeId: z.string().optional(),
-  staffNumber: z.string().optional(),
-  department: z.string().optional(),
-  jobTitle: z.string().optional(),
-  employmentStatus: z.string().optional(),
+  erpEmployeeId: z.string().trim().optional(),
+  staffNumber: z.string().trim().optional(),
+  department: z.string().trim().optional(),
+  jobTitle: z.string().trim().optional(),
+  employmentStatus: z.string().trim().optional(),
 });
 
 export async function GET() {

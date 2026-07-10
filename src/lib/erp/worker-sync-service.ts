@@ -59,12 +59,12 @@ export class BgWorkerSyncService implements WorkerSyncService {
 
       await prisma.$transaction(async (tx) => {
         for (const employee of employees) {
-          // map fields
+          // map fields - mapper ensures all values are properly typed and normalized
           const mappedFields = this.mapper.mapEmployeeToWorkerProfile(employee);
-          // identifier priority: ERP id (documented `id`) then staffno
-          // mapper already returns erpEmployeeId as a string (or null)
-          const erpEmployeeId = (mappedFields.erpEmployeeId ?? "").trim();
-          const staffNumber = (mappedFields.staffNumber ?? "").trim();
+
+          // Mapper already converts to string and trims; check for actual values (not just whitespace)
+          const erpEmployeeId = mappedFields.erpEmployeeId;
+          const staffNumber = mappedFields.staffNumber;
 
           if (!erpEmployeeId && !staffNumber) {
             skipped += 1;
@@ -84,13 +84,13 @@ export class BgWorkerSyncService implements WorkerSyncService {
           let existingWorker: WorkerProfileWithUser | null = null;
           if (erpEmployeeId) {
             existingWorker = await tx.workerProfile.findFirst({
-              where: { erpEmployeeId: String(erpEmployeeId) },
+              where: { erpEmployeeId },
               include: { user: true },
             });
           }
           if (!existingWorker && staffNumber) {
             existingWorker = await tx.workerProfile.findFirst({
-              where: { staffNumber: String(staffNumber) },
+              where: { staffNumber },
               include: { user: true },
             });
           }
@@ -157,24 +157,22 @@ export class BgWorkerSyncService implements WorkerSyncService {
             await tx.workerProfile.update({
               where: { id: existingWorker.id },
               data: {
-                erpEmployeeId: mappedFields.erpEmployeeId
-                  ? String(mappedFields.erpEmployeeId)
-                  : null,
-                staffNumber: mappedFields.staffNumber ?? null,
-                firstName: mappedFields.firstName ?? null,
-                middleName: mappedFields.middleName ?? null,
-                lastName: mappedFields.lastName ?? null,
-                fullName: mappedFields.fullName ?? null,
-                email: mappedFields.email ?? null,
-                phoneNumber: mappedFields.phoneNumber ?? null,
-                department: mappedFields.department ?? null,
-                jobTitle: mappedFields.jobTitle ?? null,
-                employmentStatus: mappedFields.employmentStatus ?? null,
-                nationalId: mappedFields.nationalId ?? null,
-                dateEmployed: mappedFields.dateEmployed ?? null,
-                gender: mappedFields.gender ?? null,
+                erpEmployeeId: mappedFields.erpEmployeeId,
+                staffNumber: mappedFields.staffNumber,
+                firstName: mappedFields.firstName,
+                middleName: mappedFields.middleName,
+                lastName: mappedFields.lastName,
+                fullName: mappedFields.fullName,
+                email: mappedFields.email,
+                phoneNumber: mappedFields.phoneNumber,
+                department: mappedFields.department,
+                jobTitle: mappedFields.jobTitle,
+                employmentStatus: mappedFields.employmentStatus,
+                nationalId: mappedFields.nationalId,
+                dateEmployed: mappedFields.dateEmployed,
+                gender: mappedFields.gender,
                 lastSyncTime: new Date(),
-                erpUpdatedAt: mappedFields.erpUpdatedAt ?? null,
+                erpUpdatedAt: mappedFields.erpUpdatedAt,
               },
             });
 
@@ -212,24 +210,22 @@ export class BgWorkerSyncService implements WorkerSyncService {
             await tx.workerProfile.create({
               data: {
                 userId: user.id,
-                erpEmployeeId: mappedFields.erpEmployeeId
-                  ? String(mappedFields.erpEmployeeId)
-                  : null,
-                staffNumber: mappedFields.staffNumber ?? null,
-                firstName: mappedFields.firstName ?? null,
-                middleName: mappedFields.middleName ?? null,
-                lastName: mappedFields.lastName ?? null,
-                fullName: mappedFields.fullName ?? null,
-                email: mappedFields.email ?? null,
-                phoneNumber: mappedFields.phoneNumber ?? null,
-                department: mappedFields.department ?? null,
-                jobTitle: mappedFields.jobTitle ?? null,
-                employmentStatus: mappedFields.employmentStatus ?? null,
-                nationalId: mappedFields.nationalId ?? null,
-                dateEmployed: mappedFields.dateEmployed ?? null,
-                gender: mappedFields.gender ?? null,
+                erpEmployeeId: mappedFields.erpEmployeeId,
+                staffNumber: mappedFields.staffNumber,
+                firstName: mappedFields.firstName,
+                middleName: mappedFields.middleName,
+                lastName: mappedFields.lastName,
+                fullName: mappedFields.fullName,
+                email: mappedFields.email,
+                phoneNumber: mappedFields.phoneNumber,
+                department: mappedFields.department,
+                jobTitle: mappedFields.jobTitle,
+                employmentStatus: mappedFields.employmentStatus,
+                nationalId: mappedFields.nationalId,
+                dateEmployed: mappedFields.dateEmployed,
+                gender: mappedFields.gender,
                 lastSyncTime: new Date(),
-                erpUpdatedAt: mappedFields.erpUpdatedAt ?? null,
+                erpUpdatedAt: mappedFields.erpUpdatedAt,
               },
             });
 
@@ -325,24 +321,22 @@ export class BgWorkerSyncService implements WorkerSyncService {
       await tx.workerProfile.create({
         data: {
           userId: user.id,
-          erpEmployeeId: mappedFields.erpEmployeeId
-            ? String(mappedFields.erpEmployeeId)
-            : null,
-          staffNumber: mappedFields.staffNumber ?? null,
-          firstName: mappedFields.firstName ?? null,
-          middleName: mappedFields.middleName ?? null,
-          lastName: mappedFields.lastName ?? null,
-          fullName: mappedFields.fullName ?? null,
-          email: mappedFields.email ?? null,
-          phoneNumber: mappedFields.phoneNumber ?? null,
-          department: mappedFields.department ?? null,
-          jobTitle: mappedFields.jobTitle ?? null,
-          employmentStatus: mappedFields.employmentStatus ?? null,
-          nationalId: mappedFields.nationalId ?? null,
-          dateEmployed: mappedFields.dateEmployed ?? null,
-          gender: mappedFields.gender ?? null,
+          erpEmployeeId: mappedFields.erpEmployeeId,
+          staffNumber: mappedFields.staffNumber,
+          firstName: mappedFields.firstName,
+          middleName: mappedFields.middleName,
+          lastName: mappedFields.lastName,
+          fullName: mappedFields.fullName,
+          email: mappedFields.email,
+          phoneNumber: mappedFields.phoneNumber,
+          department: mappedFields.department,
+          jobTitle: mappedFields.jobTitle,
+          employmentStatus: mappedFields.employmentStatus,
+          nationalId: mappedFields.nationalId,
+          dateEmployed: mappedFields.dateEmployed,
+          gender: mappedFields.gender,
           lastSyncTime: new Date(),
-          erpUpdatedAt: mappedFields.erpUpdatedAt ?? null,
+          erpUpdatedAt: mappedFields.erpUpdatedAt,
         },
       });
     });
@@ -385,24 +379,22 @@ export class BgWorkerSyncService implements WorkerSyncService {
       await tx.workerProfile.update({
         where: { id: existingWorker.id },
         data: {
-          erpEmployeeId: mappedFields.erpEmployeeId
-            ? String(mappedFields.erpEmployeeId)
-            : null,
-          staffNumber: mappedFields.staffNumber ?? null,
-          firstName: mappedFields.firstName ?? null,
-          middleName: mappedFields.middleName ?? null,
-          lastName: mappedFields.lastName ?? null,
-          fullName: mappedFields.fullName ?? null,
-          email: mappedFields.email ?? null,
-          phoneNumber: mappedFields.phoneNumber ?? null,
-          department: mappedFields.department ?? null,
-          jobTitle: mappedFields.jobTitle ?? null,
-          employmentStatus: mappedFields.employmentStatus ?? null,
-          nationalId: mappedFields.nationalId ?? null,
-          dateEmployed: mappedFields.dateEmployed ?? null,
-          gender: mappedFields.gender ?? null,
+          erpEmployeeId: mappedFields.erpEmployeeId,
+          staffNumber: mappedFields.staffNumber,
+          firstName: mappedFields.firstName,
+          middleName: mappedFields.middleName,
+          lastName: mappedFields.lastName,
+          fullName: mappedFields.fullName,
+          email: mappedFields.email,
+          phoneNumber: mappedFields.phoneNumber,
+          department: mappedFields.department,
+          jobTitle: mappedFields.jobTitle,
+          employmentStatus: mappedFields.employmentStatus,
+          nationalId: mappedFields.nationalId,
+          dateEmployed: mappedFields.dateEmployed,
+          gender: mappedFields.gender,
           lastSyncTime: new Date(),
-          erpUpdatedAt: mappedFields.erpUpdatedAt ?? null,
+          erpUpdatedAt: mappedFields.erpUpdatedAt,
         },
       });
     });
