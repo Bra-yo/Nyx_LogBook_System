@@ -57,6 +57,16 @@ export class BgErpClient implements ErpClient {
       (firstObj["pagination"] as Record<string, unknown> | null) ?? null;
     let pagesFetched = 1;
 
+    this.logEmployeePageDiagnostics({
+      url: `${endpoint}?page=1`,
+      pageNumber: 1,
+      perPage: undefined,
+      response: firstObj,
+      pageData: data,
+      pagination,
+      nextPageWillBeRequested: false,
+    });
+
     if (pagination && typeof pagination === "object") {
       const paginationObj = pagination as Record<string, unknown>;
       const lastPage = Number(
@@ -74,6 +84,17 @@ export class BgErpClient implements ErpClient {
           : [];
         data.push(...pageData);
         pagesFetched += 1;
+
+        this.logEmployeePageDiagnostics({
+          url: `${endpoint}?page=${p}`,
+          pageNumber: p,
+          perPage: undefined,
+          response: pageObj,
+          pageData,
+          pagination:
+            (pageObj["pagination"] as Record<string, unknown> | null) ?? null,
+          nextPageWillBeRequested: p < totalPages,
+        });
       }
     }
 
@@ -123,7 +144,13 @@ export class BgErpClient implements ErpClient {
 
         clearTimeout(timeout);
 
+        const requestDetails = this.getEmployeeRequestDetails(url);
         if (response.status === 404) {
+          console.info("[erp-client] employee request", {
+            ...requestDetails,
+            status: "not-found",
+            httpStatusCode: response.status,
+          });
           if (throwOnNotFound) {
             throw new Error(`ERP employee endpoint returned 404 for ${url}`);
           }
@@ -131,6 +158,11 @@ export class BgErpClient implements ErpClient {
         }
 
         if (!response.ok) {
+          console.info("[erp-client] employee request", {
+            ...requestDetails,
+            status: "error",
+            httpStatusCode: response.status,
+          });
           throw new Error(
             `ERP request failed with status ${response.status}: ${response.statusText}`,
           );
@@ -138,10 +170,20 @@ export class BgErpClient implements ErpClient {
 
         const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) {
+          console.info("[erp-client] employee request", {
+            ...requestDetails,
+            status: "non-json",
+            httpStatusCode: response.status,
+          });
           return null;
         }
 
         const data = await response.json();
+        console.info("[erp-client] employee request", {
+          ...requestDetails,
+          status: "success",
+          httpStatusCode: response.status,
+        });
         return data as unknown;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -164,5 +206,73 @@ export class BgErpClient implements ErpClient {
 
     // Do not include Authorization header per BG API spec
     return headers;
+  }
+
+  private getEmployeeRequestDetails(url: string) {
+    try {
+      const parsedUrl = new URL(url);
+      const params = Object.fromEntries(parsedUrl.searchParams.entries());
+      return {
+        requestedUrl: parsedUrl.toString(),
+        queryParameters: params,
+        pageNumber: params.page ? Number(params.page) : undefined,
+        per_page: params.per_page ?? params.perPage ?? undefined,
+      };
+    } catch {
+      return {
+        requestedUrl: url,
+        queryParameters: {},
+        pageNumber: undefined,
+        per_page: undefined,
+      };
+    }
+  }
+
+  private logEmployeePageDiagnostics(options: {
+    url: string;
+    pageNumber: number;
+    perPage: unknown;
+    response: Record<string, unknown>;
+    pageData: unknown[];
+    pagination: Record<string, unknown> | null;
+    nextPageWillBeRequested: boolean;
+  }) {
+    const pagination = options.pagination;
+    const totalEmployeesReceived = options.pageData.length;
+    const total = pagination?.total ?? pagination?.["total"] ?? undefined;
+    const currentPage =
+      pagination?.current_page ?? pagination?.["current_page"] ?? undefined;
+    const lastPage =
+      pagination?.last_page ?? pagination?.["last_page"] ?? undefined;
+    const perPage =
+      pagination?.per_page ?? pagination?.["per_page"] ?? options.perPage;
+
+    console.info("[erp-client] employee page response", {
+      requestedUrl: options.url,
+      queryParameters: this.getEmployeeRequestDetails(options.url)
+        .queryParameters,
+      pageNumber: options.pageNumber,
+      per_page: options.perPage ?? perPage,
+      totalEmployeesReceived,
+      pagination: {
+        total,
+        current_page: currentPage,
+        last_page: lastPage,
+        per_page: perPage,
+      },
+      anotherPageWillBeRequested: options.nextPageWillBeRequested,
+    });
+
+    if (totalEmployeesReceived === 1) {
+      console.info("[erp-client] single employee page pagination", {
+        pagination: pagination ?? {},
+      });
+    }
+
+    if (options.pageData[0] !== undefined) {
+      console.info("[erp-client] first employee from ERP response", {
+        firstEmployee: options.pageData[0],
+      });
+    }
   }
 }
