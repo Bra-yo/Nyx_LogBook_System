@@ -41,7 +41,11 @@ export class BgWorkerMapper implements WorkerMapper {
 
     return {
       // Identifier priority: documented `id` then documented `staffno` (mapped in sync service)
-      erpEmployeeId: employee.id ?? employee.employeeId ?? null,
+      // Convert to string to handle integer IDs from ERP API
+      erpEmployeeId:
+        (employee.id != null ? String(employee.id) : null) ??
+        (employee.employeeId != null ? String(employee.employeeId) : null) ??
+        null,
       staffNumber: employee.staffno ?? employee.staffNumber ?? null,
       firstName: employee.fname ?? employee.firstName ?? null,
       middleName: employee.mname ?? employee.middleName ?? null,

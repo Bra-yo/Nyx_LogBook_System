@@ -62,12 +62,9 @@ export class BgWorkerSyncService implements WorkerSyncService {
           // map fields
           const mappedFields = this.mapper.mapEmployeeToWorkerProfile(employee);
           // identifier priority: ERP id (documented `id`) then staffno
-          const erpEmployeeId = (mappedFields.erpEmployeeId || "")
-            .toString()
-            .trim();
-          const staffNumber = (mappedFields.staffNumber || "")
-            .toString()
-            .trim();
+          // mapper already returns erpEmployeeId as a string (or null)
+          const erpEmployeeId = (mappedFields.erpEmployeeId ?? "").trim();
+          const staffNumber = (mappedFields.staffNumber ?? "").trim();
 
           if (!erpEmployeeId && !staffNumber) {
             skipped += 1;
@@ -87,13 +84,13 @@ export class BgWorkerSyncService implements WorkerSyncService {
           let existingWorker: WorkerProfileWithUser | null = null;
           if (erpEmployeeId) {
             existingWorker = await tx.workerProfile.findFirst({
-              where: { erpEmployeeId },
+              where: { erpEmployeeId: String(erpEmployeeId) },
               include: { user: true },
             });
           }
           if (!existingWorker && staffNumber) {
             existingWorker = await tx.workerProfile.findFirst({
-              where: { staffNumber },
+              where: { staffNumber: String(staffNumber) },
               include: { user: true },
             });
           }
@@ -160,7 +157,9 @@ export class BgWorkerSyncService implements WorkerSyncService {
             await tx.workerProfile.update({
               where: { id: existingWorker.id },
               data: {
-                erpEmployeeId: mappedFields.erpEmployeeId ?? null,
+                erpEmployeeId: mappedFields.erpEmployeeId
+                  ? String(mappedFields.erpEmployeeId)
+                  : null,
                 staffNumber: mappedFields.staffNumber ?? null,
                 firstName: mappedFields.firstName ?? null,
                 middleName: mappedFields.middleName ?? null,
@@ -213,7 +212,9 @@ export class BgWorkerSyncService implements WorkerSyncService {
             await tx.workerProfile.create({
               data: {
                 userId: user.id,
-                erpEmployeeId: mappedFields.erpEmployeeId ?? null,
+                erpEmployeeId: mappedFields.erpEmployeeId
+                  ? String(mappedFields.erpEmployeeId)
+                  : null,
                 staffNumber: mappedFields.staffNumber ?? null,
                 firstName: mappedFields.firstName ?? null,
                 middleName: mappedFields.middleName ?? null,
@@ -275,7 +276,7 @@ export class BgWorkerSyncService implements WorkerSyncService {
   }) {
     if (search.erpEmployeeId) {
       const worker = await prisma.workerProfile.findFirst({
-        where: { erpEmployeeId: search.erpEmployeeId },
+        where: { erpEmployeeId: String(search.erpEmployeeId) },
         include: { user: true },
       });
       if (worker) {
@@ -285,7 +286,7 @@ export class BgWorkerSyncService implements WorkerSyncService {
 
     if (search.staffNumber) {
       return prisma.workerProfile.findFirst({
-        where: { staffNumber: search.staffNumber },
+        where: { staffNumber: String(search.staffNumber) },
         include: { user: true },
       });
     }
@@ -324,7 +325,9 @@ export class BgWorkerSyncService implements WorkerSyncService {
       await tx.workerProfile.create({
         data: {
           userId: user.id,
-          erpEmployeeId: mappedFields.erpEmployeeId ?? null,
+          erpEmployeeId: mappedFields.erpEmployeeId
+            ? String(mappedFields.erpEmployeeId)
+            : null,
           staffNumber: mappedFields.staffNumber ?? null,
           firstName: mappedFields.firstName ?? null,
           middleName: mappedFields.middleName ?? null,
@@ -382,7 +385,9 @@ export class BgWorkerSyncService implements WorkerSyncService {
       await tx.workerProfile.update({
         where: { id: existingWorker.id },
         data: {
-          erpEmployeeId: mappedFields.erpEmployeeId ?? null,
+          erpEmployeeId: mappedFields.erpEmployeeId
+            ? String(mappedFields.erpEmployeeId)
+            : null,
           staffNumber: mappedFields.staffNumber ?? null,
           firstName: mappedFields.firstName ?? null,
           middleName: mappedFields.middleName ?? null,
