@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" fill="#0f172a"/>
+  <rect x="0" y="0" width="1200" height="220" fill="#2563eb"/>
+  <rect x="80" y="260" width="1040" height="420" rx="24" fill="#111827" stroke="#f8fafc" stroke-width="6"/>
+  <rect x="120" y="320" width="420" height="260" rx="20" fill="#f8fafc"/>
+  <rect x="580" y="320" width="480" height="260" rx="20" fill="#e2e8f0"/>
+  <rect x="620" y="380" width="320" height="18" rx="9" fill="#94a3b8"/>
+  <rect x="620" y="420" width="260" height="18" rx="9" fill="#94a3b8"/>
+  <rect x="620" y="460" width="300" height="18" rx="9" fill="#94a3b8"/>
+  <text x="80" y="120" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="700" fill="#f8fafc">Supervisor Review Placeholder</text>
+</svg>

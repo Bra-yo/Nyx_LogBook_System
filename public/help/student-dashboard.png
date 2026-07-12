@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" fill="#0f172a"/>
+  <rect x="0" y="0" width="1200" height="220" fill="#2563eb"/>
+  <rect x="60" y="260" width="1080" height="420" rx="24" fill="#111827" stroke="#f8fafc" stroke-width="6"/>
+  <rect x="100" y="310" width="240" height="140" rx="18" fill="#f8fafc"/>
+  <rect x="360" y="310" width="340" height="140" rx="18" fill="#f8fafc"/>
+  <rect x="720" y="310" width="360" height="140" rx="18" fill="#f8fafc"/>
+  <rect x="100" y="480" width="980" height="160" rx="18" fill="#e2e8f0"/>
+  <text x="80" y="120" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="700" fill="#f8fafc">Student Dashboard Placeholder</text>
+</svg>

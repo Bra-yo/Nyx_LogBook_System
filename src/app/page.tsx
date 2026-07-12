@@ -14,6 +14,7 @@ import {
   GraduationCap,
   BriefcaseBusiness,
   ArrowRight,
+  CircleHelp,
 } from "lucide-react";
 import { BRANDING } from "@/lib/branding";
 
@@ -22,7 +23,13 @@ export default function Home() {
     <div className="min-h-screen bg-linear-to-br from-background to-muted/20">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <div className="container flex h-16 items-center justify-end px-6">
+        <div className="container flex h-16 items-center justify-end gap-3 px-6">
+          <Link href="/help">
+            <Button variant="outline">
+              <CircleHelp className="mr-2 h-4 w-4" />
+              Help
+            </Button>
+          </Link>
           <Link href="/auth/signin">
             <Button>Sign In</Button>
           </Link>
@@ -140,7 +147,8 @@ export default function Home() {
               </div>
               <CardTitle>Workers</CardTitle>
               <CardDescription>
-                Check in with QR codes, manage daily work logs, and track assigned tasks
+                Check in with QR codes, manage daily work logs, and track
+                assigned tasks
               </CardDescription>
             </CardHeader>
             <CardContent>

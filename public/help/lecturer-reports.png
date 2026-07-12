@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" fill="#0f172a"/>
+  <rect x="0" y="0" width="1200" height="220" fill="#2563eb"/>
+  <rect x="80" y="260" width="1040" height="420" rx="24" fill="#111827" stroke="#f8fafc" stroke-width="6"/>
+  <rect x="120" y="320" width="300" height="260" rx="20" fill="#f8fafc"/>
+  <rect x="460" y="320" width="620" height="260" rx="20" fill="#e2e8f0"/>
+  <path d="M520 520 L620 450 L720 500 L840 360 L980 420" stroke="#2563eb" stroke-width="18" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="80" y="120" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="700" fill="#f8fafc">Lecturer Reports Placeholder</text>
+</svg>

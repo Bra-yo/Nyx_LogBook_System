@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, CircleHelp } from "lucide-react";
 import Link from "next/link";
 import { BRANDING } from "@/lib/branding";
 
@@ -157,16 +157,25 @@ export default function SignInPage() {
               </Button>
             </form>
 
-            <div className="mt-4 text-center text-sm">
-              <span className="text-muted-foreground">
-                Don't have an account?
-              </span>{" "}
+            <div className="mt-4 flex flex-col items-center gap-2 text-sm">
               <Link
-                href="/auth/signup"
-                className="text-primary hover:underline"
+                href="/help"
+                className="inline-flex items-center gap-2 text-primary hover:underline"
               >
-                Contact your administrator
+                <CircleHelp className="h-4 w-4" />
+                Help Center
               </Link>
+              <div>
+                <span className="text-muted-foreground">
+                  Don't have an account?
+                </span>{" "}
+                <Link
+                  href="/auth/signup"
+                  className="text-primary hover:underline"
+                >
+                  Contact your administrator
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
