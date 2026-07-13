@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteUserPermanently } from "@/lib/admin-user-delete";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 
@@ -449,11 +450,19 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const permanent = request.nextUrl.searchParams.get("permanent") === "true";
+    const action = request.nextUrl.searchParams.get("action") ?? "deactivate";
+    const permanent = action === "permanent";
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
       where: { id: resolvedParams.id },
+      include: {
+        studentProfile: true,
+        supervisorProfile: true,
+        lecturerProfile: true,
+        adminProfile: true,
+        workerProfile: true,
+      },
     });
 
     if (!existingUser) {
@@ -491,13 +500,24 @@ export async function DELETE(
 
       return NextResponse.json({
         success: true,
-        message: "User has been deactivated instead of deleted",
+        message: "User has been deactivated",
       });
     }
 
-    await prisma.user.delete({
-      where: { id: resolvedParams.id },
-    });
+    await prisma.$transaction(
+      async (tx) => {
+        await deleteUserPermanently(tx, resolvedParams.id, existingUser.role, {
+          id: existingUser.id,
+          role: existingUser.role,
+          studentProfile: existingUser.studentProfile,
+          supervisorProfile: existingUser.supervisorProfile,
+          lecturerProfile: existingUser.lecturerProfile,
+          adminProfile: existingUser.adminProfile,
+          workerProfile: existingUser.workerProfile,
+        });
+      },
+      { timeout: 30000 },
+    );
 
     return NextResponse.json({
       success: true,

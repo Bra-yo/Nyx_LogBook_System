@@ -195,9 +195,9 @@ export default function UsersPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeactivateUser = async (userId: string) => {
     const confirmed = window.confirm(
-      "This action will deactivate the user account and preserve their profile data. Continue?",
+      "This action will deactivate the user account while preserving profile data. Continue?",
     );
 
     if (!confirmed) {
@@ -205,9 +205,12 @@ export default function UsersPage() {
     }
 
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/admin/users/${userId}?action=deactivate`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
@@ -219,6 +222,40 @@ export default function UsersPage() {
     } catch (error) {
       console.error("Error deactivating user:", error);
       toast.error((error as Error).message || "Failed to deactivate user.");
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    const confirmed = window.confirm(
+      "This action will permanently remove the user and related records from the system. Continue?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/admin/users/${userId}?action=permanent`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.error || "Unable to delete user permanently.",
+        );
+      }
+
+      toast.success("User has been deleted permanently.");
+      fetchUsers();
+    } catch (error) {
+      console.error("Error deleting user permanently:", error);
+      toast.error(
+        (error as Error).message || "Failed to delete user permanently.",
+      );
     }
   };
 
@@ -588,7 +625,10 @@ export default function UsersPage() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent
+                            align="end"
+                            className="z-100 border border-border bg-popover text-popover-foreground shadow-lg"
+                          >
                             <DropdownMenuItem asChild>
                               <Link href={`/admin/users/${user.id}`}>
                                 <Eye className="mr-2 h-4 w-4" />
