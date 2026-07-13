@@ -1,51 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
 
 const profileUpdateSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
   email: z.string().email("Valid email is required").optional(),
-  phoneNumber: z.string().trim().optional(),
-  erpEmployeeId: z.string().trim().optional(),
-  staffNumber: z.string().trim().optional(),
-  department: z.string().trim().optional(),
-  jobTitle: z.string().trim().optional(),
-  employmentStatus: z.string().trim().optional(),
-  fullName: z.string().trim().optional(),
-  nationalId: z.string().trim().optional(),
+  phone: z.string().optional(),
+  title: z.string().optional(),
+  office: z.string().optional(),
 });
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.role || session.user.role !== "WORKER") {
+    if (!session?.user?.role || session.user.role !== "LECTURER") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const workerProfile = await prisma.workerProfile.findUnique({
+    const lecturer = await prisma.lecturerProfile.findUnique({
       where: { userId: session.user.id },
       include: {
         user: { select: { id: true, name: true, email: true } },
+        department: true,
       },
     });
 
-    if (!workerProfile) {
+    if (!lecturer) {
       return NextResponse.json(
-        {
-          success: true,
-          worker: null,
-          message:
-            "Worker profile will be provisioned from ERP once synchronization is enabled.",
-        },
-        { status: 200 },
+        { error: "Lecturer profile not found" },
+        { status: 404 },
       );
     }
 
-    return NextResponse.json({ success: true, worker: workerProfile });
+    return NextResponse.json({ success: true, lecturer });
   } catch (error) {
-    console.error("Worker get profile error:", error);
+    console.error("Get lecturer profile error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -56,7 +47,7 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.role || session.user.role !== "WORKER") {
+    if (!session?.user?.role || session.user.role !== "LECTURER") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -65,9 +56,8 @@ export async function PUT(request: NextRequest) {
 
     const existingUser = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { workerProfile: true },
+      include: { lecturerProfile: true },
     });
-
     if (!existingUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -81,53 +71,39 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const workerProfile = await prisma.$transaction(async (tx) => {
+    const lecturer = await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: session.user.id },
         data: {
           name: validatedData.name,
           email: validatedData.email,
-          phone: validatedData.phoneNumber,
+          phone: validatedData.phone,
         },
       });
 
-      return tx.workerProfile.upsert({
+      return tx.lecturerProfile.upsert({
         where: { userId: session.user.id },
         create: {
           userId: session.user.id,
-          erpEmployeeId: validatedData.erpEmployeeId ?? null,
-          staffNumber: validatedData.staffNumber ?? null,
-          fullName:
-            validatedData.fullName ?? validatedData.name ?? existingUser.name,
-          phoneNumber: validatedData.phoneNumber ?? null,
-          department: validatedData.department ?? null,
-          jobTitle: validatedData.jobTitle ?? null,
-          employmentStatus: validatedData.employmentStatus ?? null,
-          nationalId: validatedData.nationalId ?? null,
+          departmentId: existingUser.lecturerProfile?.departmentId || "",
+          title: validatedData.title ?? null,
+          office: validatedData.office ?? null,
         },
-        update: {
-          erpEmployeeId: validatedData.erpEmployeeId,
-          staffNumber: validatedData.staffNumber,
-          fullName: validatedData.fullName ?? validatedData.name,
-          phoneNumber: validatedData.phoneNumber,
-          department: validatedData.department,
-          jobTitle: validatedData.jobTitle,
-          employmentStatus: validatedData.employmentStatus,
-          nationalId: validatedData.nationalId,
-        },
+        update: { title: validatedData.title, office: validatedData.office },
         include: {
           user: { select: { id: true, name: true, email: true } },
+          department: true,
         },
       });
     });
 
     return NextResponse.json({
       success: true,
-      message: "Worker profile updated successfully",
-      worker: workerProfile,
+      message: "Lecturer profile updated successfully",
+      lecturer,
     });
   } catch (error) {
-    console.error("Worker update profile error:", error);
+    console.error("Update lecturer profile error:", error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation failed", details: error.issues },

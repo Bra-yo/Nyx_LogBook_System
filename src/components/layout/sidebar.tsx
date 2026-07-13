@@ -67,6 +67,16 @@ const navigationItems = {
       href: "/student/notifications",
       icon: Bell,
     },
+    {
+      title: "Profile",
+      href: "/student/profile",
+      icon: UserCircle2,
+    },
+    {
+      title: "Settings",
+      href: "/student/settings",
+      icon: Settings,
+    },
   ],
   [UserRole.SUPERVISOR]: [
     {
@@ -109,6 +119,16 @@ const navigationItems = {
       href: "/supervisor/notifications",
       icon: Bell,
     },
+    {
+      title: "Profile",
+      href: "/supervisor/profile",
+      icon: UserCircle2,
+    },
+    {
+      title: "Settings",
+      href: "/supervisor/settings",
+      icon: Settings,
+    },
   ],
   [UserRole.LECTURER]: [
     {
@@ -140,6 +160,16 @@ const navigationItems = {
       title: "Analytics",
       href: "/lecturer/analytics",
       icon: BarChart3,
+    },
+    {
+      title: "Profile",
+      href: "/lecturer/profile",
+      icon: UserCircle2,
+    },
+    {
+      title: "Settings",
+      href: "/lecturer/settings",
+      icon: Settings,
     },
   ],
   [UserRole.WORKER]: [
@@ -201,6 +231,11 @@ const navigationItems = {
       icon: FileText,
     },
     {
+      title: "Profile",
+      href: "/admin/profile",
+      icon: UserCircle2,
+    },
+    {
       title: "Settings",
       href: "/admin/settings",
       icon: Settings,
@@ -221,10 +256,10 @@ export function Sidebar({ userRole, className, onNavigate }: SidebarProps) {
     >
       <div className="flex h-16 items-center border-b border-white/10 px-6">
         <div className="flex items-center space-x-2">
-          
           <div>
-            <h1 className="text-sm font-semibold">{BRANDING.organizationName}</h1>
-            
+            <h1 className="text-sm font-semibold">
+              {BRANDING.organizationName}
+            </h1>
           </div>
         </div>
       </div>

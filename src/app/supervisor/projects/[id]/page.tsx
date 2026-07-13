@@ -169,6 +169,36 @@ export default function ProjectDetailsPage() {
                 Add Competency Milestone
               </Link>
             </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (
+                  !window.confirm(
+                    "Are you sure you want to delete this project? This cannot be undone.",
+                  )
+                ) {
+                  return;
+                }
+
+                try {
+                  const res = await fetch(
+                    `/api/supervisor/projects/${projectId}`,
+                    { method: "DELETE" },
+                  );
+                  if (res.ok) {
+                    router.push("/supervisor/projects");
+                  } else {
+                    const data = await res.json();
+                    alert(data.error || "Failed to delete project");
+                  }
+                } catch (error) {
+                  console.error("Failed to delete project:", error);
+                  alert("Failed to delete project");
+                }
+              }}
+            >
+              Delete Project
+            </Button>
           </div>
         </div>
 
