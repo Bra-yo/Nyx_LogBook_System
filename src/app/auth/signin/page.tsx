@@ -74,7 +74,7 @@ export default function SignInPage() {
             <div className="flex items-center justify-center min-w-0">
               <Image
                 src="/bob-grogan-logo.png"
-                alt="Bob Grogan Consulting LTD Logo"
+                alt="BG HUB Consulting LTD Logo"
                 width={180}
                 height={56}
                 className="object-contain h-10 w-auto sm:h-12 md:h-20"

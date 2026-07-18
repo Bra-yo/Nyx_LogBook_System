@@ -20,6 +20,10 @@ model User {
   updatedAt          DateTime           @updatedAt
   mustChangePassword Boolean            @default(false)
   phone              String?
+  bio                String?
+  skills             String[]           @default([])
+  certificates       Json?
+  socialLinks        Json?
   adminProfile       AdminProfile?
   auditLogs          AuditLog[]
   lecturerProfile    LecturerProfile?

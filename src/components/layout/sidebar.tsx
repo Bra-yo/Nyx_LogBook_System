@@ -38,6 +38,11 @@ const navigationItems = {
       icon: LayoutDashboard,
     },
     {
+      title: "My Portfolio",
+      href: "/portfolio",
+      icon: UserCircle2,
+    },
+    {
       title: "Attendance",
       href: "/student/attendance",
       icon: Clock,
@@ -83,6 +88,11 @@ const navigationItems = {
       title: "Dashboard",
       href: "/supervisor",
       icon: LayoutDashboard,
+    },
+    {
+      title: "My Portfolio",
+      href: "/portfolio",
+      icon: UserCircle2,
     },
     {
       title: "Office Location",
@@ -137,6 +147,11 @@ const navigationItems = {
       icon: LayoutDashboard,
     },
     {
+      title: "My Portfolio",
+      href: "/portfolio",
+      icon: UserCircle2,
+    },
+    {
       title: "Learners",
       href: "/lecturer/students",
       icon: Users,
@@ -177,6 +192,11 @@ const navigationItems = {
       title: "Dashboard",
       href: "/worker",
       icon: LayoutDashboard,
+    },
+    {
+      title: "My Portfolio",
+      href: "/portfolio",
+      icon: UserCircle2,
     },
     {
       title: "Attendance",

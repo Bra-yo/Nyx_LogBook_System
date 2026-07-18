@@ -42,7 +42,7 @@ export default function Home() {
           <div className="mx-auto mb-8 flex h-28 w-28 sm:h-36 sm:w-36 md:h-44 md:w-44 items-center justify-center rounded-2xl bg-white p-3 shadow-lg">
             <Image
               src="/bob-grogan-logo.png"
-              alt="Bob Grogan Consulting LTD Logo"
+              alt="BG HUB Consulting LTD Logo"
               width={180}
               height={56}
               className="mx-auto h-24 w-auto sm:h-32 md:h-40 object-contain"

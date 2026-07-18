@@ -1,6 +1,6 @@
-# Bob Grogan Consulting LTD WorkLog System
+# BG HUB Consulting LTD WorkLog System
 
-A premium SaaS-grade WorkLog management system built for Bob Grogan Consulting LTD.
+A premium SaaS-grade WorkLog management system built for BG HUB Consulting LTD.
 
 ## Features
 
@@ -241,7 +241,7 @@ npm start
 
 ## License
 
-© 2026 Bob Grogan Consulting LTD. All rights reserved.
+© 2026 BG HUB Consulting LTD. All rights reserved.
 
 ## Support
 
@@ -253,4 +253,4 @@ For technical support or questions:
 
 ---
 
-**Built with ❤️ for Bob Grogan Consulting LTD.**
+**Built with ❤️ for BG HUB Consulting LTD.**

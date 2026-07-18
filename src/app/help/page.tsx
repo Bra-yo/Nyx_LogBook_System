@@ -742,7 +742,7 @@ export default function HelpPage() {
               In-app support center
             </div>
             <h1 className="mt-4 text-3xl font-bold sm:text-4xl">
-              Bob Grogan Worklog management System User Guide
+              BG HUB Worklog management System User Guide
             </h1>
             <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
               Select your role to view the appropriate guide.

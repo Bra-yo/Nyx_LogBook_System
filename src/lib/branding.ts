@@ -1,8 +1,8 @@
 export const BRANDING = {
-  organizationName: "Bob Grogan Consulting LTD",
-  systemName: "Bob Grogan Consulting LTD WorkLog System",
-  appName: "Bob Grogan WorkLog",
-  shortName: "Bob Grogan",
-  footerText: "© 2026 Bob Grogan Consulting LTD. All rights reserved.",
+  organizationName: "BG HUB Consulting LTD",
+  systemName: "BG HUB Consulting LTD WorkLog System",
+  appName: "BG HUB WorkLog",
+  shortName: "BG HUB",
+  footerText: "© 2026 BG HUB Consulting LTD. All rights reserved.",
   qrPrefix: "BGC_ATTENDANCE",
 };

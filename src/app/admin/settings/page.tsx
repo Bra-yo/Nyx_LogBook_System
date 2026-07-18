@@ -36,9 +36,9 @@ interface SystemSettings {
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SystemSettings>({
-    siteName: "Bob Grogan Consulting LTD WorkLog System",
+    siteName: "BG HUB Consulting LTD WorkLog System",
     siteDescription:
-      "A digital WorkLog and attendance management system for Bob Grogan Consulting LTD.",
+      "A digital WorkLog and attendance management system for BG HUB Consulting LTD.",
     allowRegistration: true,
     emailNotifications: true,
     maintenanceMode: false,
