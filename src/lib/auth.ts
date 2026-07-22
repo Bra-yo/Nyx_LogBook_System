@@ -29,6 +29,9 @@ export const authOptions: NextAuthOptions = {
             role: true,
             isActive: true,
             mustChangePassword: true,
+            registrationIdentifier: true,
+            accountStatus: true,
+            paymentStatus: true,
             studentProfile: true,
             supervisorProfile: true,
             lecturerProfile: true,
@@ -37,6 +40,10 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user || !user.isActive) {
+          return null;
+        }
+
+        if (user.role === "STUDENT" && user.accountStatus !== "ACTIVE") {
           return null;
         }
 
@@ -61,6 +68,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           role: user.role as UserRole,
           mustChangePassword: user.mustChangePassword,
+          registrationIdentifier: user.registrationIdentifier,
           profile: profile as Record<string, unknown> | undefined,
         };
       },
@@ -75,6 +83,9 @@ export const authOptions: NextAuthOptions = {
         token.role = (user.role as UserRole) ?? token.role;
         token.profile = user.profile;
         token.mustChangePassword = user.mustChangePassword;
+        token.registrationIdentifier = (user as { registrationIdentifier?: string | null }).registrationIdentifier;
+        token.accountStatus = user.accountStatus;
+        token.paymentStatus = user.paymentStatus;
       }
       return token;
     },
@@ -84,6 +95,9 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as UserRole;
         session.user.profile = token.profile;
         session.user.mustChangePassword = token.mustChangePassword;
+        session.user.registrationIdentifier = token.registrationIdentifier;
+        session.user.accountStatus = token.accountStatus;
+        session.user.paymentStatus = token.paymentStatus;
       }
       return session;
     },

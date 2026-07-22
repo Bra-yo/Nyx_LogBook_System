@@ -9,29 +9,35 @@ datasource db {
 }
 
 model User {
-  id                 String             @id @default(cuid())
-  email              String             @unique
-  name               String
-  password           String
-  role               UserRole
-  avatar             String?
-  isActive           Boolean            @default(true)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  mustChangePassword Boolean            @default(false)
-  phone              String?
-  bio                String?
-  skills             String[]           @default([])
-  certificates       Json?
-  socialLinks        Json?
-  adminProfile       AdminProfile?
-  auditLogs          AuditLog[]
-  lecturerProfile    LecturerProfile?
-  notifications      Notification[]
-  sessions           Session[]
-  studentProfile     StudentProfile?
-  supervisorProfile  SupervisorProfile?
-  workerProfile      WorkerProfile?
+  id                     String             @id @default(cuid())
+  email                  String             @unique
+  name                   String
+  password               String
+  role                   UserRole
+  avatar                 String?
+  isActive               Boolean            @default(true)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  mustChangePassword     Boolean            @default(false)
+  registrationIdentifier String?            @unique
+  phone                  String?
+  paymentStatus          PaymentStatus      @default(PENDING)
+  accountStatus          AccountStatus      @default(PENDING_PAYMENT)
+  paymentConfirmedAt     DateTime?
+  paymentConfirmedBy     String?
+  bio                    String?
+  skills                 String[]           @default([])
+  certificates           Json?
+  socialLinks            Json?
+  adminProfile           AdminProfile?
+  auditLogs              AuditLog[]
+  lecturerProfile        LecturerProfile?
+  emailDeliveries        EmailDelivery[]
+  notifications          Notification[]
+  sessions               Session[]
+  studentProfile         StudentProfile?
+  supervisorProfile      SupervisorProfile?
+  workerProfile          WorkerProfile?
 
   @@map("users")
 }
@@ -102,6 +108,36 @@ model ProjectLearner {
   @@unique([projectId, learnerId])
 }
 
+model Cohort {
+  id                String                   @id @default(cuid())
+  name              String
+  code              String                   @unique
+  mentorshipTrack   MentorshipTrack
+  status            CohortStatus             @default(UPCOMING)
+  description       String?
+  maximumCapacity   Int                      @default(25)
+  startDate         DateTime?
+  endDate           DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  members           StudentProfile[]
+  mentorAssignments CohortMentorAssignment[]
+
+  @@map("cohorts")
+}
+
+model CohortMentorAssignment {
+  id           String            @id @default(cuid())
+  cohortId     String
+  supervisorId String
+  assignedAt   DateTime          @default(now())
+  cohort       Cohort            @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  mentor       SupervisorProfile @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+
+  @@unique([cohortId, supervisorId])
+  @@map("cohort_mentor_assignments")
+}
+
 model StudentProfile {
   id                     String                   @id @default(cuid())
   userId                 String                   @unique
@@ -109,6 +145,8 @@ model StudentProfile {
   departmentId           String
   supervisorId           String?
   lecturerId             String?
+  cohortId               String?
+  mentorshipTrack        MentorshipTrack?
   year                   Int
   semester               Int
   internshipCompany      String?
@@ -121,6 +159,7 @@ model StudentProfile {
   assessments            LecturerAssessment[]
   logbookEntries         LogbookEntry[]
   Milestone              Milestone[]
+  cohort                 Cohort?                  @relation(fields: [cohortId], references: [id])
   department             Department               @relation(fields: [departmentId], references: [id])
   lecturer               LecturerProfile?         @relation(fields: [lecturerId], references: [id])
   supervisor             SupervisorProfile?       @relation(fields: [supervisorId], references: [id])
@@ -234,6 +273,7 @@ model SupervisorProfile {
   supervisedProjects     Project[]                   @relation("SupervisorProjects")
   students               StudentProfile[]
   comments               SupervisorComment[]
+  cohortAssignments      CohortMentorAssignment[]
   department             Department                  @relation(fields: [departmentId], references: [id])
   user                   User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   WeeklyMentorTaskReview WeeklyMentorTaskReview[]
@@ -349,6 +389,26 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+model EmailDelivery {
+  id             String              @id @default(cuid())
+  userId         String
+  toEmail        String
+  subject        String
+  htmlBody       String
+  attachmentPath String
+  attachmentName String
+  status         EmailDeliveryStatus @default(PENDING)
+  attempts       Int                 @default(0)
+  lastError      String?
+  sentAt         DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("email_deliveries")
 }
 
 model Attendance {
@@ -512,6 +572,18 @@ enum AssessmentStatus {
   COMPLETED
 }
 
+enum CohortStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum MentorshipTrack {
+  CAREER
+  BUSINESS
+}
+
 enum MilestoneStatus {
   PENDING
   IN_PROGRESS
@@ -534,6 +606,24 @@ enum UserRole {
   LECTURER
   ADMIN
   WORKER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  WAIVED
+}
+
+enum AccountStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  SUSPENDED
+}
+
+enum EmailDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
 }
 
 enum AttendanceStatus {

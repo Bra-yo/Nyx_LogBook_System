@@ -21,6 +21,7 @@ import {
   MapPin,
   BookOpen,
 } from "lucide-react";
+import Link from "next/link";
 
 interface Student {
   id: string;
@@ -31,13 +32,18 @@ interface Student {
   internshipStartDate?: string;
   internshipEndDate?: string;
   user: {
+    id: string;
     name: string;
     email: string;
+    registrationIdentifier?: string | null;
+    paymentStatus: string;
+    accountStatus: string;
   };
   department?: {
     name: string;
     code: string;
   };
+  cohort?: { id: string; name: string; code: string; status: string };
   supervisor?: {
     user: {
       name: string;
@@ -59,6 +65,9 @@ export default function SupervisorStudentsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
+  const [sort, setSort] = useState("name");
+  const [cohortFilter, setCohortFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const fetchStudents = async () => {
     try {
@@ -89,12 +98,20 @@ export default function SupervisorStudentsPage() {
           student.user.email.toLowerCase().includes(search) ||
           student.regNumber.toLowerCase().includes(search) ||
           student.department?.name.toLowerCase().includes(search),
-      );
+      ).filter((student) => cohortFilter === "all" || student.cohort?.id === cohortFilter)
+        .filter((student) => statusFilter === "all" || student.user.accountStatus === statusFilter)
+        .sort((left, right) => {
+          if (sort === "cohort") return (left.cohort?.name || "").localeCompare(right.cohort?.name || "");
+          if (sort === "progress") return (right._count.logbookEntries + right._count.attendanceRecords) - (left._count.logbookEntries + left._count.attendanceRecords);
+          return left.user.name.localeCompare(right.user.name);
+        });
       setFilteredStudents(filtered);
     } else {
       setFilteredStudents([]);
     }
-  }, [searchTerm, students]);
+  }, [searchTerm, students, cohortFilter, statusFilter, sort]);
+
+  const cohorts = Array.from(new Map(students.filter((student) => student.cohort).map((student) => [student.cohort!.id, student.cohort!])).values());
 
   if (loading) {
     return (
@@ -116,32 +133,36 @@ export default function SupervisorStudentsPage() {
   }
 
   return (
-    <DashboardLayout title="Students">
+    <DashboardLayout title="Learners">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">All Students</h2>
+            <h2 className="text-2xl font-bold">All Learners</h2>
             <p className="text-muted-foreground">
               View and manage learner profiles under your mentorship
             </p>
           </div>
           <div className="flex items-center space-x-2">
             <Badge variant="secondary" className="text-sm">
-              {filteredStudents.length} Students
+              {filteredStudents.length} Learners
             </Badge>
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative">
+        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto]">
+          <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
+            <Input
             placeholder="Search students by name, email, registration number, or department..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
-          />
+            />
+          </div>
+          <select value={cohortFilter} onChange={(event) => setCohortFilter(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm"><option value="all">All cohorts</option>{cohorts.map((cohort) => <option key={cohort.id} value={cohort.id}>{cohort.name}</option>)}</select>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm"><option value="all">All account statuses</option><option value="ACTIVE">Active</option><option value="PENDING_PAYMENT">Pending payment</option><option value="SUSPENDED">Suspended</option></select>
+          <select value={sort} onChange={(event) => setSort(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm"><option value="name">Sort: Name</option><option value="cohort">Sort: Cohort</option><option value="progress">Sort: Progress</option></select>
         </div>
 
         {/* Students List */}
@@ -164,10 +185,7 @@ export default function SupervisorStudentsPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredStudents.map((student) => (
-              <Card
-                key={student.id}
-                className="hover:shadow-md transition-shadow"
-              >
+              <Link key={student.id} href={`/supervisor/learners/${student.id}`} className="block"><Card className="transition-shadow hover:shadow-md">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
@@ -184,6 +202,7 @@ export default function SupervisorStudentsPage() {
                       </div>
                     </div>
                   </div>
+                  <div className="mt-2 flex flex-wrap gap-2"><Badge variant="secondary">{student.cohort?.name || "No cohort"}</Badge><Badge variant="outline">{student.user.accountStatus}</Badge></div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {/* Contact Info */}
@@ -271,7 +290,7 @@ export default function SupervisorStudentsPage() {
                     </div>
                   )}
                 </CardContent>
-              </Card>
+              </Card></Link>
             ))}
           </div>
         )}

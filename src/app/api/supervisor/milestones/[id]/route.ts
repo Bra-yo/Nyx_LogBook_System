@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { buildMentorCohortLearnerWhereClause } from '@/lib/access-control'
 
 export async function GET(
   request: NextRequest,
@@ -91,6 +92,14 @@ export async function PUT(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
+    const supervisor = await prisma.supervisorProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true },
+    })
+    if (!supervisor) {
+      return NextResponse.json({ message: 'Supervisor profile not found' }, { status: 404 })
+    }
+
     const body = await request.json()
     const { title, description, startDate, endDate, learnerId, departmentId } = body
 
@@ -114,7 +123,7 @@ export async function PUT(
     // Validate learner belongs to department if both are provided
     if (learnerId && departmentId) {
       const learner = await prisma.studentProfile.findUnique({
-        where: { id: learnerId },
+        where: { id: learnerId, ...buildMentorCohortLearnerWhereClause(supervisor.id) },
         select: { departmentId: true }
       })
       if (!learner || learner.departmentId !== departmentId) {

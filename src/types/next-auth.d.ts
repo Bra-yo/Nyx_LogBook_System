@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { UserRole, AccountStatus, PaymentStatus } from "@prisma/client";
 import { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
@@ -8,6 +8,9 @@ declare module "next-auth" {
       role: UserRole;
       profile?: Record<string, unknown>;
       mustChangePassword?: boolean;
+      registrationIdentifier?: string | null;
+      accountStatus?: AccountStatus;
+      paymentStatus?: PaymentStatus;
     } & DefaultSession["user"];
   }
 
@@ -15,6 +18,9 @@ declare module "next-auth" {
     role: UserRole;
     profile?: Record<string, unknown>;
     mustChangePassword?: boolean;
+    registrationIdentifier?: string | null;
+    accountStatus?: AccountStatus;
+    paymentStatus?: PaymentStatus;
   }
 }
 
@@ -23,5 +29,8 @@ declare module "next-auth/jwt" {
     role: UserRole;
     profile?: Record<string, unknown>;
     mustChangePassword?: boolean;
+    registrationIdentifier?: string | null;
+    accountStatus?: AccountStatus;
+    paymentStatus?: PaymentStatus;
   }
 }

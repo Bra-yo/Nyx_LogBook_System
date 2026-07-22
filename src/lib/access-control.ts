@@ -47,6 +47,16 @@ export function filterMentorAccessibleLearners(
   );
 }
 
+export function buildMentorCohortLearnerWhereClause(supervisorId: string) {
+  return {
+    cohort: {
+      mentorAssignments: {
+        some: { supervisorId },
+      },
+    },
+  };
+}
+
 export function buildMentorProjectWhereClause(
   mentorProfile: SupervisorProfile,
 ) {

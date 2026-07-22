@@ -25,42 +25,14 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
-const editUserSchema = z
-  .object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
-    role: z.enum(["STUDENT", "SUPERVISOR", "LECTURER", "ADMIN", "WORKER"]),
-    departmentId: z.string().optional(),
-    isActive: z.boolean(),
-    // Student fields
-    regNumber: z.string().optional(),
-    course: z.string().optional(),
-    institution: z.string().optional(),
-    internshipCompany: z.string().optional(),
-    internshipLocation: z.string().optional(),
-    year: z.number().optional(),
-    semester: z.number().optional(),
-    // Supervisor fields
-    employeeId: z.string().optional(),
-    company: z.string().optional(),
-    organization: z.string().optional(),
-    title: z.string().optional(),
-    // Lecturer fields
-    staffNumber: z.string().optional(),
-    office: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (["STUDENT", "SUPERVISOR", "LECTURER"].includes(data.role)) {
-        return data.departmentId && data.departmentId.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "Department is required for this role",
-      path: ["departmentId"],
-    },
-  );
+const editUserSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  role: z.enum(["STUDENT", "SUPERVISOR", "ADMIN"]),
+  phone: z.string().optional(),
+  isActive: z.boolean(),
+  registrationType: z.enum(["CAREER_MENTEE", "BUSINESS_MENTEE"]).optional(),
+});
 
 type EditUserFormData = z.infer<typeof editUserSchema>;
 
@@ -95,29 +67,15 @@ export default function EditUserPage() {
       .then((data) => {
         if (data.success) {
           setUser(data.user);
-          const profileDepartmentId =
-            data.user.studentProfile?.departmentId ??
-            data.user.supervisorProfile?.departmentId ??
-            data.user.lecturerProfile?.departmentId ??
-            data.user.adminProfile?.departmentId ??
-            "";
           reset({
             name: data.user.name,
             email: data.user.email,
             role: data.user.role,
-            departmentId: profileDepartmentId,
+            phone: data.user.phone || "",
             isActive: data.user.isActive,
-            regNumber: data.user.studentProfile?.regNumber ?? "",
-            year: data.user.studentProfile?.year ?? undefined,
-            semester: data.user.studentProfile?.semester ?? undefined,
-            internshipCompany:
-              data.user.studentProfile?.internshipCompany ?? "",
-            company: data.user.supervisorProfile?.company ?? "",
-            title:
-              data.user.supervisorProfile?.title ??
-              data.user.lecturerProfile?.title ??
-              "",
-            office: data.user.lecturerProfile?.office ?? "",
+            registrationType: data.user.registrationIdentifier?.startsWith("BM-KE")
+              ? "BUSINESS_MENTEE"
+              : "CAREER_MENTEE",
           });
         } else {
           setError("User not found");
@@ -214,108 +172,41 @@ export default function EditUserPage() {
     switch (role) {
       case "STUDENT":
         return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="regNumber">Registration Number</Label>
-              <Input
-                id="regNumber"
-                placeholder="e.g., CS/2023/001"
-                {...register("regNumber")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="course">Course</Label>
-              <Input
-                id="course"
-                placeholder="e.g., Computer Science"
-                {...register("course")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="institution">Institution</Label>
-              <Input
-                id="institution"
-                placeholder="University name"
-                {...register("institution")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="internshipCompany">Internship Company</Label>
-              <Input
-                id="internshipCompany"
-                placeholder="Company name"
-                {...register("internshipCompany")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="internshipLocation">Internship Location</Label>
-              <Input
-                id="internshipLocation"
-                placeholder="City, Country"
-                {...register("internshipLocation")}
-              />
-            </div>
+          <div className="space-y-4 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-4">
+            <Label htmlFor="registrationType">Registration Type</Label>
+            <Select
+              value={watch("registrationType") || "CAREER_MENTEE"}
+              onValueChange={(value) =>
+                setValue(
+                  "registrationType",
+                  value as "CAREER_MENTEE" | "BUSINESS_MENTEE",
+                )
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select registration type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CAREER_MENTEE">Career Mentee</SelectItem>
+                <SelectItem value="BUSINESS_MENTEE">Business Mentee</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         );
       case "SUPERVISOR":
         return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="employeeId">Employee ID</Label>
-              <Input
-                id="employeeId"
-                placeholder="Staff number"
-                {...register("employeeId")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="company">Company *</Label>
-              <Input
-                id="company"
-                placeholder="Company name"
-                {...register("company")}
-              />
-              {errors.company && (
-                <p className="text-sm text-red-600">{errors.company.message}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                placeholder="Job title"
-                {...register("title")}
-              />
-            </div>
-          </div>
-        );
-      case "LECTURER":
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="staffNumber">Staff Number</Label>
-              <Input
-                id="staffNumber"
-                placeholder="Employee ID"
-                {...register("staffNumber")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="institution">Institution</Label>
-              <Input
-                id="institution"
-                placeholder="University name"
-                {...register("institution")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                placeholder="Job title"
-                {...register("title")}
-              />
-            </div>
+          <div className="space-y-4 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-4">
+            <Label htmlFor="phone">Phone Number (optional)</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="+254 700 000 000"
+              {...register("phone")}
+            />
+            <p className="text-sm text-muted-foreground">
+              Mentor registration will generate a registration identifier
+              automatically after the account is updated.
+            </p>
           </div>
         );
       default:
@@ -351,9 +242,20 @@ export default function EditUserPage() {
                 </div>
               )}
 
+              {user?.registrationIdentifier && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <p className="text-sm font-medium text-primary">
+                    Registration Identifier
+                  </p>
+                  <p className="text-lg font-semibold">
+                    {user.registrationIdentifier}
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Name *</Label>
+                  <Label htmlFor="name">Full Name *</Label>
                   <Input
                     id="name"
                     placeholder="Full name"
@@ -367,7 +269,7 @@ export default function EditUserPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">Email Address *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -391,10 +293,9 @@ export default function EditUserPage() {
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="STUDENT">Student</SelectItem>
-                      <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
-                      <SelectItem value="LECTURER">Lecturer</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
+                      <SelectItem value="STUDENT">Mentee</SelectItem>
+                      <SelectItem value="SUPERVISOR">Mentor</SelectItem>
+                      <SelectItem value="ADMIN">Administrator</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.role && (
@@ -403,32 +304,6 @@ export default function EditUserPage() {
                     </p>
                   )}
                 </div>
-
-                {watch("role") !== "WORKER" && (
-                  <div>
-                    <Label htmlFor="departmentId">Department *</Label>
-                    <Select
-                      value={watch("departmentId") || ""}
-                      onValueChange={(value) => setValue("departmentId", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {departments.map((dept) => (
-                          <SelectItem key={dept.id} value={dept.id}>
-                            {dept.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.departmentId && (
-                      <p className="text-sm text-red-600">
-                        {errors.departmentId.message}
-                      </p>
-                    )}
-                  </div>
-                )}
 
                 <div className="flex items-center space-x-2">
                   <input

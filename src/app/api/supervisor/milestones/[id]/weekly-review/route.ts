@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { buildMentorCohortLearnerWhereClause } from '@/lib/access-control'
 
 export async function POST(
   request: NextRequest,
@@ -68,7 +69,7 @@ export async function POST(
 
     // Verify learner exists
     const learner = await prisma.studentProfile.findUnique({
-      where: { id: learnerId },
+      where: { id: learnerId, ...buildMentorCohortLearnerWhereClause(supervisor.id) },
       select: { id: true }
     })
 

@@ -25,103 +25,18 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 
-const createUserSchema = z
-  .object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
-    role: z.enum(["STUDENT", "SUPERVISOR", "LECTURER", "ADMIN", "WORKER"], {
-      message: "Please select a valid role",
-    }),
-    departmentId: z.string().optional(),
-    isActive: z.boolean(),
-    // Role-specific fields
-    regNumber: z.string().optional(),
-    year: z
-      .number()
-      .min(1, "Year must be at least 1")
-      .max(5, "Year must be at most 5")
-      .optional(),
-    semester: z
-      .number()
-      .min(1, "Semester must be at least 1")
-      .max(2, "Semester must be at most 2")
-      .optional(),
-    course: z.string().optional(),
-    institution: z.string().optional(),
-    internshipCompany: z.string().optional(),
-    internshipLocation: z.string().optional(),
-    employeeId: z.string().optional(),
-    organization: z.string().optional(),
-    company: z.string().optional(),
-    title: z.string().optional(),
-    staffNumber: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      // Department is required for STUDENT, SUPERVISOR, and LECTURER roles
-      if (["STUDENT", "SUPERVISOR", "LECTURER"].includes(data.role)) {
-        return data.departmentId && data.departmentId.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "Department is required for this role",
-      path: ["departmentId"],
-    },
-  )
-  .refine(
-    (data) => {
-      // Year is required for STUDENT role
-      if (data.role === "STUDENT") {
-        return data.year !== undefined && data.year !== null;
-      }
-      return true;
-    },
-    {
-      message: "Year is required for student profiles",
-      path: ["year"],
-    },
-  )
-  .refine(
-    (data) => {
-      // Registration number is required for STUDENT role
-      if (data.role === "STUDENT") {
-        return data.regNumber && data.regNumber.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "Registration number is required for student profiles",
-      path: ["regNumber"],
-    },
-  )
-  .refine(
-    (data) => {
-      // Internship company is required for STUDENT role
-      if (data.role === "STUDENT") {
-        return data.internshipCompany && data.internshipCompany.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "Internship company is required for student profiles",
-      path: ["internshipCompany"],
-    },
-  )
-  .refine(
-    (data) => {
-      // Company is required for SUPERVISOR role
-      if (data.role === "SUPERVISOR") {
-        const company = data.company ?? data.organization;
-        return company !== undefined && company !== null && company.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "Company is required for supervisor profiles",
-      path: ["company"],
-    },
-  );
+const createUserSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  role: z.enum(["STUDENT", "SUPERVISOR", "ADMIN"], {
+    message: "Please select a valid role",
+  }),
+  phone: z.string().optional(),
+  isActive: z.boolean(),
+  registrationType: z.enum(["CAREER_MENTEE", "BUSINESS_MENTEE"]).optional(),
+  mentorshipTrack: z.enum(["CAREER", "BUSINESS"]).optional(),
+  cohortId: z.string().optional(),
+});
 
 type CreateUserFormData = z.infer<typeof createUserSchema>;
 
@@ -131,6 +46,7 @@ export default function NewUserPage() {
   const [departments, setDepartments] = useState<
     Array<{ id: string; name: string }>
   >([]);
+  const [cohorts, setCohorts] = useState<Array<{ id: string; name: string; code: string; status: string }>>([]);
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -145,21 +61,12 @@ export default function NewUserPage() {
     defaultValues: {
       name: "",
       email: "",
+      phone: "",
       role: "STUDENT",
-      departmentId: "",
       isActive: true,
-      regNumber: "",
-      year: undefined,
-      semester: undefined,
-      course: "",
-      institution: "",
-      internshipCompany: "",
-      internshipLocation: "",
-      employeeId: "",
-      organization: "",
-      company: "",
-      title: "",
-      staffNumber: "",
+      registrationType: "CAREER_MENTEE",
+      mentorshipTrack: "CAREER",
+      cohortId: "",
     },
   });
 
@@ -175,6 +82,17 @@ export default function NewUserPage() {
       .catch((err) => {
         console.error("Failed to fetch departments:", err);
         toast.error("Failed to load departments");
+      });
+
+    fetch("/api/admin/cohorts")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setCohorts(data.cohorts || []);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch cohorts:", err);
       });
   }, []);
 
@@ -217,169 +135,74 @@ export default function NewUserPage() {
     switch (role) {
       case "STUDENT":
         return (
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="regNumber">Registration Number</Label>
-              <Input
-                id="regNumber"
-                placeholder="e.g., CS/2023/001"
-                {...register("regNumber")}
-              />
-              {errors.regNumber && (
-                <p className="text-sm text-red-600">
-                  {errors.regNumber.message}
-                </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="year">Year *</Label>
-                <Select
-                  value={watch("year")?.toString() || ""}
-                  onValueChange={(value) => setValue("year", parseInt(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Year 1</SelectItem>
-                    <SelectItem value="2">Year 2</SelectItem>
-                    <SelectItem value="3">Year 3</SelectItem>
-                    <SelectItem value="4">Year 4</SelectItem>
-                    <SelectItem value="5">Year 5</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.year && (
-                  <p className="text-sm text-red-600 mt-2">
-                    {errors.year.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="semester">Semester</Label>
-                <Select
-                  value={watch("semester")?.toString() || ""}
-                  onValueChange={(value) =>
-                    setValue("semester", parseInt(value))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select semester" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Semester 1</SelectItem>
-                    <SelectItem value="2">Semester 2</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.semester && (
-                  <p className="text-sm text-red-600 mt-2">
-                    {errors.semester.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="course">Course</Label>
-              <Input
-                id="course"
-                placeholder="e.g., Computer Science"
-                {...register("course")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="institution">Institution</Label>
-              <Input
-                id="institution"
-                placeholder="University name"
-                {...register("institution")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="internshipCompany">Internship Company *</Label>
-              <Input
-                id="internshipCompany"
-                placeholder="Company name"
-                {...register("internshipCompany")}
-              />
-              {errors.internshipCompany && (
-                <p className="text-sm text-red-600">
-                  {errors.internshipCompany.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="internshipLocation">Internship Location</Label>
-              <Input
-                id="internshipLocation"
-                placeholder="City, Country"
-                {...register("internshipLocation")}
-              />
-            </div>
+          <div className="space-y-4 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-4">
+            <Label htmlFor="registrationType">Registration Type</Label>
+            <Select
+              value={watch("registrationType") || "CAREER_MENTEE"}
+              onValueChange={(value) =>
+                setValue(
+                  "registrationType",
+                  value as "CAREER_MENTEE" | "BUSINESS_MENTEE",
+                )
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select registration type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CAREER_MENTEE">Career Mentee</SelectItem>
+                <SelectItem value="BUSINESS_MENTEE">Business Mentee</SelectItem>
+              </SelectContent>
+            </Select>
+            <Label htmlFor="mentorshipTrack">Mentorship Track</Label>
+            <Select
+              value={watch("mentorshipTrack") || "CAREER"}
+              onValueChange={(value) => setValue("mentorshipTrack", value as "CAREER" | "BUSINESS")}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select mentorship track" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CAREER">Career</SelectItem>
+                <SelectItem value="BUSINESS">Business</SelectItem>
+              </SelectContent>
+            </Select>
+            <Label htmlFor="cohortId">Cohort</Label>
+            <Select
+              value={watch("cohortId") || ""}
+              onValueChange={(value) => setValue("cohortId", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a cohort" />
+              </SelectTrigger>
+              <SelectContent>
+                {cohorts.map((cohort) => (
+                  <SelectItem key={cohort.id} value={cohort.id}>
+                    {cohort.name} ({cohort.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">
+              The mentee will be added to the selected cohort automatically.
+            </p>
           </div>
         );
 
       case "SUPERVISOR":
         return (
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="employeeId">Employee ID</Label>
-              <Input
-                id="employeeId"
-                placeholder="Staff number"
-                {...register("employeeId")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="company">Company *</Label>
-              <Input
-                id="company"
-                placeholder="Company name"
-                {...register("company")}
-              />
-              {errors.company && (
-                <p className="text-sm text-red-600">{errors.company.message}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                placeholder="Job title"
-                {...register("title")}
-              />
-            </div>
-          </div>
-        );
-
-      case "LECTURER":
-        return (
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="staffNumber">Staff Number</Label>
-              <Input
-                id="staffNumber"
-                placeholder="Employee ID"
-                {...register("staffNumber")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="institution">Institution</Label>
-              <Input
-                id="institution"
-                placeholder="University name"
-                {...register("institution")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                placeholder="Job title"
-                {...register("title")}
-              />
-            </div>
+          <div className="space-y-4 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-4">
+            <Label htmlFor="phone">Phone Number (optional)</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="+254 700 000 000"
+              {...register("phone")}
+            />
+            <p className="text-sm text-muted-foreground">
+              Mentor registration will generate a registration identifier
+              automatically after the account is created.
+            </p>
           </div>
         );
 
@@ -409,7 +232,7 @@ export default function NewUserPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="name">Name *</Label>
+                  <Label htmlFor="name">Full Name *</Label>
                   <Input
                     id="name"
                     placeholder="Full name"
@@ -423,7 +246,7 @@ export default function NewUserPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">Email Address *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -447,72 +270,15 @@ export default function NewUserPage() {
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="STUDENT">Student</SelectItem>
-                      <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
-                      <SelectItem value="LECTURER">Lecturer</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
+                      <SelectItem value="STUDENT">Mentee</SelectItem>
+                      <SelectItem value="SUPERVISOR">Mentor</SelectItem>
+                      <SelectItem value="ADMIN">Administrator</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.role && (
                     <p className="text-sm text-red-600">
                       {errors.role.message}
                     </p>
-                  )}
-                </div>
-
-                <div>
-                  {watch("role") === "WORKER" ? (
-                    <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-3 text-sm text-muted-foreground">
-                      Worker accounts do not require a department.
-                    </div>
-                  ) : (
-                    <>
-                      <Label htmlFor="departmentId">Department *</Label>
-                      {departments.length === 0 ? (
-                        <div className="space-y-2">
-                          <p className="text-sm text-amber-600">
-                            No departments found. Please create a department
-                            first.
-                          </p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => router.push("/admin/departments")}
-                            className="w-full"
-                          >
-                            Create Department
-                          </Button>
-                        </div>
-                      ) : (
-                        <Select
-                          value={watch("departmentId") || ""}
-                          onValueChange={(value) =>
-                            setValue("departmentId", value)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {departments.map((dept) => (
-                              <SelectItem key={dept.id} value={dept.id}>
-                                {dept.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                      {errors.departmentId && (
-                        <p className="text-sm text-red-600">
-                          {errors.departmentId.message}
-                        </p>
-                      )}
-                      {watch("role") === "ADMIN" && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          Department is optional for admin users
-                        </p>
-                      )}
-                    </>
                   )}
                 </div>
 

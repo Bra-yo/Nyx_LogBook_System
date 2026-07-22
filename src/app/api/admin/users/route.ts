@@ -2,101 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { generateRegistrationIdentifierForUser } from "@/lib/registration-identifier";
+import { validateCohortForEnrollment } from "@/lib/services/cohort-management";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { sendRegistrationNotification } from "@/lib/services/registration-notification";
 
-const createUserSchema = z
-  .object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().email("Valid email is required"),
-    role: z.enum(["STUDENT", "SUPERVISOR", "LECTURER", "ADMIN", "WORKER"]),
-    departmentId: z.string().optional(),
-    regNumber: z.string().optional(),
-    year: z.coerce
-      .number()
-      .int()
-      .min(1, "Year must be at least 1")
-      .max(5, "Year must be at most 5")
-      .optional(),
-    semester: z.coerce
-      .number()
-      .int()
-      .min(1, "Semester must be at least 1")
-      .max(2, "Semester must be at most 2")
-      .optional(),
-    internshipCompany: z.string().optional(),
-    title: z.string().optional(),
-    company: z.string().optional(),
-    office: z.string().optional(),
-    permissions: z.array(z.string()).optional(),
-    organization: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      // Department is required for STUDENT, SUPERVISOR, and LECTURER roles
-      if (["STUDENT", "SUPERVISOR", "LECTURER"].includes(data.role)) {
-        return data.departmentId && data.departmentId.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "Department is required for this role",
-      path: ["departmentId"],
-    },
-  )
-  .refine(
-    (data) => {
-      // Year is required for STUDENT role
-      if (data.role === "STUDENT") {
-        return data.year !== undefined && data.year !== null;
-      }
-      return true;
-    },
-    {
-      message: "Year is required for student profiles",
-      path: ["year"],
-    },
-  )
-  .refine(
-    (data) => {
-      // Registration number is required for STUDENT role
-      if (data.role === "STUDENT") {
-        return data.regNumber && data.regNumber.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "Registration number is required for student profiles",
-      path: ["regNumber"],
-    },
-  )
-  .refine(
-    (data) => {
-      // Internship company is required for STUDENT role
-      if (data.role === "STUDENT") {
-        return data.internshipCompany && data.internshipCompany.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "Internship company is required for student profiles",
-      path: ["internshipCompany"],
-    },
-  )
-  .refine(
-    (data) => {
-      // Company is required for SUPERVISOR role
-      if (data.role === "SUPERVISOR") {
-        const company = data.company ?? data.organization;
-        return company !== undefined && company !== null && company.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "Company is required for supervisor profiles",
-      path: ["company"],
-    },
-  );
+const createUserSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Valid email is required"),
+  role: z.enum(["STUDENT", "SUPERVISOR", "ADMIN"]),
+  departmentId: z.string().optional(),
+  title: z.string().optional(),
+  company: z.string().optional(),
+  office: z.string().optional(),
+  permissions: z.array(z.string()).optional(),
+  organization: z.string().optional(),
+  phone: z.string().optional(),
+  registrationType: z.enum(["CAREER_MENTEE", "BUSINESS_MENTEE"]).optional(),
+  mentorshipTrack: z.enum(["CAREER", "BUSINESS"]).optional(),
+  cohortId: z.string().optional(),
+});
 
 const querySchema = z.object({
   page: z.string().optional().default("1"),
@@ -251,26 +177,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if registration number already exists (for students)
-    if (validatedData.role === "STUDENT" && validatedData.regNumber) {
-      const existingStudent = await prisma.studentProfile.findUnique({
-        where: { regNumber: validatedData.regNumber },
-      });
-
-      if (existingStudent) {
-        return NextResponse.json(
-          { error: "Registration number already exists" },
-          { status: 400 },
-        );
-      }
-    }
-
     // Use default password for all admin-created users
     const defaultPassword = process.env.DEFAULT_USER_PASSWORD || "ChangeMe123";
     const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+    const normalizedPhone = validatedData.phone?.trim()
+      ? validatedData.phone.trim()
+      : null;
+
+    const fallbackDepartment = await prisma.department.findFirst({
+      select: { id: true },
+      orderBy: { createdAt: "asc" },
+    });
+    const effectiveDepartmentId =
+      validatedData.departmentId || fallbackDepartment?.id || null;
+
+    if (validatedData.role === "STUDENT" && validatedData.cohortId) {
+      const cohort = await prisma.cohort.findUnique({ where: { id: validatedData.cohortId } });
+      if (!cohort) {
+        return NextResponse.json({ error: "Cohort not found" }, { status: 404 });
+      }
+
+      const validationMessage = validateCohortForEnrollment({
+        status: cohort.status,
+        maximumCapacity: cohort.maximumCapacity,
+        currentMembers: await prisma.studentProfile.count({ where: { cohortId: cohort.id } }),
+      });
+
+      if (validationMessage) {
+        return NextResponse.json({ error: validationMessage }, { status: 400 });
+      }
+    }
 
     // Create user and profile in a transaction
     const result = await prisma.$transaction(async (tx) => {
+      const { identifier } = await generateRegistrationIdentifierForUser(
+        {
+          role: validatedData.role,
+          registrationType: validatedData.registrationType,
+        },
+        tx as typeof tx,
+      );
+
       // Create user
       const user = await tx.user.create({
         data: {
@@ -280,35 +227,41 @@ export async function POST(request: NextRequest) {
           role: validatedData.role,
           isActive: true,
           mustChangePassword: true, // All admin-created users must change password
+          registrationIdentifier: identifier,
+          phone: normalizedPhone,
+          paymentStatus: validatedData.role === "STUDENT" ? "PENDING" : "PAID",
+          accountStatus: validatedData.role === "STUDENT" ? "PENDING_PAYMENT" : "ACTIVE",
         },
       });
 
       // Create role-specific profile
       switch (validatedData.role) {
         case "STUDENT":
-          if (!validatedData.departmentId) {
-            throw new Error("Department is required for student profiles");
+          if (!effectiveDepartmentId) {
+            throw new Error("No department is available for student profiles");
           }
           await tx.studentProfile.create({
             data: {
               userId: user.id,
-              regNumber: validatedData.regNumber!,
-              departmentId: validatedData.departmentId,
-              year: validatedData.year!,
-              semester: validatedData.semester || 1,
-              internshipCompany: validatedData.internshipCompany || null,
+              regNumber: `CM-${Date.now()}`,
+              departmentId: effectiveDepartmentId,
+              year: 1,
+              semester: 1,
+              internshipCompany: null,
+              cohortId: validatedData.cohortId || null,
+              mentorshipTrack: validatedData.mentorshipTrack || null,
             },
           });
           break;
 
         case "SUPERVISOR":
-          if (!validatedData.departmentId) {
-            throw new Error("Department is required for supervisor profiles");
+          if (!effectiveDepartmentId) {
+            throw new Error("No department is available for supervisor profiles");
           }
           await tx.supervisorProfile.create({
             data: {
               userId: user.id,
-              departmentId: validatedData.departmentId,
+              departmentId: effectiveDepartmentId,
               title: validatedData.title || null,
               company:
                 validatedData.company || validatedData.organization || null,
@@ -316,31 +269,14 @@ export async function POST(request: NextRequest) {
           });
           break;
 
-        case "LECTURER":
-          if (!validatedData.departmentId) {
-            throw new Error("Department is required for lecturer profiles");
-          }
-          await tx.lecturerProfile.create({
-            data: {
-              userId: user.id,
-              departmentId: validatedData.departmentId,
-              title: validatedData.title || null,
-              office: validatedData.office || null,
-            },
-          });
-          break;
-
-        case "WORKER":
-          break;
-
         case "ADMIN":
-          if (!validatedData.departmentId) {
-            throw new Error("Department is required for admin profiles");
+          if (!effectiveDepartmentId) {
+            throw new Error("No department is available for admin profiles");
           }
           await tx.adminProfile.create({
             data: {
               userId: user.id,
-              departmentId: validatedData.departmentId,
+              departmentId: effectiveDepartmentId,
               permissions: validatedData.permissions || [],
             },
           });
@@ -357,11 +293,15 @@ export async function POST(request: NextRequest) {
         studentProfile: {
           include: {
             department: true,
+            cohort: { select: { name: true } },
           },
         },
         supervisorProfile: {
           include: {
             department: true,
+            cohortAssignments: {
+              include: { cohort: { select: { name: true } } },
+            },
           },
         },
         lecturerProfile: {
@@ -376,6 +316,10 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    if (createdUser) {
+      await sendRegistrationNotification(createdUser);
+    }
 
     return NextResponse.json({
       success: true,

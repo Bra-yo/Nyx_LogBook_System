@@ -105,6 +105,11 @@ const navigationItems = {
       icon: Folder,
     },
     {
+      title: "My Cohorts",
+      href: "/supervisor/cohorts",
+      icon: Users,
+    },
+    {
       title: "Learners",
       href: "/supervisor/students",
       icon: Users,
@@ -229,6 +234,11 @@ const navigationItems = {
       title: "Users",
       href: "/admin/users",
       icon: Users,
+    },
+    {
+      title: "Pending Payments",
+      href: "/admin/payments",
+      icon: FileText,
     },
     {
       title: "Departments",

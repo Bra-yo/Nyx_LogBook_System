@@ -40,7 +40,11 @@ export default function SignInPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        if (result.error === "CredentialsSignin") {
+          setError("Payment confirmation is required before access is granted. Please contact the administrator.");
+        } else {
+          setError("Invalid email or password");
+        }
       } else if (result?.ok) {
         // Get session to determine user role and redirect
         const session = await getSession();

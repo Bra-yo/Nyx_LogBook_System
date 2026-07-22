@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { buildMentorCohortLearnerWhereClause } from '@/lib/access-control'
 
 const querySchema = {
   page: 1,
@@ -31,8 +32,17 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit
 
+    const supervisor = await prisma.supervisorProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true },
+    })
+
+    if (!supervisor) {
+      return NextResponse.json({ records: [], pagination: { page, limit, total: 0, pages: 0 } })
+    }
+
     // Build filters
-    const where: any = {}
+    const where: any = { student: buildMentorCohortLearnerWhereClause(supervisor.id) }
 
     if (status) {
       where.status = status
@@ -77,8 +87,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // TEMPORARY: Supervisors can view all students. Restore assignment-based filtering later if required.
-    // Get all attendance records
     const [records, total] = await Promise.all([
       prisma.attendance.findMany({
         where,

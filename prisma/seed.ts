@@ -319,7 +319,7 @@ async function main() {
   console.log("🌱 Starting database seeding...");
 
   const adminEmail = process.env.ADMIN_EMAIL || "admin@bobgroganconsulting.com";
-  const adminPassword = process.env.ADMIN_PASSWORD || "ChangeMe123";
+  const adminPassword = process.env.ADMIN_PASSWORD || "Admin@Grogan2026";
   const adminName = process.env.ADMIN_NAME || "System Administrator";
   const defaultUserPassword =
     process.env.DEFAULT_USER_PASSWORD || "ChangeMe123";

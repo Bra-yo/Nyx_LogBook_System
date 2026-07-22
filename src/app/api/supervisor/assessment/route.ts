@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { buildMentorCohortLearnerWhereClause } from '@/lib/access-control'
 import { z } from 'zod'
 
 const competencyLevels = [
@@ -83,7 +84,8 @@ export async function POST(request: NextRequest) {
     // TEMPORARY: Supervisors/Lecturers can view all students. Restore assignment-based filtering later if required.
     const logbookEntry = await prisma.logbookEntry.findFirst({
       where: {
-        id: validatedData.logbookEntryId
+        id: validatedData.logbookEntryId,
+        student: buildMentorCohortLearnerWhereClause(supervisorProfile.id),
       },
       include: {
         student: {

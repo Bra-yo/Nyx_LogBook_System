@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { companyMatches } from '@/lib/access-control'
+import { buildMentorCohortLearnerWhereClause } from '@/lib/access-control'
 
 const querySchema = {
   page: 1,
@@ -52,6 +52,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, entries: [], pagination: { page, limit, total: 0, pages: 0 } })
     }
 
+    where.student = buildMentorCohortLearnerWhereClause(supervisor.id)
+
     const entries = await prisma.logbookEntry.findMany({
       where,
       include: {
@@ -76,12 +78,8 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const accessibleEntries = entries.filter((entry) =>
-      companyMatches(supervisor.company, entry.student.internshipCompany)
-    )
-
-    const total = accessibleEntries.length
-    const pagedEntries = accessibleEntries.slice(skip, skip + limit)
+    const total = entries.length
+    const pagedEntries = entries.slice(skip, skip + limit)
 
     return NextResponse.json({
       entries: pagedEntries,

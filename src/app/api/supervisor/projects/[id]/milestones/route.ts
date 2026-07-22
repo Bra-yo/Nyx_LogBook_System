@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { buildMentorProjectWhereClause } from '@/lib/access-control'
+import { buildMentorCohortLearnerWhereClause, buildMentorProjectWhereClause } from '@/lib/access-control'
 import { parseTaskText } from '@/lib/parse-task-text'
 
 const createMilestoneSchema = z.object({
@@ -70,7 +70,7 @@ export async function POST(
     let learnerId: string | null = null
     if (validatedData.learnerId) {
       const learner = await prisma.studentProfile.findUnique({
-        where: { id: validatedData.learnerId }
+        where: { id: validatedData.learnerId, ...buildMentorCohortLearnerWhereClause(supervisor.id) }
       })
       if (!learner) {
         return NextResponse.json({ error: 'Selected learner not found' }, { status: 400 })

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { buildMentorProjectWhereClause } from "@/lib/access-control";
+import { buildMentorCohortLearnerWhereClause, buildMentorProjectWhereClause } from "@/lib/access-control";
 import { z } from "zod";
 
 const projectSchema = z.object({
@@ -112,6 +112,7 @@ export async function POST(request: NextRequest) {
       const learners = await prisma.studentProfile.findMany({
         where: {
           id: { in: selectedLearnerIds },
+          ...buildMentorCohortLearnerWhereClause(supervisor.id),
         },
         select: {
           id: true,

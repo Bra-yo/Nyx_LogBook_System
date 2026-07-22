@@ -5,6 +5,7 @@ import type { SyncLogger } from "@/lib/erp/sync-logger";
 import type { WorkerMapper } from "@/lib/erp/worker-mapper";
 import type { ErpEmployeeRecord, WorkerSyncResult } from "@/lib/erp/types";
 import { UserRole } from "@/types";
+import { generateRegistrationIdentifierForUser } from "@/lib/registration-identifier";
 
 export interface WorkerSyncService {
   syncWorkers(): Promise<WorkerSyncResult>;
@@ -196,6 +197,13 @@ export class BgWorkerSyncService implements WorkerSyncService {
             const fallbackEmail = this.buildFallbackEmail(employee);
             const email = (mappedFields.email || fallbackEmail).trim();
 
+            const { identifier } = await generateRegistrationIdentifierForUser(
+              {
+                role: UserRole.WORKER,
+              },
+              tx as typeof tx,
+            );
+
             const user = await tx.user.create({
               data: {
                 name: displayName,
@@ -204,6 +212,7 @@ export class BgWorkerSyncService implements WorkerSyncService {
                 role: UserRole.WORKER,
                 isActive: true,
                 mustChangePassword: true,
+                registrationIdentifier: identifier,
               },
             });
 
@@ -307,6 +316,13 @@ export class BgWorkerSyncService implements WorkerSyncService {
     const email = (mappedFields.email || fallbackEmail).trim();
 
     await prisma.$transaction(async (tx) => {
+      const { identifier } = await generateRegistrationIdentifierForUser(
+        {
+          role: UserRole.WORKER,
+        },
+        tx as typeof tx,
+      );
+
       const user = await tx.user.create({
         data: {
           name: displayName,
@@ -315,6 +331,7 @@ export class BgWorkerSyncService implements WorkerSyncService {
           role: UserRole.WORKER,
           isActive: true,
           mustChangePassword: true,
+          registrationIdentifier: identifier,
         },
       });
 

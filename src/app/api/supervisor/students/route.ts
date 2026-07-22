@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { filterMentorAccessibleLearners, normalizeCompanyName } from '@/lib/access-control'
+import { buildMentorCohortLearnerWhereClause } from '@/lib/access-control'
 
 const querySchema = {
   page: 1,
@@ -34,15 +34,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Supervisor profile not found' }, { status: 404 })
     }
 
-    const company = normalizeCompanyName(supervisor.company)
     const skip = (page - 1) * limit
 
     // Build base filters for supervisor students queries
-    const where: any = {
-      internshipCompany: {
-        not: null
-      }
-    }
+    const where: any = buildMentorCohortLearnerWhereClause(supervisor.id)
 
     if (search) {
       where.OR = [
@@ -75,12 +70,6 @@ export async function GET(request: NextRequest) {
       where.departmentId = departmentId
     }
 
-    if (!company) {
-      return NextResponse.json({ success: true, students: [], pagination: { page, limit, total: 0, pages: 0 } })
-    }
-
-    // TEMPORARY: Supervisors can view all students. Restore assignment-based filtering later if required.
-    // Get students and filter by mentor company match in-memory so partial company names work.
     const students = await prisma.studentProfile.findMany({
       where,
       include: {
@@ -88,7 +77,10 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            email: true
+            email: true,
+            registrationIdentifier: true,
+            paymentStatus: true,
+            accountStatus: true,
           }
         },
         department: {
@@ -97,6 +89,14 @@ export async function GET(request: NextRequest) {
             name: true,
             code: true
           }
+        },
+        cohort: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            status: true,
+          },
         },
         supervisor: {
           include: {
@@ -128,10 +128,8 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const matchedStudents = filterMentorAccessibleLearners(supervisor, students)
-
-    const total = matchedStudents.length
-    const pagedStudents = matchedStudents.slice(skip, skip + limit)
+    const total = students.length
+    const pagedStudents = students.slice(skip, skip + limit)
 
     return NextResponse.json({
       success: true,

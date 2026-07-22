@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { TimeGreeting } from "@/components/common/time-greeting";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -25,7 +26,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getLogbookDisplayStatus } from "@/lib/logbook-status";
-import { LogStatus } from "@/types";
 
 export default function SupervisorDashboard() {
   const { data: session } = useSession();
@@ -37,69 +37,37 @@ export default function SupervisorDashboard() {
   });
 
   const [recentActivity, setRecentActivity] = useState([]);
+  const [cohorts, setCohorts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = async () => {
     try {
-      // TEMPORARY: Supervisors can view all students. Restore assignment-based filtering later if required.
-      const [studentsResponse, reviewsResponse] = await Promise.all([
-        fetch("/api/supervisor/students?limit=100"), // Get all students
-        fetch("/api/supervisor/review?limit=10"), // Get recent entries
+      const [dashboardResponse, cohortsResponse] = await Promise.all([
+        fetch("/api/supervisor/dashboard"),
+        fetch("/api/supervisor/cohorts"),
       ]);
 
-      if (studentsResponse.ok) {
-        const studentsData = await studentsResponse.json();
-        setStats((prev) => ({
-          ...prev,
-          totalStudents: studentsData.students?.length || 0,
-        }));
+      if (cohortsResponse.ok) {
+        const cohortsData = await cohortsResponse.json();
+        setCohorts(cohortsData.cohorts || []);
       }
 
-      if (reviewsResponse.ok) {
-        const reviewsData = await reviewsResponse.json();
-        const entries = reviewsData.entries || [];
-
-        // Calculate display status for all entries
-        const entriesWithDisplayStatus = entries.map((entry: any) => ({
-          ...entry,
-          displayStatus: getLogbookDisplayStatus(entry),
-        }));
-
-        // Count pending reviews using display status
-        const pendingCount = entriesWithDisplayStatus.filter(
-          (entry: any) => entry.displayStatus === LogStatus.PENDING,
-        ).length;
-
-        // Count approved today
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const approvedTodayCount = entriesWithDisplayStatus.filter(
-          (entry: any) =>
-            entry.displayStatus === LogStatus.APPROVED &&
-            new Date(entry.updatedAt) >= today,
-        ).length;
-
-        // Count weekly submissions
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        const weeklyCount = entries.filter(
-          (entry: any) => new Date(entry.createdAt) >= weekAgo,
-        ).length;
-
+      if (dashboardResponse.ok) {
+        const dashboardData = await dashboardResponse.json();
         setStats((prev) => ({
           ...prev,
-          pendingReviews: pendingCount,
-          approvedToday: approvedTodayCount,
-          weeklySubmissions: weeklyCount,
+          totalStudents: dashboardData.stats?.totalLearners || 0,
+          pendingReviews: dashboardData.stats?.pendingReviews || 0,
+          approvedToday: dashboardData.stats?.approvedToday || 0,
+          weeklySubmissions: dashboardData.stats?.weeklySubmissions || 0,
         }));
 
-        // Set recent activity using display status
         setRecentActivity(
-          entriesWithDisplayStatus.slice(0, 5).map((entry: any) => ({
+          (dashboardData.recentEntries || []).map((entry: any) => ({
             id: entry.id,
             studentName: entry.student.user.name,
             entryTitle: entry.title,
-            status: entry.displayStatus.toLowerCase(),
+            status: getLogbookDisplayStatus(entry).toLowerCase(),
             submittedAt: new Date(entry.createdAt).toLocaleDateString(),
           })),
         );
@@ -222,6 +190,34 @@ export default function SupervisorDashboard() {
 
         {/* Recent Activity & Quick Actions */}
         <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>My Cohorts</CardTitle>
+              <CardDescription>View your assigned cohorts and their mentees.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {cohorts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No cohorts assigned yet.</p>
+              ) : (
+                cohorts.map((cohort: any) => (
+                  <div key={cohort.id} className="rounded-lg border p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{cohort.name}</p>
+                        <p className="text-sm text-muted-foreground">{cohort.code}</p>
+                      </div>
+                      <Badge variant="secondary">{cohort.status}</Badge>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
+                      <span>Total Mentees: {cohort._count?.members ?? 0}</span>
+                      <span>Active Mentees: {cohort.members?.filter((member: any) => member.user)?.length ?? 0}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Recent Submissions</CardTitle>

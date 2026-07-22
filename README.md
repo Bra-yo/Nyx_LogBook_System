@@ -127,6 +127,23 @@ src/
    npx prisma generate
    ```
 
+### Registration Email Configuration
+
+Registration emails use SMTP and are sent after the registration transaction and PDF generation complete. Configure these environment variables in the server environment:
+
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-user
+SMTP_PASSWORD=your-smtp-password
+SMTP_FROM=BG HUB Consulting LTD <no-reply@example.com>
+BG_HUB_CONTACT_EMAIL=info@example.com
+BG_HUB_CONTACT_PHONE=+254 700 000 000
+```
+
+Failed deliveries are retained in the `email_deliveries` table and can be retried by an administrator through `POST /api/admin/email-deliveries/:id/retry`.
+
 4. **Start Development Server:**
 
    ```bash

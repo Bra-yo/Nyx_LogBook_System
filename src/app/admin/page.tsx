@@ -20,6 +20,7 @@ import {
   Settings,
   Activity,
   BriefcaseBusiness,
+  FolderKanban,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -103,12 +104,20 @@ export default function AdminDashboard() {
               Manage users and oversee system operations
             </p>
           </div>
-          <Link href="/admin/users/new">
-            <Button>
-              <Users className="mr-2 h-4 w-4" />
-              Add User
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/admin/cohorts">
+              <Button variant="outline">
+                <FolderKanban className="mr-2 h-4 w-4" />
+                Manage Cohorts
+              </Button>
+            </Link>
+            <Link href="/admin/users/new">
+              <Button>
+                <Users className="mr-2 h-4 w-4" />
+                Add User
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* System Stats */}

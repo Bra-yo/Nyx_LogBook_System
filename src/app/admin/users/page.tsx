@@ -54,6 +54,7 @@ interface User {
   role: UserRole;
   isActive: boolean;
   createdAt: string;
+  registrationIdentifier?: string | null;
   lastLogin?: string;
   studentProfile?: {
     department: { name: string };
@@ -588,6 +589,9 @@ export default function UsersPage() {
                           <div className="font-medium">{user.name}</div>
                           <div className="text-sm text-muted-foreground">
                             {user.email}
+                          </div>
+                          <div className="text-xs font-medium text-primary">
+                            {user.registrationIdentifier || "No identifier assigned"}
                           </div>
                         </div>
                       </TableCell>
