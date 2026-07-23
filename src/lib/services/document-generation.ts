@@ -1,6 +1,5 @@
 import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { chromium as playwrightCoreChromium } from "playwright-core";
 import chromiumBinary from "@sparticuz/chromium";
 import { DocumentIdentityService } from "./document-identity";
 import { documentStyles } from "./document-styles";
@@ -29,14 +28,39 @@ export class DocumentGenerationService {
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const fileName = `${this.toFileName(documentType)}-${timestamp}.pdf`;
     const filePath = path.join(assetRoot, fileName);
-    const browser = await this.createBrowser();
-    try {
-      const page = await browser.newPage({ viewport: { width: 1200, height: 1600 } });
-      await page.setContent(html, { waitUntil: "networkidle" });
-      await page.pdf({ path: filePath, format: "A4", printBackground: true, preferCSSPageSize: true, margin: { top: "0", right: "0", bottom: "0", left: "0" } });
-    } finally {
-      await browser.close();
-    }
+    let browser;
+
+try {
+  browser = await this.createBrowser();
+
+  const page = await browser.newPage({
+    viewport: {
+      width: 1200,
+      height: 1600,
+    },
+  });
+
+  await page.setContent(html, {
+    waitUntil: "networkidle",
+  });
+
+  await page.pdf({
+    path: filePath,
+    format: "A4",
+    printBackground: true,
+    preferCSSPageSize: true,
+    margin: {
+      top: "0",
+      right: "0",
+      bottom: "0",
+      left: "0",
+    },
+  });
+} finally {
+  if (browser) {
+    await browser.close();
+  }
+}
 
     return {
       filePath,
@@ -49,34 +73,41 @@ export class DocumentGenerationService {
   }
 
   private static async createBrowser() {
-    const isVercelRuntime = process.env.VERCEL === "1" || process.env.VERCEL === "true";
+  // Dynamically import Playwright so it isn't eagerly loaded
+  // during server startup or bundling.
+  const { chromium } = await import("playwright-core");
 
-    if (isVercelRuntime) {
-      return playwrightCoreChromium.launch({
-        args: chromiumBinary.args,
-        executablePath: await chromiumBinary.executablePath(),
-        headless: true,
-      });
-    }
+  const isVercelRuntime =
+    process.env.VERCEL === "1" ||
+    process.env.VERCEL === "true";
 
-    const localExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH
-      ?? process.env.CHROME_BIN
-      ?? process.env.CHROMIUM_BIN;
-
-    if (localExecutablePath) {
-      return playwrightCoreChromium.launch({
-        args: [],
-        executablePath: localExecutablePath,
-        headless: true,
-      });
-    }
-
-    return playwrightCoreChromium.launch({
-      channel: "chrome",
-      args: [],
+  if (isVercelRuntime) {
+    return chromium.launch({
+      executablePath: await chromiumBinary.executablePath(),
+      args: chromiumBinary.args,
       headless: true,
     });
   }
+
+  const executablePath =
+    process.env.PLAYWRIGHT_CHROMIUM_PATH ??
+    process.env.CHROME_BIN ??
+    process.env.CHROMIUM_BIN;
+
+  if (executablePath) {
+    return chromium.launch({
+      executablePath,
+      headless: true,
+      args: [],
+    });
+  }
+
+  return chromium.launch({
+    channel: "chrome",
+    headless: true,
+    args: [],
+  });
+}
 
   private static async buildTemplateContext<TPayload extends object>(documentType: SupportedDocumentType, payload: TPayload): Promise<{ context: TemplateContext; identityAssets: IdentityAssets }> {
     const normalizedIdentifier = DocumentIdentityService.normalizeRegistrationIdentifier(this.extractRegistrationIdentifier(payload));
