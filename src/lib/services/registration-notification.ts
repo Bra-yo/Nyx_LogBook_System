@@ -83,7 +83,7 @@ export async function sendRegistrationNotification(user: RegisteredUser): Promis
 }
 
 function layout(title: string, content: string): string {
-  return `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#172033;max-width:640px"><h2>${title}</h2>${content}<p>For assistance, contact ${CONTACT_EMAIL} or ${CONTACT_PHONE}.</p><p>Regards,<br>BG HUB Consulting LTD</p></div>`;
+  return `<div style="font-family:Helvetica;line-height:1.6;color:#172033;max-width:640px"><h2>${title}</h2>${content}<p>For assistance, contact ${CONTACT_EMAIL} or ${CONTACT_PHONE}.</p><p>Regards,<br>BG HUB Consulting LTD</p></div>`;
 }
 
 function menteeEmail(name: string, identifier: string, track: string, cohort: string): string {

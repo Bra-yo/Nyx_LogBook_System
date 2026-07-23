@@ -124,7 +124,7 @@ export class DocumentIdentityService {
       }
     }
 
-    const text = `<text x="${actualWidth / 2}" y="${textY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" fill="#111827">${registrationIdentifier}</text>`;
+    const text = `<text x="${actualWidth / 2}" y="${textY}" text-anchor="middle" font-family="Helvetica" font-size="${fontSize}" fill="#111827">${registrationIdentifier}</text>`;
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${actualWidth}" height="${height}" viewBox="0 0 ${actualWidth} ${height}">

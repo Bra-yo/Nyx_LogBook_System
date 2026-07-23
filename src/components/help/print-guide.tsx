@@ -14,7 +14,7 @@ export function PrintGuide({ title, overview, content }: PrintGuideProps) {
     const printWindow = window.open("", "_blank", "width=900,height=700");
     if (!printWindow) return;
     printWindow.document.write(
-      `<!DOCTYPE html><html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;padding:24px;line-height:1.6}h1,h2,h3{color:#0f172a}li{margin-bottom:8px}</style></head><body><h1>${title}</h1><p>${overview}</p>${content}</body></html>`,
+      `<!DOCTYPE html><html><head><title>${title}</title><style>body{font-family:Helvetica;padding:24px;line-height:1.6}h1,h2,h3{color:#0f172a}li{margin-bottom:8px}</style></head><body><h1>${title}</h1><p>${overview}</p>${content}</body></html>`,
     );
     printWindow.document.close();
     printWindow.focus();
