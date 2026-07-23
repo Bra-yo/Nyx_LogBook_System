@@ -4,10 +4,9 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { UserRole } from "@/types";
 
-export async function authorizeCredentials(credentials: {
-  email?: string | null;
-  password?: string | null;
-}) {
+export async function authorizeCredentials(
+  credentials?: Partial<Record<"email" | "password", string | undefined>> | null,
+) {
   if (!credentials?.email || !credentials?.password) {
     return null;
   }
@@ -83,6 +82,10 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        if (!credentials) {
+          return null;
+        }
+
         return authorizeCredentials(credentials);
       },
     }),
