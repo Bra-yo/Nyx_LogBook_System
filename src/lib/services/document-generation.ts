@@ -1,118 +1,55 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { jsPDF } from "jspdf";
+import { chromium } from "playwright";
 import { DocumentIdentityService } from "./document-identity";
+import { documentStyles } from "./document-styles";
 
-export type SupportedDocumentType =
-  | "PROVISIONAL_ADMISSION_LETTER"
-  | "TECHNICAL_MENTOR_ENGAGEMENT_LETTER"
-  | "MENTEE_PROFILE";
+export type SupportedDocumentType = "PROVISIONAL_ADMISSION_LETTER" | "TECHNICAL_MENTOR_ENGAGEMENT_LETTER" | "MENTEE_PROFILE";
+export interface DocumentGenerationArtifact { filePath: string; fileName: string; documentType: SupportedDocumentType; registrationIdentifier: string; verificationPath: string; generatedTimestamp: string; }
+export interface ProvisionalAdmissionLetterPayload { recipientName: string; email: string; phoneNumber: string; registrationTrack: string; registrationIdentifier: string; generatedAt?: string; registrationStatus?: string; paymentStatus?: string; registrationValidityHours?: number; }
+export interface TechnicalMentorEngagementLetterPayload { mentorName: string; email: string; technicalArea: string; registrationIdentifier: string; generatedAt?: string; }
+export interface MenteeProfilePayload { fullName: string; email: string; phoneNumber: string; mentorshipTrack: string; registrationIdentifier: string; registrationStatus?: string; paymentStatus?: string; dateRegistered?: string; }
+interface TemplateContext { documentType: SupportedDocumentType; registrationIdentifier: string; verificationPath: string; generatedAt: string; }
+type IdentityAssets = Awaited<ReturnType<typeof DocumentIdentityService.generateIdentityAssets>>;
 
-export interface DocumentGenerationArtifact {
-  filePath: string;
-  fileName: string;
-  documentType: SupportedDocumentType;
+type IdentityView = {
   registrationIdentifier: string;
   verificationPath: string;
-  generatedTimestamp: string;
-}
-
-export interface ProvisionalAdmissionLetterPayload {
-  recipientName: string;
-  email: string;
-  phoneNumber: string;
-  registrationTrack: string;
-  registrationIdentifier: string;
-  generatedAt?: string;
-  registrationStatus?: string;
-  paymentStatus?: string;
-  registrationValidityHours?: number;
-}
-
-export interface TechnicalMentorEngagementLetterPayload {
-  mentorName: string;
-  email: string;
-  technicalArea: string;
-  registrationIdentifier: string;
-  generatedAt?: string;
-}
-
-export interface MenteeProfilePayload {
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  mentorshipTrack: string;
-  registrationIdentifier: string;
-  registrationStatus?: string;
-  paymentStatus?: string;
-  dateRegistered?: string;
-}
-
-interface DocumentTemplate {
-  title: string;
-  subtitle: string;
-  sections: Array<{
-    heading?: string;
-    lines: string[];
-  }>;
-  metadata: Array<{ label: string; value: string }>;
-  footerNote: string;
-}
-
-interface TemplateContext {
-  documentType: SupportedDocumentType;
-  registrationIdentifier: string;
-  verificationPath: string;
-  generatedAt: string;
-}
+  qrDataUri: string;
+  barcodeDataUri: string;
+};
 
 export class DocumentGenerationService {
-  static async generateDocument<TPayload extends object>(
-    documentType: SupportedDocumentType,
-    payload: TPayload,
-  ): Promise<DocumentGenerationArtifact> {
-    const { context: templateContext, identityAssets } = await this.buildTemplateContext(
-      documentType,
-      payload,
-    );
-    const template = this.buildTemplate(documentType, payload, templateContext);
-
+  static async generateDocument<TPayload extends object>(documentType: SupportedDocumentType, payload: TPayload): Promise<DocumentGenerationArtifact> {
+    const { context, identityAssets } = await this.buildTemplateContext(documentType, payload);
+    const html = await this.buildHtml(documentType, payload, context, identityAssets);
     const assetRoot = path.resolve(process.cwd(), "documents", this.toFolderName(documentType));
     await mkdir(assetRoot, { recursive: true });
-
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const fileName = `${this.toFileName(documentType)}-${timestamp}.pdf`;
     const filePath = path.join(assetRoot, fileName);
-
-    const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
-
-    await this.renderDocument(doc, template, templateContext, identityAssets);
-    await writeFile(filePath, Buffer.from(doc.output("arraybuffer")));
+    const browser = await chromium.launch({ headless: true });
+    try {
+      const page = await browser.newPage({ viewport: { width: 1200, height: 1600 } });
+      await page.setContent(html, { waitUntil: "networkidle" });
+      await page.pdf({ path: filePath, format: "A4", printBackground: true, preferCSSPageSize: true, margin: { top: "0", right: "0", bottom: "0", left: "0" } });
+    } finally {
+      await browser.close();
+    }
 
     return {
       filePath,
       fileName,
       documentType,
-      registrationIdentifier: templateContext.registrationIdentifier,
-      verificationPath: templateContext.verificationPath,
-      generatedTimestamp: templateContext.generatedAt,
+      registrationIdentifier: context.registrationIdentifier,
+      verificationPath: context.verificationPath,
+      generatedTimestamp: context.generatedAt,
     };
   }
 
-  private static async buildTemplateContext<TPayload extends object>(
-    documentType: SupportedDocumentType,
-    payload: TPayload,
-  ): Promise<{
-    context: TemplateContext;
-    identityAssets: Awaited<ReturnType<typeof DocumentIdentityService.generateIdentityAssets>>;
-  }> {
-    const registrationIdentifier = this.extractRegistrationIdentifier(payload);
-    const normalizedIdentifier = DocumentIdentityService.normalizeRegistrationIdentifier(
-      registrationIdentifier,
-    );
-    const identityAssets = await DocumentIdentityService.generateIdentityAssets(
-      normalizedIdentifier,
-    );
+  private static async buildTemplateContext<TPayload extends object>(documentType: SupportedDocumentType, payload: TPayload): Promise<{ context: TemplateContext; identityAssets: IdentityAssets }> {
+    const normalizedIdentifier = DocumentIdentityService.normalizeRegistrationIdentifier(this.extractRegistrationIdentifier(payload));
+    const identityAssets = await DocumentIdentityService.generateIdentityAssets(normalizedIdentifier);
 
     return {
       context: {
@@ -125,419 +62,191 @@ export class DocumentGenerationService {
     };
   }
 
-  private static buildTemplate<TPayload extends object>(
-    documentType: SupportedDocumentType,
-    payload: TPayload,
-    context: TemplateContext,
-  ): DocumentTemplate {
-    if (documentType === "PROVISIONAL_ADMISSION_LETTER") {
-      return this.buildProvisionalAdmissionTemplate(
-        payload as ProvisionalAdmissionLetterPayload,
-        context,
-      );
+  private static async buildHtml<TPayload extends object>(documentType: SupportedDocumentType, payload: TPayload, context: TemplateContext, assets: IdentityAssets): Promise<string> {
+    let logoDataUri: string | undefined;
+    try {
+      const buffer = await readFile(path.resolve(process.cwd(), "public", "bob-grogan-logo.png"));
+      logoDataUri = `data:image/png;base64,${buffer.toString("base64")}`;
+    } catch {
+      logoDataUri = undefined;
     }
 
-    if (documentType === "TECHNICAL_MENTOR_ENGAGEMENT_LETTER") {
-      return this.buildTechnicalMentorEngagementTemplate(
-        payload as TechnicalMentorEngagementLetterPayload,
-        context,
-      );
-    }
+    const identity: IdentityView = {
+      registrationIdentifier: context.registrationIdentifier,
+      verificationPath: context.verificationPath,
+      qrDataUri: `data:${assets.qrCodeMimeType};base64,${assets.qrCodeBuffer.toString("base64")}`,
+      barcodeDataUri: `data:${assets.barcodeMimeType};base64,${assets.barcodeBuffer.toString("base64")}`,
+    };
 
-    return this.buildMenteeProfileTemplate(payload as MenteeProfilePayload, context);
+    const body = documentType === "PROVISIONAL_ADMISSION_LETTER"
+      ? this.renderAdmissionDocument(payload as ProvisionalAdmissionLetterPayload, context, identity, logoDataUri)
+      : documentType === "TECHNICAL_MENTOR_ENGAGEMENT_LETTER"
+        ? this.renderMentorDocument(payload as TechnicalMentorEngagementLetterPayload, context, identity, logoDataUri)
+        : this.renderProfileDocument(payload as MenteeProfilePayload, context, identity, logoDataUri);
+
+    return `<!doctype html><html><head><meta charset="utf-8"><style>${documentStyles}</style></head><body>${body}</body></html>`;
   }
 
-  private static buildProvisionalAdmissionTemplate(
-    payload: ProvisionalAdmissionLetterPayload,
-    context: TemplateContext,
-  ): DocumentTemplate {
-    const registrationStatus = payload.registrationStatus ?? "Provisional";
-    const paymentStatus = payload.paymentStatus ?? "Pending";
+  private static renderAdmissionDocument(payload: ProvisionalAdmissionLetterPayload, context: TemplateContext, identity: IdentityView, logoDataUri?: string): string {
     const validityHours = payload.registrationValidityHours ?? 24;
+    const reference = this.buildDocumentReference({
+      documentType: "PROVISIONAL_ADMISSION_LETTER",
+      registrationIdentifier: context.registrationIdentifier,
+      generatedAt: context.generatedAt,
+    });
 
-    return {
-      title: "Provisional Admission Letter",
-      subtitle: "Career & Business Mentorship",
-      sections: [
-        {
-          heading: "Recipient Details",
-          lines: [
-            `Recipient: ${payload.recipientName}`,
-            `Email: ${payload.email}`,
-            `Phone: ${payload.phoneNumber}`,
-          ],
-        },
-        {
-          heading: "Registration Details",
-          lines: [
-            `Registration Track: ${payload.registrationTrack}`,
-            `Provisional Registration Number: ${context.registrationIdentifier}`,
-            `Date Generated: ${context.generatedAt}`,
-          ],
-        },
-        {
-          heading: "Admission Terms",
-          lines: [
-            `Registration Status: ${registrationStatus}`,
-            `Payment Status: ${paymentStatus}`,
-            `Registration Number valid for ${validityHours} hours before payment confirmation.`,
-            "The registration number becomes permanent after successful payment.",
-          ],
-        },
-        {
-          heading: "Official Notice",
-          lines: [
-            "This provisional admission letter confirms the applicant's eligibility for mentorship onboarding.",
-            "Please retain this document for verification and future reference.",
-          ],
-        },
-      ],
-      metadata: [
-        { label: "Document Type", value: "Provisional Admission Letter" },
-        { label: "Verification Path", value: context.verificationPath },
-      ],
-      footerNote:
-        "BG HUB Consulting LTD • Official provisional admission document",
-    };
+    return `<main class="document">${this.renderHeader(reference, `Date: ${context.generatedAt}`, "Provisional admission", logoDataUri)}<div class="document-hero"><p class="eyebrow">Official programme correspondence</p><h1>Provisional Admission to the BGHUB Mentorship Programme</h1><p class="hero-note">Issued to ${this.escapeHtml(payload.recipientName)} | Registration status: Provisional</p></div>${this.renderSection("Recipient", this.renderInformationCard([
+      { label: "Name", value: payload.recipientName },
+      { label: "Email", value: payload.email },
+      { label: "Phone", value: payload.phoneNumber },
+    ]))}${this.renderSection("Admission notice", `<p class="prose">Dear ${this.escapeHtml(payload.recipientName)},</p><p class="prose">We are pleased to inform you that your application to join the BGHUB Mentorship Programme has been provisionally accepted, subject to payment of the prescribed registration fee.</p><p class="prose">You have been allocated the following Provisional Registration Number, which also serves as your payment account number for registration purposes.</p>`) }${this.renderSection("Registration and payment", this.renderInformationCard([
+      { label: "Provisional registration number", value: context.registrationIdentifier },
+      { label: "Track", value: payload.registrationTrack },
+      { label: "Payment status", value: "Pending" },
+      { label: "Registration fee", value: "Ksh 1,000 (one-time)" },
+      { label: "Validity", value: `${validityHours} hours from issuance` },
+    ]))}${this.renderSection("Payment instructions", `<p class="prose"><strong>Pay via M-PESA Paybill</strong><br />Business Name: Bob Grogan Consulting Ltd<br />Paybill Number: 4148891<br />Account Number: Your Provisional Registration Number (Example: CM-KE-00025 or BM-KE-00018)</p><p class="prose">Kindly ensure that the Account Number entered during payment exactly matches your provisional registration number.</p><p class="prose"><strong>Pay via Bank</strong><br />Business Name: Bob Grogan Consulting Ltd<br />KCB Bank, Account Number 1317224973, Machakos Branch</p>`) }${this.renderSection("Confirmation of admission", `<p class="prose">Upon successful receipt and verification of your registration payment:</p><ul class="legal-list"><li>Your provisional registration number shall become your permanent BGHUB Registration Number.</li><li>Your admission shall be formally confirmed.</li><li>An Official Letter of Admission will be sent to your registered email address.</li><li>You will receive instructions for onboarding, orientation, and access to the BGHUB Learning and Mentorship Platform.</li></ul>`) }${this.renderSection("Important information", `<ul class="legal-list"><li>The provisional registration number remains valid for 24 hours only.</li><li>If payment is not received within this period, the provisional registration shall automatically lapse and the number may be reassigned to another applicant.</li><li>Any subsequent application shall be processed as a new application.</li><li>Registration fees are non-refundable once admission has been confirmed.</li></ul>`) }${this.renderVerificationPanel(identity)}${this.renderFooter(context.verificationPath)}</main>`;
   }
 
-  private static buildTechnicalMentorEngagementTemplate(
-    payload: TechnicalMentorEngagementLetterPayload,
-    context: TemplateContext,
-  ): DocumentTemplate {
-    return {
-      title: "Technical Mentor Engagement Letter",
-      subtitle: "Mentorship Engagement",
-      sections: [
-        {
-          heading: "Mentor Details",
-          lines: [
-            `Mentor Name: ${payload.mentorName}`,
-            `Email: ${payload.email}`,
-            `Technical Area: ${payload.technicalArea}`,
-          ],
-        },
-        {
-          heading: "Registration Details",
-          lines: [
-            `TM Registration Number: ${context.registrationIdentifier}`,
-            `Date Generated: ${context.generatedAt}`,
-          ],
-        },
-        {
-          heading: "Engagement Statement",
-          lines: [
-            "This letter formalizes the mentor's engagement with the BG HUB mentorship programme.",
-            "The mentor will provide technical guidance, supervision, and review support for assigned mentees.",
-          ],
-        },
-      ],
-      metadata: [
-        { label: "Document Type", value: "Technical Mentor Engagement Letter" },
-        { label: "Verification Path", value: context.verificationPath },
-      ],
-      footerNote: "BG HUB Consulting LTD • Official mentor engagement document",
-    };
+  private static renderMentorDocument(payload: TechnicalMentorEngagementLetterPayload, context: TemplateContext, identity: IdentityView, logoDataUri?: string): string {
+    const duties = [
+      "Develop competency-based curriculums for various levels of competency",
+      "Participate in curriculum review and programme improvement initiatives.",
+      "Provide technical guidance to assigned mentees.",
+      "Develop individualized competency development plans.",
+      "Deliver structured mentorship sessions physically or virtually.",
+      "Guide trainees in workplace assignments and practical projects.",
+      "Supervise research, innovation, and entrepreneurship projects where applicable.",
+      "Review reports, assignments, business plans, proposals, and other technical outputs.",
+      "Conduct competency assessments and provide constructive feedback.",
+      "Monitor trainee progress against established learning milestones.",
+      "Prepare mentorship reports and submit them within stipulated timelines.",
+      "Support networking and linkage of trainees to industry opportunities.",
+      "Participate in technical seminars, webinars, conferences, and workshops organized by BGHUB.",
+      "Promote innovation, ethical conduct, professionalism, and continuous learning.",
+    ];
+    const expectations = [
+      "Maintain regular communication with assigned trainees.",
+      "Complete agreed mentorship sessions.",
+      "Meet all reporting deadlines.",
+      "Respond to trainee enquiries promptly.",
+      "Maintain accurate mentorship records.",
+      "Demonstrate professionalism and ethical conduct.",
+      "Support trainees in achieving competency-based learning outcomes.",
+      "Contribute to continuous improvement of the mentorship programme.",
+    ];
+
+    const reference = this.buildDocumentReference({
+      documentType: "TECHNICAL_MENTOR_ENGAGEMENT_LETTER",
+      registrationIdentifier: context.registrationIdentifier,
+      generatedAt: context.generatedAt,
+    });
+
+    return `<main class="document">${this.renderHeader(reference, `Date: ${context.generatedAt}`, "Technical mentor engagement", logoDataUri)}<div class="document-hero"><p class="eyebrow">Professional engagement</p><h1>Letter of Engagement as a Technical Mentor</h1><p class="hero-note">Issued to ${this.escapeHtml(payload.mentorName)} | ${this.escapeHtml(payload.technicalArea)}</p></div>${this.renderSection("Recipient", `${this.renderInformationCard([
+      { label: "Name", value: payload.mentorName },
+      { label: "Email", value: payload.email },
+      { label: "Registration number", value: context.registrationIdentifier },
+    ])}<p class="prose" style="margin-top: 12px;">Dear ${this.escapeHtml(payload.mentorName)},</p>`) }${this.renderSection("Engagement statement", `<p class="prose">On behalf of Bob Grogan Consulting Ltd, I am pleased to engage you as a Technical Mentor at BGHUB Kenya, a division of Bob Grogan Consulting Ltd.</p><p class="prose">BGHUB exists to develop highly competent professionals through structured workplace learning, technical mentorship, research, innovation, entrepreneurship, and digital transformation. As a Technical Mentor, you will play a strategic role in nurturing talent and preparing trainees for productive careers and professional practice.</p><p class="prose">This letter sets out the terms and conditions of your engagement.</p>`) }${this.renderClause("1", "Nature of engagement", `<p class="prose">Your engagement is on an independent consultancy basis and shall not be construed as creating an employer-employee relationship. Nothing in this agreement shall entitle you to employee benefits unless expressly agreed in writing.</p><p class="prose">You shall provide mentorship services as and when assigned by BGHUB.</p>`) }${this.renderClause("2", "Commencement", `<p class="prose">This engagement shall commence on ${this.escapeHtml(context.generatedAt)} and shall remain in force until terminated by either party in accordance with this agreement.</p>`) }${this.renderClause("3", "Purpose of the engagement", `<p class="prose">The purpose of this engagement is to provide high-quality technical mentorship that equips trainees with practical competencies, professional ethics, industry exposure, and workplace readiness.</p>`) }${this.renderClause("4", "Duties and responsibilities", `<p class="prose">As a Technical Mentor, you shall:</p>${this.renderList(duties)}`)}${this.renderClause("5", "Areas of technical mentorship", `<p class="prose">${this.escapeHtml(payload.technicalArea || "Human Resource Management")}</p>`) }${this.renderClause("6", "Performance expectations", `<p class="prose">You shall be expected to:</p>${this.renderList(expectations)}`)}${this.renderClause("7", "Confidentiality", `<p class="prose">You shall treat all information relating to Bob Grogan Consulting Ltd, BGHUB, clients, trainees, partners, research activities, business operations, intellectual property, and financial information as confidential. You shall not disclose such information without prior written authorization. This obligation shall survive termination of this engagement.</p>`) }${this.renderClause("8", "Intellectual property", `<p class="prose">Any manuals, curricula, assessment tools, reports, software, templates, presentations, research outputs, training materials, or other works developed specifically for BGHUB under this engagement shall become the property of Bob Grogan Consulting Ltd unless otherwise agreed in writing. You shall retain ownership of intellectual property created independently prior to this engagement.</p>`) }${this.renderClause("9", "Conflict of interest", `<p class="prose">You shall disclose any actual or potential conflict of interest that may affect your ability to discharge your responsibilities impartially.</p>`) }${this.renderClause("10", "Professional conduct", `<p class="prose">You agree to uphold the highest standards of Integrity, Professionalism, Respect, Accountability, Confidentiality, Non-discrimination and Ethical conduct. You shall comply with all BGHUB policies, procedures, and professional standards.</p>`) }${this.renderClause("11", "Remuneration", `<p class="prose">This engagement is assignment-based. Where remuneration is applicable, payment shall be determined based on the specific assignment and may include Mentorship fees, Facilitation fees, Consultancy fees, Research supervision fees, Revenue-sharing arrangements, Honoraria and Reimbursement of approved expenses. Specific rates shall be communicated separately before commencement of each assignment through a Local Service Order (LSO).</p>`) }${this.renderClause("12", "Reporting relationship", `<p class="prose">For all mentorship assignments, you shall report to the Director, BGHUB Kenya, or such other officer as may be designated by the Director.</p>`) }${this.renderClause("13", "Working arrangements", `<p class="prose">Mentorship activities may be conducted physically or virtually through the BGHUB Learning Platform or partner institutions or workshops.</p>`) }${this.renderClause("14", "Duration and renewal", `<p class="prose">This engagement shall remain valid until terminated by either party. Continuation of assignments shall depend upon programme needs, availability of mentorship opportunities, your performance and compliance with BGHUB standards.</p>`) }${this.renderClause("15", "Termination", `<p class="prose">Either party may terminate this engagement by giving thirty (30) days' written notice. Bob Grogan Consulting Ltd reserves the right to terminate this engagement immediately in the event of gross misconduct, professional negligence, breach of confidentiality, fraud or dishonesty, conflict of interest, poor professional conduct or any act that may bring BGHUB or Bob Grogan Consulting Ltd into disrepute.</p>`) }${this.renderClause("16", "Governing law", `<p class="prose">This engagement shall be governed by the laws of the Republic of Kenya.</p>`) }${this.renderClause("17", "Acceptance", `<p class="prose">Kindly indicate your acceptance of this engagement by signing and returning a copy of this letter. We welcome you to the BGHUB Technical Mentorship Network and look forward to your contribution towards developing competent professionals who will transform organizations and strengthen health systems in Kenya and across Africa.</p><div class="signature-grid"><div class="signature-block"><div class="caption">For: Bob Grogan Consulting Ltd</div><div class="line"></div><div class="detail">Name / Designation</div><div class="detail">Signature / Date</div></div><div class="signature-block"><div class="caption">Acceptance by the Technical Mentor</div><div class="line"></div><div class="detail">Signature / Date</div><div class="detail">National ID/Passport No. / Telephone</div><div class="detail">Email</div></div></div>`) }${this.renderVerificationPanel(identity)}${this.renderFooter(context.verificationPath)}</main>`;
   }
 
-  private static buildMenteeProfileTemplate(
-    payload: MenteeProfilePayload,
-    context: TemplateContext,
-  ): DocumentTemplate {
-    return {
-      title: "Mentee Profile",
-      subtitle: "Professional Mentorship Profile",
-      sections: [
-        {
-          heading: "Profile Summary",
-          lines: [
-            `Full Name: ${payload.fullName}`,
-            `Email: ${payload.email}`,
-            `Phone: ${payload.phoneNumber}`,
-          ],
-        },
-        {
-          heading: "Registration Details",
-          lines: [
-            `Registration Number: ${context.registrationIdentifier}`,
-            `Mentorship Track: ${payload.mentorshipTrack}`,
-            `Date Registered: ${payload.dateRegistered ?? context.generatedAt}`,
-          ],
-        },
-        {
-          heading: "Programme Status",
-          lines: [
-            `Registration Status: ${payload.registrationStatus ?? "Provisional"}`,
-            `Payment Status: ${payload.paymentStatus ?? "Pending"}`,
-            "This profile is suitable for printing and internal record keeping.",
-          ],
-        },
-      ],
-      metadata: [
-        { label: "Document Type", value: "Mentee Profile" },
-        { label: "Verification Path", value: context.verificationPath },
-      ],
-      footerNote: "BG HUB Consulting LTD • Printable profile document",
-    };
+  private static renderProfileDocument(payload: MenteeProfilePayload, context: TemplateContext, identity: IdentityView, logoDataUri?: string): string {
+    const reference = this.buildDocumentReference({
+      documentType: "MENTEE_PROFILE",
+      registrationIdentifier: context.registrationIdentifier,
+      generatedAt: context.generatedAt,
+    });
+
+    return `<main class="document">${this.renderHeader(reference, `Date: ${context.generatedAt}`, "Mentee profile", logoDataUri)}<div class="document-hero"><p class="eyebrow">Programme record</p><h1>Mentee Profile</h1></div>${this.renderSection("Profile summary", this.renderInformationCard([
+      { label: "Full name", value: payload.fullName },
+      { label: "Email", value: payload.email },
+      { label: "Phone", value: payload.phoneNumber },
+    ]))}${this.renderSection("Registration details", this.renderInformationCard([
+      { label: "Registration number", value: context.registrationIdentifier },
+      { label: "Mentorship track", value: payload.mentorshipTrack },
+      { label: "Date registered", value: payload.dateRegistered ?? context.generatedAt },
+      { label: "Registration status", value: payload.registrationStatus ?? "Provisional" },
+      { label: "Payment status", value: payload.paymentStatus ?? "Pending" },
+    ]))}${this.renderVerificationPanel(identity)}${this.renderFooter(context.verificationPath)}</main>`;
   }
 
-  private static async renderDocument(
-    doc: jsPDF,
-    template: DocumentTemplate,
-    context: TemplateContext,
-    identityAssets: Awaited<ReturnType<typeof DocumentIdentityService.generateIdentityAssets>>,
-  ): Promise<void> {
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-
-    this.renderHeader(doc, template.title, template.subtitle);
-
-    let y = 42;
-    for (const section of template.sections) {
-      if (y > pageHeight - 70) {
-        doc.addPage();
-        y = 24;
-        this.renderHeader(doc, template.title, template.subtitle);
-      }
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(15, 23, 42);
-      doc.text(section.heading ?? "Section", 20, y);
-      y += 7;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(55, 65, 81);
-      for (const line of section.lines) {
-        const wrappedLines = doc.splitTextToSize(line, 170);
-        doc.text(wrappedLines, 24, y);
-        y += 6 * wrappedLines.length;
-      }
-
-      y += 3;
-    }
-
-    y += 4;
-    if (y > pageHeight - 75) {
-      doc.addPage();
-      y = 24;
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(31, 41, 55);
-    doc.text("Document Metadata", 20, y);
-    y += 7;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(55, 65, 81);
-    for (const item of template.metadata) {
-      const valueText = `${item.label}: ${item.value}`;
-      const wrappedValue = doc.splitTextToSize(valueText, 170);
-      doc.text(wrappedValue, 24, y);
-      y += 6 * wrappedValue.length;
-    }
-
-    const identityY = Math.min(y + 8, pageHeight - 60);
-    await this.renderIdentityBlock(
-      doc,
-      context.registrationIdentifier,
-      context.verificationPath,
-      identityY,
-      identityAssets,
-    );
-
-    this.renderFooter(doc, template.footerNote, pageHeight - 12);
+  private static renderSection(title: string, content: string): string {
+    return `<section class="section"><h2 class="section-title">${this.escapeHtml(title)}</h2>${content}</section>`;
   }
 
-  private static renderHeader(doc: jsPDF, title: string, subtitle: string): void {
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, doc.internal.pageSize.getWidth(), 24, "F");
-
-    const logoPath = path.resolve(process.cwd(), "public", "bob-grogan-logo.png");
-    this.addImageIfPresent(doc, logoPath, 16, 3, 24, 18);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(15, 23, 42);
-    doc.text(title, 48, 10);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(100, 116, 139);
-    doc.text(subtitle, 48, 16);
+  private static renderClause(number: string, title: string, content: string): string {
+    return `<section class="section"><h2 class="section-title"><span class="section-number">${this.escapeHtml(number)}</span>${this.escapeHtml(title)}</h2>${content}</section>`;
   }
 
-  private static renderFooter(doc: jsPDF, note: string, y: number): void {
-    doc.setDrawColor(226, 232, 240);
-    doc.line(20, y - 3, doc.internal.pageSize.getWidth() - 20, y - 3);
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-    doc.text(note, 20, y);
+  private static renderInformationCard(fields: Array<{ label: string; value: string }>): string {
+    const html = fields.map((field) => `<div><span class="field-label">${this.escapeHtml(field.label)}</span><span class="field-value">${this.escapeHtml(field.value)}</span></div>`).join("");
+    return `<div class="information-card"><div class="information-grid">${html}</div></div>`;
   }
 
-  private static async renderIdentityBlock(
-    doc: jsPDF,
-    registrationIdentifier: string,
-    verificationPath: string,
-    y: number,
-    identityAssets: Awaited<ReturnType<typeof DocumentIdentityService.generateIdentityAssets>>,
-  ): Promise<void> {
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-
-    doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(14, y, pageWidth - 28, 56, 3, 3, "S");
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Verification & Identity", 20, y + 8);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(55, 65, 81);
-    doc.text(`Registration Identifier: ${registrationIdentifier}`, 20, y + 15);
-    doc.text(`Verification Path: ${verificationPath}`, 20, y + 21);
-
-    const qrAdded = await this.addImageBuffer(
-      doc,
-      identityAssets.qrCodeBuffer,
-      pageWidth - 48,
-      y + 8,
-      24,
-      24,
-    );
-    if (!qrAdded) {
-      doc.setDrawColor(15, 23, 42);
-      doc.rect(pageWidth - 48, y + 8, 24, 24);
-      doc.text("QR", pageWidth - 38, y + 20);
-    }
-
-    this.drawBarcodePlaceholder(doc, registrationIdentifier, 20, y + 30, pageWidth - 40);
-
-    if (y + 56 > pageHeight - 20) {
-      doc.addPage();
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text("Verification & Identity", 20, 24);
-    }
+  private static renderList(items: string[]): string {
+    return `<ul class="legal-list">${items.map((item) => `<li>${this.escapeHtml(item)}</li>`).join("")}</ul>`;
   }
 
-  private static drawBarcodePlaceholder(
-    doc: jsPDF,
-    registrationIdentifier: string,
-    x: number,
-    y: number,
-    width: number,
-  ): void {
-    const charValues = Array.from(registrationIdentifier).map((character) =>
-      character.charCodeAt(0) % 10,
-    );
-
-    let cursorX = x;
-    const barHeight = 10;
-    const moduleWidth = Math.max(1.2, width / Math.max(charValues.length * 3, 12));
-
-    doc.setDrawColor(15, 23, 42);
-    for (const value of charValues) {
-      const barWidth = Math.max(1, moduleWidth * (value + 1));
-      doc.rect(cursorX, y, barWidth, barHeight, "F");
-      cursorX += barWidth + 0.6;
-    }
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(55, 65, 81);
-    doc.text(registrationIdentifier, x, y + 20);
+  private static renderHeader(reference: string, date: string, title: string, logoDataUri?: string): string {
+    const logo = logoDataUri ? `<img src="${logoDataUri}" alt="" />` : "";
+    return `<header class="document-header"><div class="brand">${logo}<div><p class="brand-name">BGHUB Kenya</p><p class="brand-subtitle">A division of Bob Grogan Consulting Ltd</p></div></div><div class="header-meta"><strong>${this.escapeHtml(reference)}</strong>${this.escapeHtml(date)}<br />${this.escapeHtml(title)}</div></header>`;
   }
 
-  private static async addImageIfPresent(
-    doc: jsPDF,
-    imagePath: string,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-  ): Promise<boolean> {
-    try {
-      const imageBuffer = await readFile(imagePath);
-      return this.addImageBuffer(doc, imageBuffer, x, y, width, height);
-    } catch {
-      return false;
-    }
+  private static renderHeaderMeta(reference: string, date: string, title: string): string {
+    return `<div class="header-meta"><strong>${this.escapeHtml(reference)}</strong>${this.escapeHtml(date)}<br />${this.escapeHtml(title)}</div>`;
   }
 
-  private static addImageBuffer(
-    doc: jsPDF,
-    imageBuffer: Buffer,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-  ): boolean {
-    try {
-      const imageData = imageBuffer.toString("base64");
-      const mimeType = imageBuffer.subarray(0, 8).toString("hex").includes("89504e470d0a1a0a")
-        ? "image/png"
-        : "image/jpeg";
-      doc.addImage(
-        `data:${mimeType};base64,${imageData}`,
-        mimeType === "image/png" ? "PNG" : "JPEG",
-        x,
-        y,
-        width,
-        height,
-      );
-      return true;
-    } catch {
-      return false;
-    }
+  private static renderVerificationPanel(identity: IdentityView): string {
+    return `<section class="verification-panel"><div class="verification-copy"><h2>Document verification</h2><p class="identifier">${this.escapeHtml(identity.registrationIdentifier)}</p><p>Scan the QR code or visit ${this.escapeHtml(identity.verificationPath)} to verify this document.</p><img class="barcode" src="${identity.barcodeDataUri}" alt="Barcode for ${this.escapeHtml(identity.registrationIdentifier)}" /></div><img class="qr" src="${identity.qrDataUri}" alt="QR code for ${this.escapeHtml(identity.registrationIdentifier)}" /></section>`;
   }
 
-  private static detectMimeType(imagePath: string): string {
-    const extension = path.extname(imagePath).toLowerCase();
-    if (extension === ".png") {
-      return "image/png";
-    }
+  private static renderFooter(verificationPath: string): string {
+    return `<footer class="document-footer"><span>BGHUB Kenya | Bob Grogan Consulting Ltd</span><span>Verify: ${this.escapeHtml(verificationPath)}</span></footer>`;
+  }
 
-    if (extension === ".jpg" || extension === ".jpeg") {
-      return "image/jpeg";
-    }
+  private static escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
-    return "image/png";
+  static buildDocumentReference(input: {
+    documentType: SupportedDocumentType;
+    registrationIdentifier: string;
+    generatedAt?: string;
+  }): string {
+    const normalized = this.normalizeReferenceIdentifier(input.registrationIdentifier);
+    const sequence = normalized.match(/-(\d{5})$/)?.[1] ?? "00001";
+    const year = input.generatedAt ? new Date(input.generatedAt).getFullYear() : new Date().getFullYear();
+    const docCode = input.documentType === "PROVISIONAL_ADMISSION_LETTER"
+      ? "ADM"
+      : input.documentType === "TECHNICAL_MENTOR_ENGAGEMENT_LETTER"
+        ? "ENG"
+        : "PRF";
+
+    return `BGHUB-${docCode}-${year}-${sequence}`;
+  }
+
+  private static normalizeReferenceIdentifier(registrationIdentifier: string): string {
+    return registrationIdentifier.trim().toUpperCase();
   }
 
   private static extractRegistrationIdentifier<TPayload extends object>(payload: TPayload): string {
-    const maybe = payload as Record<string, unknown>;
-    const value = maybe.registrationIdentifier;
-    if (typeof value === "string" && value.trim()) {
-      return value;
-    }
-
-    return "TM-KE-00001";
+    const value = (payload as Record<string, unknown>).registrationIdentifier;
+    return typeof value === "string" && value.trim() ? value : "TM-KE-00001";
   }
 
   private static extractGeneratedAt<TPayload extends object>(payload: TPayload): string {
-    const maybe = payload as Record<string, unknown>;
-    const value = maybe.generatedAt ?? maybe.dateRegistered;
-    if (typeof value === "string" && value.trim()) {
-      return value;
-    }
-
-    return new Date().toISOString().split("T")[0] ?? "2026-07-22";
+    const data = payload as Record<string, unknown>;
+    const value = data.generatedAt ?? data.dateRegistered;
+    return typeof value === "string" && value.trim() ? value : new Date().toISOString().split("T")[0] ?? "2026-07-22";
   }
 
   private static formatDate(value: string): string {
     const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-
-    return parsed.toISOString().split("T")[0] ?? value;
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString().split("T")[0] ?? value;
   }
 
   private static toFolderName(documentType: SupportedDocumentType): string {

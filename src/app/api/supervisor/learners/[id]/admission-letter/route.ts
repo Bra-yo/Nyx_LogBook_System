@@ -19,8 +19,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     phoneNumber: learner.user.phone || "Not provided",
     registrationTrack: learner.cohort?.mentorshipTrack || learner.mentorshipTrack || "Mentorship",
     registrationIdentifier: learner.user.registrationIdentifier,
-    paymentStatus: learner.user.paymentStatus,
-    registrationStatus: learner.user.accountStatus,
+    paymentStatus: "Pending",
+    registrationStatus: "Provisional",
   });
   return new NextResponse(await readFile(artifact.filePath), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${artifact.fileName}"` } });
 }

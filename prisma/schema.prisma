@@ -120,6 +120,10 @@ model Cohort {
   endDate           DateTime?
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
+  clickupListId     String?
+  clickupLastSyncedAt DateTime?
+  clickupSyncStatus  String?
+  clickupSyncError   String?
   members           StudentProfile[]
   mentorAssignments CohortMentorAssignment[]
 
@@ -154,6 +158,10 @@ model StudentProfile {
   internshipEndDate      DateTime?
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
+  clickupTaskId          String?
+  clickupLastSyncedAt    DateTime?
+  clickupSyncStatus      String?
+  clickupSyncError       String?
   ProjectLearner         ProjectLearner[]
   attendanceRecords      Attendance[]
   assessments            LecturerAssessment[]

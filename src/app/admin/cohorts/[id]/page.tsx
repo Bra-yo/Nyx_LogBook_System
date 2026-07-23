@@ -21,6 +21,10 @@ interface CohortDetail {
   _count: { members: number; mentorAssignments: number };
   members: Array<{ id: string; user: { name: string; email: string } }>;
   mentorAssignments: Array<{ id: string; mentor: MentorOption }>;
+  clickupListId?: string | null;
+  clickupLastSyncedAt?: string | null;
+  clickupSyncStatus?: string | null;
+  clickupSyncError?: string | null;
 }
 
 export default function CohortDetailPage() {
@@ -30,6 +34,7 @@ export default function CohortDetailPage() {
   const [mentors, setMentors] = useState<MentorOption[]>([]);
   const [selectedMentorId, setSelectedMentorId] = useState("");
   const [assignmentPending, setAssignmentPending] = useState(false);
+  const [syncPending, setSyncPending] = useState(false);
   const [form, setForm] = useState({ name: "", code: "", mentorshipTrack: "CAREER", status: "UPCOMING", description: "", maximumCapacity: "25" });
 
   const loadData = async () => {
@@ -122,11 +127,32 @@ export default function CohortDetailPage() {
     }
   };
 
+  const handleSync = async (scope: "cohort" | "learner", learnerId?: string) => {
+    setSyncPending(true);
+    try {
+      const response = await fetch(`/api/admin/cohorts/${params.id}/clickup`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope, learnerId }) });
+      const data = await response.json();
+      if (!response.ok) toast.error(data.error || "ClickUp synchronization failed");
+      else { await loadData(); toast.success(scope === "cohort" ? "Cohort synchronized with ClickUp" : "Learner synchronized with ClickUp"); }
+    } finally { setSyncPending(false); }
+  };
+
   if (!cohort) return <div className="p-6">Loading...</div>;
 
   return (
     <div className="container mx-auto space-y-6 py-6">
       <Button variant="outline" onClick={() => router.push("/admin/cohorts")}>Back to Cohorts</Button>
+      <Card>
+        <CardHeader><CardTitle>ClickUp Synchronization</CardTitle><CardDescription>Keep this cohort and its learners synchronized with ClickUp.</CardDescription></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => handleSync("cohort")} disabled={syncPending}>{syncPending ? "Synchronizing..." : cohort.clickupListId ? "Manual Re-sync Cohort" : "Sync Cohort"}</Button>
+            <span className="self-center text-sm text-muted-foreground">Status: {cohort.clickupSyncStatus || "Not synchronized"}</span>
+          </div>
+          {cohort.clickupLastSyncedAt && <p className="text-sm text-muted-foreground">Last Sync: {new Date(cohort.clickupLastSyncedAt).toLocaleString()}</p>}
+          {cohort.clickupSyncError && <p className="text-sm text-destructive">Error Details: {cohort.clickupSyncError}</p>}
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Edit Cohort</CardTitle>
@@ -233,9 +259,9 @@ export default function CohortDetailPage() {
         </CardHeader>
         <CardContent className="space-y-2">
           {cohort.members.map((member) => (
-            <div key={member.id} className="flex items-center justify-between rounded border px-3 py-2">
-              <span>{member.user.name}</span>
-              <span className="text-sm text-muted-foreground">{member.user.email}</span>
+            <div key={member.id} className="flex items-center justify-between gap-4 rounded border px-3 py-2">
+              <div><span>{member.user.name}</span><p className="text-sm text-muted-foreground">{member.user.email}</p></div>
+              <Button variant="outline" size="sm" disabled={syncPending || !cohort.clickupListId} onClick={() => handleSync("learner", member.id)}>Sync Learner</Button>
             </div>
           ))}
         </CardContent>

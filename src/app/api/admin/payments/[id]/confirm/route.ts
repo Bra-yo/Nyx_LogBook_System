@@ -20,6 +20,34 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       confirmation.name,
     );
 
+    const targetedUser = await prisma.user.findUnique({
+      where: { id: resolvedParams.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        paymentStatus: true,
+        accountStatus: true,
+        registrationIdentifier: true,
+        studentProfile: { include: { cohort: { select: { name: true } } } },
+        supervisorProfile: { include: { cohortAssignments: { include: { cohort: { select: { name: true } } } } } },
+      },
+    });
+
+    if (targetedUser?.role === "STUDENT" && targetedUser.registrationIdentifier) {
+      await prisma.emailDelivery.create({
+        data: {
+          userId: targetedUser.id,
+          toEmail: targetedUser.email,
+          subject: "Payment Confirmed - Your account is now active",
+          htmlBody: `<p>Hello ${targetedUser.name},</p><p>Your payment has been confirmed and your account is now active. You may log in to the platform.</p>`,
+          attachmentPath: "",
+          attachmentName: "",
+        },
+      });
+    }
+
     if (emailPayload) {
       console.info("Payment confirmed email queued", emailPayload);
     }

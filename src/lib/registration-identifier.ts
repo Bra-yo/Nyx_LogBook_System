@@ -9,6 +9,7 @@ export type RegistrationIdentifierType =
 export interface RegistrationIdentifierContext {
   role: UserRole | string;
   registrationType?: RegistrationIdentifierType;
+  mentorshipTrack?: "CAREER" | "BUSINESS" | null;
 }
 
 export interface RegistrationIdentifierResult {
@@ -74,11 +75,15 @@ export async function generateRegistrationIdentifierForUser(
 function resolveRegistrationIdentifierType(
   context: RegistrationIdentifierContext,
 ): RegistrationIdentifierType | null {
-  if (context.registrationType) {
-    return context.registrationType;
-  }
-
   if (context.role === "STUDENT") {
+    if (context.registrationType) {
+      return context.registrationType;
+    }
+
+    if (context.mentorshipTrack === "BUSINESS") {
+      return "BUSINESS_MENTEE";
+    }
+
     return "CAREER_MENTEE";
   }
 

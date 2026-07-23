@@ -4,6 +4,76 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { UserRole } from "@/types";
 
+export async function authorizeCredentials(credentials: {
+  email?: string | null;
+  password?: string | null;
+}) {
+  if (!credentials?.email || !credentials?.password) {
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email: credentials.email,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      password: true,
+      role: true,
+      isActive: true,
+      mustChangePassword: true,
+      registrationIdentifier: true,
+      accountStatus: true,
+      paymentStatus: true,
+      studentProfile: true,
+      supervisorProfile: true,
+      lecturerProfile: true,
+      adminProfile: true,
+    },
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  const isPasswordValid = await bcrypt.compare(
+    credentials.password,
+    user.password,
+  );
+
+  if (!isPasswordValid) {
+    return null;
+  }
+
+  if (!user.isActive) {
+    return null;
+  }
+
+  if (user.role === "STUDENT" && user.accountStatus !== "ACTIVE") {
+    return null;
+  }
+
+  const profile =
+    user.studentProfile ??
+    user.supervisorProfile ??
+    user.lecturerProfile ??
+    user.adminProfile;
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role as UserRole,
+    mustChangePassword: user.mustChangePassword,
+    registrationIdentifier: user.registrationIdentifier,
+    accountStatus: user.accountStatus,
+    paymentStatus: user.paymentStatus,
+    profile: profile as Record<string, unknown> | undefined,
+  };
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -13,64 +83,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            password: true,
-            role: true,
-            isActive: true,
-            mustChangePassword: true,
-            registrationIdentifier: true,
-            accountStatus: true,
-            paymentStatus: true,
-            studentProfile: true,
-            supervisorProfile: true,
-            lecturerProfile: true,
-            adminProfile: true,
-          },
-        });
-
-        if (!user || !user.isActive) {
-          return null;
-        }
-
-        if (user.role === "STUDENT" && user.accountStatus !== "ACTIVE") {
-          return null;
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password,
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        const profile =
-          user.studentProfile ??
-          user.supervisorProfile ??
-          user.lecturerProfile ??
-          user.adminProfile;
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role as UserRole,
-          mustChangePassword: user.mustChangePassword,
-          registrationIdentifier: user.registrationIdentifier,
-          profile: profile as Record<string, unknown> | undefined,
-        };
+        return authorizeCredentials(credentials);
       },
     }),
   ],

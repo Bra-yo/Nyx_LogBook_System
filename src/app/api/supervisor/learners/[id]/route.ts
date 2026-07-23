@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildMentorCohortLearnerWhereClause } from "@/lib/access-control";
 import { DocumentIdentityService } from "@/lib/services/document-identity";
+import { buildLearnerProgress } from "@/lib/services/learner-progress";
 
 export async function GET(
   _request: Request,
@@ -88,16 +89,7 @@ export async function GET(
     success: true,
     learner: {
       ...learner,
-      progress: {
-        portfolio: Boolean(learner.user.bio || learner.user.skills.length),
-        attendance: learner._count.attendanceRecords,
-        projects: learner._count.ProjectLearner,
-        workRecords: learner._count.logbookEntries,
-        reports: learner._count.assessments,
-        weeklyReviews: learner._count.WeeklyMentorTaskReview,
-        milestones: learner._count.Milestone,
-        approvedSubmissions,
-      },
+      progress: { ...buildLearnerProgress(learner.user, learner._count), approvedSubmissions },
       submissions,
       documents: {
         admissionLetter: Boolean(learner.user.registrationIdentifier),

@@ -247,6 +247,10 @@ npm start
 - `NEXTAUTH_SECRET` - JWT secret key
 - `UPLOADTHING_SECRET` - File upload service
 - `UPLOADTHING_APP_ID` - UploadThing app ID
+- `CLICKUP_API_TOKEN` - ClickUp API token
+- `CLICKUP_TEAM_ID` - ClickUp workspace/team ID
+- `CLICKUP_SPACE_ID` - ClickUp space where cohort lists are created
+- `CLICKUP_FOLDER_ID` - Optional ClickUp folder where cohort lists are created
 
 ## Contributing
 

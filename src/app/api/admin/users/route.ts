@@ -213,7 +213,10 @@ export async function POST(request: NextRequest) {
       const { identifier } = await generateRegistrationIdentifierForUser(
         {
           role: validatedData.role,
-          registrationType: validatedData.registrationType,
+          registrationType:
+            validatedData.role === "STUDENT" ? validatedData.registrationType : undefined,
+          mentorshipTrack:
+            validatedData.role === "STUDENT" ? validatedData.mentorshipTrack : undefined,
         },
         tx as typeof tx,
       );

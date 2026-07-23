@@ -64,3 +64,13 @@ test("generates a mentee profile PDF for printing", async () => {
 
   await access(artifact.filePath);
 });
+
+test("builds a dynamic admission document reference from the user identifier and date", () => {
+  const reference = DocumentGenerationService.buildDocumentReference({
+    documentType: "PROVISIONAL_ADMISSION_LETTER",
+    registrationIdentifier: "CM-KE-00021",
+    generatedAt: "2026-07-22",
+  });
+
+  assert.equal(reference, "BGHUB-ADM-2026-00021");
+});
