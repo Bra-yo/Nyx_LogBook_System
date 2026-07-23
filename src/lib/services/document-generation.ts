@@ -1,6 +1,7 @@
 import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { chromium } from "playwright";
+import { chromium as playwrightCoreChromium } from "playwright-core";
+import chromiumBinary from "@sparticuz/chromium";
 import { DocumentIdentityService } from "./document-identity";
 import { documentStyles } from "./document-styles";
 
@@ -28,7 +29,7 @@ export class DocumentGenerationService {
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const fileName = `${this.toFileName(documentType)}-${timestamp}.pdf`;
     const filePath = path.join(assetRoot, fileName);
-    const browser = await chromium.launch({ headless: true });
+    const browser = await this.createBrowser();
     try {
       const page = await browser.newPage({ viewport: { width: 1200, height: 1600 } });
       await page.setContent(html, { waitUntil: "networkidle" });
@@ -45,6 +46,36 @@ export class DocumentGenerationService {
       verificationPath: context.verificationPath,
       generatedTimestamp: context.generatedAt,
     };
+  }
+
+  private static async createBrowser() {
+    const isVercelRuntime = process.env.VERCEL === "1" || process.env.VERCEL === "true";
+
+    if (isVercelRuntime) {
+      return playwrightCoreChromium.launch({
+        args: chromiumBinary.args,
+        executablePath: await chromiumBinary.executablePath(),
+        headless: true,
+      });
+    }
+
+    const localExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH
+      ?? process.env.CHROME_BIN
+      ?? process.env.CHROMIUM_BIN;
+
+    if (localExecutablePath) {
+      return playwrightCoreChromium.launch({
+        args: [],
+        executablePath: localExecutablePath,
+        headless: true,
+      });
+    }
+
+    return playwrightCoreChromium.launch({
+      channel: "chrome",
+      args: [],
+      headless: true,
+    });
   }
 
   private static async buildTemplateContext<TPayload extends object>(documentType: SupportedDocumentType, payload: TPayload): Promise<{ context: TemplateContext; identityAssets: IdentityAssets }> {
