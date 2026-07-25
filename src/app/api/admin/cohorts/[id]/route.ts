@@ -70,3 +70,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   return NextResponse.json({ success: true, cohort });
 }
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.role || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const cohort = await prisma.cohort.findUnique({ where: { id } });
+
+  if (!cohort) {
+    return NextResponse.json({ error: "Cohort not found" }, { status: 404 });
+  }
+
+  try {
+    await prisma.$transaction([
+      prisma.studentProfile.updateMany({ where: { cohortId: id }, data: { cohortId: null } }),
+      prisma.cohort.delete({ where: { id } }),
+    ]);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: "Unable to delete cohort permanently." }, { status: 500 });
+  }
+}

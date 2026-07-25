@@ -76,6 +76,8 @@ export function buildReactPdfDocument(
           <MentorLetterDocument
             payload={payload as TechnicalMentorEngagementLetterPayload}
             context={context}
+            identity={identity}
+            logoDataUri={logoDataUri}
           />
         </Page>
       </Document>
@@ -212,9 +214,13 @@ function AdmissionLetterDocument({
 function MentorLetterDocument({
   payload,
   context,
+  identity,
+  logoDataUri,
 }: {
   payload: TechnicalMentorEngagementLetterPayload;
   context: ReactPdfTemplateContext;
+  identity: ReactPdfIdentityView;
+  logoDataUri?: string;
 }): ReactElement {
   const duties = [
     "Develop competency-based curriculums for various levels of competency",
@@ -245,26 +251,41 @@ function MentorLetterDocument({
   ];
 
   const displayDate = formatDisplayDate(context.generatedAt);
-  const referenceNumber = context.registrationIdentifier;
+  const documentReference = `BGHUB-ENG-${new Date(context.generatedAt).getFullYear()}-${context.registrationIdentifier.match(/-(\d{5})$/)?.[1] ?? "00001"}`;
   const technicalAreaValue = payload.technicalArea || "Human Resource Management";
 
   return (
-    <View style={styles.letterPage}>
-      <Text style={styles.letterHeading}>BGHUB Kenya</Text>
-      <Text style={styles.letterSubtitle}>A Division of Bob Grogan Consulting Ltd</Text>
-      <View style={styles.headerRow}>
-        <Text style={styles.prose}>Ref: {referenceNumber}</Text>
-        <Text style={styles.prose}>Date: {displayDate}</Text>
+    <View>
+      <DocumentHeader
+        reference={documentReference}
+        date={context.generatedAt}
+        title="Technical Mentor Engagement Letter"
+        logoDataUri={logoDataUri}
+      />
+
+      <View style={styles.heroBlock}>
+        <Text style={styles.eyebrow}>Professional engagement correspondence</Text>
+        <Text style={styles.heroTitle}>Technical Mentor Engagement Letter</Text>
+        <Text style={styles.heroNote}>Issued by BGhub Kenya, a division of Bob Grogan Consulting Ltd</Text>
       </View>
-      <View style={styles.headerRow}>
-        <Text style={styles.prose}>To: {payload.mentorName}</Text>
-        <Text style={styles.prose}>Email: {payload.email}</Text>
-      </View>
-      <Text style={styles.prose}>RE: LETTER OF ENGAGEMENT AS A TECHNICAL MENTOR</Text>
-      <Text style={styles.prose}>Dear {payload.mentorName},</Text>
-      <Text style={styles.prose}>On behalf of Bob Grogan Consulting Ltd, I am pleased to engage you as a Technical Mentor at BGHUB Kenya, a division of Bob Grogan Consulting Ltd.</Text>
-      <Text style={styles.prose}>BGHUB exists to develop highly competent professionals through structured workplace learning, technical mentorship, research, innovation, entrepreneurship, and digital transformation. As a Technical Mentor, you will play a strategic role in nurturing talent and preparing trainees for productive careers and professional practice.</Text>
-      <Text style={styles.prose}>This letter sets out the terms and conditions of your engagement.</Text>
+
+      <Section title="Recipient details">
+        <InformationCard
+          fields={[
+            { label: "Name", value: payload.mentorName },
+            { label: "Email", value: payload.email },
+            { label: "Registration identifier", value: context.registrationIdentifier },
+          ]}
+        />
+      </Section>
+
+      <Section title="Engagement overview">
+        <Text style={styles.prose}>RE: LETTER OF ENGAGEMENT AS A TECHNICAL MENTOR</Text>
+        <Text style={styles.prose}>Dear {payload.mentorName},</Text>
+        <Text style={styles.prose}>On behalf of Bob Grogan Consulting Ltd, I am pleased to engage you as a Technical Mentor at BGHUB Kenya, a division of Bob Grogan Consulting Ltd.</Text>
+        <Text style={styles.prose}>BGHUB exists to develop highly competent professionals through structured workplace learning, technical mentorship, research, innovation, entrepreneurship, and digital transformation. As a Technical Mentor, you will play a strategic role in nurturing talent and preparing trainees for productive careers and professional practice.</Text>
+        <Text style={styles.prose}>This letter sets out the terms and conditions of your engagement.</Text>
+      </Section>
 
       <Text style={styles.sectionTitle}>1. Nature of Engagement</Text>
       <Text style={styles.prose}>Your engagement is on an independent consultancy basis and shall not be construed as creating an employer-employee relationship. Nothing in this agreement shall entitle you to employee benefits unless expressly agreed in writing.</Text>
@@ -335,14 +356,19 @@ function MentorLetterDocument({
       <Text style={styles.prose}>Kindly indicate your acceptance of this engagement by signing and returning a copy of this letter.</Text>
       <Text style={styles.prose}>We welcome you to the BGHUB Technical Mentorship Network and look forward to your contribution towards developing competent professionals who will transform organizations and strengthen health systems in Kenya and across Africa.</Text>
 
-      <Text style={styles.prose}>For: Bob Grogan Consulting Ltd</Text>
-      <Text style={styles.prose}>Name __________________________________________ Designation ____________________</Text>
-      <Text style={styles.prose}>Signature: _______________________________ Date: _______________________________</Text>
+      <Section title="For: Bob Grogan Consulting Ltd">
+        <Text style={styles.prose}>Name __________________________________________ Designation ____________________</Text>
+        <Text style={styles.prose}>Signature: _______________________________ Date: _______________________________</Text>
+      </Section>
 
-      <Text style={styles.sectionTitle}>ACCEPTANCE BY THE TECHNICAL MENTOR</Text>
-      <Text style={styles.prose}>I, _______________________________________________, accept my engagement as a Technical Mentor at BGHUB Kenya, a division of Bob Grogan Consulting Ltd, on the terms and conditions contained in this Letter of Engagement.</Text>
-      <Text style={styles.prose}>Signature: __________________________________ Date: _______________________________</Text>
-      <Text style={styles.prose}>National ID/Passport No.: _______________________ Telephone: _____________________ Email _________________________________________________</Text>
+      <Section title="Acceptance by the Technical Mentor">
+        <Text style={styles.prose}>I, _______________________________________________, accept my engagement as a Technical Mentor at BGHUB Kenya, a division of Bob Grogan Consulting Ltd, on the terms and conditions contained in this Letter of Engagement.</Text>
+        <Text style={styles.prose}>Signature: __________________________________ Date: _______________________________</Text>
+        <Text style={styles.prose}>National ID/Passport No.: _______________________ Telephone: _____________________ Email _________________________________________________</Text>
+      </Section>
+
+      <VerificationPanel identity={identity} />
+      <DocumentFooter verificationPath={context.verificationPath} />
     </View>
   );
 }

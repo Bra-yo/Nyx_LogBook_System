@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,9 +35,10 @@ export default function CohortDetailPage() {
   const [selectedMentorId, setSelectedMentorId] = useState("");
   const [assignmentPending, setAssignmentPending] = useState(false);
   const [syncPending, setSyncPending] = useState(false);
+  const [deletePending, setDeletePending] = useState(false);
   const [form, setForm] = useState({ name: "", code: "", mentorshipTrack: "CAREER", status: "UPCOMING", description: "", maximumCapacity: "25" });
 
-  const loadData = async () => {
+  const loadCohort = useCallback(async () => {
     const response = await fetch(`/api/admin/cohorts/${params.id}`);
     const data = await response.json();
     if (data.success) {
@@ -51,18 +52,33 @@ export default function CohortDetailPage() {
         maximumCapacity: String(data.cohort.maximumCapacity),
       });
     }
-  };
-
-  useEffect(() => {
-    void loadData();
   }, [params.id]);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadCohort();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [loadCohort]);
+
+  useEffect(() => {
+    type AdminUser = {
+      id: string;
+      name: string;
+      email: string;
+      supervisorProfile?: { id: string } | null;
+    };
+
     const loadMentors = async () => {
       const response = await fetch("/api/admin/users?limit=100&role=SUPERVISOR");
-      const data = await response.json();
+      const data = (await response.json()) as { users?: AdminUser[] };
       if (data.users) {
-        setMentors(data.users.filter((user: any) => user.supervisorProfile).map((user: any) => ({ id: user.supervisorProfile.id, user: { name: user.name, email: user.email } })));
+        setMentors(
+          data.users
+            .filter((user) => user.supervisorProfile)
+            .map((user) => ({ id: user.supervisorProfile!.id, user: { name: user.name, email: user.email } })),
+        );
       }
     };
     void loadMentors();
@@ -98,7 +114,7 @@ export default function CohortDetailPage() {
       const data = await response.json();
       if (data.success) {
         setSelectedMentorId("");
-        await loadData();
+        await loadCohort();
         toast.success("Mentor assigned");
       } else {
         toast.error(data.error || "Unable to assign mentor");
@@ -117,7 +133,7 @@ export default function CohortDetailPage() {
       );
       const data = await response.json();
       if (data.success) {
-        await loadData();
+        void loadCohort();
         toast.success("Mentor removed");
       } else {
         toast.error(data.error || "Unable to remove mentor");
@@ -133,15 +149,46 @@ export default function CohortDetailPage() {
       const response = await fetch(`/api/admin/cohorts/${params.id}/clickup`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope, learnerId }) });
       const data = await response.json();
       if (!response.ok) toast.error(data.error || "ClickUp synchronization failed");
-      else { await loadData(); toast.success(scope === "cohort" ? "Cohort synchronized with ClickUp" : "Learner synchronized with ClickUp"); }
+      else { void loadCohort(); toast.success(scope === "cohort" ? "Cohort synchronized with ClickUp" : "Learner synchronized with ClickUp"); }
     } finally { setSyncPending(false); }
+  };
+
+  const handleDeleteCohort = async () => {
+    const confirmed = window.confirm(
+      "This will permanently delete the cohort, mentor assignments, and clear cohort references on learners. Continue?",
+    );
+
+    if (!confirmed) return;
+    setDeletePending(true);
+
+    try {
+      const response = await fetch(`/api/admin/cohorts/${params.id}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        toast.success("Cohort deleted permanently");
+        router.push("/admin/cohorts");
+      } else {
+        toast.error(data.error || "Unable to delete cohort permanently");
+      }
+    } catch {
+      toast.error("Unable to delete cohort permanently");
+    } finally {
+      setDeletePending(false);
+    }
   };
 
   if (!cohort) return <div className="p-6">Loading...</div>;
 
   return (
     <div className="container mx-auto space-y-6 py-6">
-      <Button variant="outline" onClick={() => router.push("/admin/cohorts")}>Back to Cohorts</Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button variant="outline" onClick={() => router.push("/admin/cohorts")}>Back to Cohorts</Button>
+        <Button variant="destructive" disabled={deletePending} onClick={handleDeleteCohort}>
+          {deletePending ? "Deleting..." : "Delete Permanently"}
+        </Button>
+      </div>
       <Card>
         <CardHeader><CardTitle>ClickUp Synchronization</CardTitle><CardDescription>Keep this cohort and its learners synchronized with ClickUp.</CardDescription></CardHeader>
         <CardContent className="space-y-3">

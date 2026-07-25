@@ -84,6 +84,26 @@ export default function AdminCohortsPage() {
     }
   };
 
+  const handleDeleteCohort = async (cohort: CohortRecord) => {
+    const confirmed = window.confirm(
+      "This will permanently delete the cohort and cannot be undone. Continue?",
+    );
+
+    if (!confirmed) return;
+
+    const response = await fetch(`/api/admin/cohorts/${cohort.id}`, {
+      method: "DELETE",
+    });
+
+    const data = await response.json();
+    if (response.ok && data.success) {
+      toast.success("Cohort deleted permanently");
+      await loadCohorts();
+    } else {
+      toast.error(data.error || "Unable to delete cohort permanently");
+    }
+  };
+
   return (
     <div className="container mx-auto space-y-6 py-6">
       <div className="flex items-center justify-between">
@@ -165,6 +185,9 @@ export default function AdminCohortsPage() {
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={() => router.push(`/admin/cohorts/${cohort.id}`)}><Eye className="mr-2 h-4 w-4" />View</Button>
                       <Button variant="outline" size="sm" onClick={() => handleToggleStatus(cohort, cohort.status === "ARCHIVED" ? "ACTIVE" : "ARCHIVED")}>{cohort.status === "ARCHIVED" ? <PlayCircle className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}{cohort.status === "ARCHIVED" ? "Activate" : "Archive"}</Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteCohort(cohort)}>
+                        Delete Permanently
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
