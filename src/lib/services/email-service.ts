@@ -13,7 +13,7 @@ export interface EmailMessage {
   to: string;
   subject: string;
   html: string;
-  attachment: EmailAttachment;
+  attachment?: EmailAttachment;
 }
 
 function getTransporter() {
@@ -41,8 +41,8 @@ export async function createAndSendEmail(message: EmailMessage): Promise<string>
       toEmail: message.to,
       subject: message.subject,
       htmlBody: message.html,
-      attachmentPath: message.attachment.path,
-      attachmentName: message.attachment.filename,
+      attachmentPath: message.attachment?.path || "",
+      attachmentName: message.attachment?.filename || "",
     },
   });
 
@@ -55,17 +55,24 @@ export async function sendEmailDelivery(deliveryId: string): Promise<void> {
   if (!delivery || delivery.status === "SENT") return;
 
   try {
-    await readFile(delivery.attachmentPath);
+    const attachments = delivery.attachmentPath
+      ? [{
+          filename: delivery.attachmentName || "attachment.pdf",
+          path: delivery.attachmentPath,
+          contentType: "application/pdf",
+        }]
+      : [];
+
+    if (attachments.length > 0) {
+      await readFile(delivery.attachmentPath);
+    }
+
     await getTransporter().sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: delivery.toEmail,
       subject: delivery.subject,
       html: delivery.htmlBody,
-      attachments: [{
-        filename: delivery.attachmentName,
-        path: delivery.attachmentPath,
-        contentType: "application/pdf",
-      }],
+      ...(attachments.length > 0 ? { attachments } : {}),
     });
 
     await prisma.emailDelivery.update({

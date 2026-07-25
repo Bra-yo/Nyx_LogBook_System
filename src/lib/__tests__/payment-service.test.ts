@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildFinalAdmissionLetterPayload, buildPaymentConfirmationUpdate } from "../payment-service";
+import { buildPaymentConfirmationEmailMessage, buildPaymentConfirmationUpdate } from "../payment-service";
 
 test("buildPaymentConfirmationUpdate marks mentees as paid and active", () => {
   const update = buildPaymentConfirmationUpdate({
@@ -27,8 +27,8 @@ test("buildPaymentConfirmationUpdate leaves non-mentee roles unchanged", () => {
   assert.ok(update.paymentConfirmedAt instanceof Date);
 });
 
-test("buildFinalAdmissionLetterPayload includes login credentials and official admission details", () => {
-  const payload = buildFinalAdmissionLetterPayload({
+test("buildPaymentConfirmationEmailMessage includes login credentials and no attachment payload", () => {
+  const message = buildPaymentConfirmationEmailMessage({
     id: "user-1",
     email: "student@example.com",
     name: "Jane Doe",
@@ -42,13 +42,10 @@ test("buildFinalAdmissionLetterPayload includes login credentials and official a
     defaultPassword: "ChangeMe123",
   });
 
-  assert.equal(payload.recipientName, "Jane Doe");
-  assert.equal(payload.email, "student@example.com");
-  assert.equal(payload.registrationTrack, "Career Mentorship");
-  assert.equal(payload.loginEmail, "student@example.com");
-  assert.equal(payload.loginUsername, "student@example.com");
-  assert.equal(payload.defaultPassword, "ChangeMe123");
-  assert.equal(payload.loginUrl, "http://localhost:3000/auth/signin");
-  assert.equal(payload.isOfficialAdmission, true);
-  assert.equal(payload.paymentStatus, "PAID");
+  assert.equal(message.subject, "Official Admission to the BGhub Kenya Mentorship Programme");
+  assert.match(message.html, /student@example.com/);
+  assert.match(message.html, /ChangeMe123/);
+  assert.match(message.html, /http:\/\/localhost:3000\/auth\/signin/);
+  assert.match(message.html, /Please change your password immediately/);
+  assert.doesNotMatch(message.html, /attached for your records/);
 });
