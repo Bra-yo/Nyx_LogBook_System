@@ -15,17 +15,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const confirmation = await confirmPaymentForUser(resolvedParams.id, session.user.id);
 
-    const emailPayload = await sendPaymentConfirmedEmail(
-      confirmation.email,
-      confirmation.name,
-    );
-
     const targetedUser = await prisma.user.findUnique({
       where: { id: resolvedParams.id },
       select: {
         id: true,
         email: true,
         name: true,
+        phone: true,
         role: true,
         paymentStatus: true,
         accountStatus: true,
@@ -35,24 +31,39 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       },
     });
 
-    if (targetedUser?.role === "STUDENT" && targetedUser.registrationIdentifier) {
-      await prisma.emailDelivery.create({
-        data: {
-          userId: targetedUser.id,
-          toEmail: targetedUser.email,
-          subject: "Payment Confirmed - Your account is now active",
-          htmlBody: `<p>Hello ${targetedUser.name},</p><p>Your payment has been confirmed and your account is now active. You may log in to the platform.</p>`,
-          attachmentPath: "",
-          attachmentName: "",
-        },
-      });
+    let emailPayload = null;
+
+    if (confirmation.changed) {
+      try {
+        emailPayload = await sendPaymentConfirmedEmail({
+          id: resolvedParams.id,
+          email: targetedUser?.email || confirmation.email,
+          name: targetedUser?.name || confirmation.name,
+          phone: targetedUser?.phone,
+          role: targetedUser?.role || "STUDENT",
+          registrationIdentifier: targetedUser?.registrationIdentifier,
+          studentProfile: targetedUser?.studentProfile
+            ? {
+                mentorshipTrack: targetedUser.studentProfile.mentorshipTrack,
+                cohort: targetedUser.studentProfile.cohort,
+              }
+            : null,
+          defaultPassword: process.env.DEFAULT_USER_PASSWORD || "ChangeMe123",
+        });
+
+        if (emailPayload) {
+          console.info("Payment confirmed email queued", emailPayload);
+        }
+      } catch (error) {
+        console.error("Payment confirmation completed but final admission letter delivery failed:", error);
+      }
     }
 
-    if (emailPayload) {
-      console.info("Payment confirmed email queued", emailPayload);
-    }
-
-    return NextResponse.json({ success: true, confirmation });
+    return NextResponse.json({
+      success: true,
+      confirmation,
+      emailQueued: Boolean(emailPayload),
+    });
   } catch (error) {
     console.error("Confirm payment error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

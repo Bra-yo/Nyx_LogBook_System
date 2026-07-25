@@ -1,8 +1,8 @@
 export const BRANDING = {
-  organizationName: "BG HUB Consulting LTD",
-  systemName: "BG HUB Consulting LTD WorkLog System",
-  appName: "BG HUB WorkLog",
-  shortName: "BG HUB",
-  footerText: "© 2026 BG HUB Consulting LTD. All rights reserved.",
+  organizationName: "BGhub Kenya",
+  systemName: "BGhub Kenya WorkLog System",
+  appName: "BGhub Kenya WorkLog",
+  shortName: "BGhub Kenya",
+  footerText: "© 2026 BGhub Kenya. All rights reserved.",
   qrPrefix: "BGC_ATTENDANCE",
 };

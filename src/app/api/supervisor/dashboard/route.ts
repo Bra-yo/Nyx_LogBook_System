@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildMentorCohortLearnerWhereClause } from "@/lib/access-control";
+import { buildMentorDashboardSummary, buildMentorLearnerPerformance } from "@/lib/services/mentor-performance";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -16,7 +17,25 @@ export async function GET() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const entryWhere = { student: learnerWhere };
-  const [totalLearners, pendingReviews, approvedToday, weeklySubmissions, recentEntries] = await Promise.all([
+  const [learners, totalLearners, pendingReviews, approvedToday, weeklySubmissions, recentEntries] = await Promise.all([
+    prisma.studentProfile.findMany({
+      where: learnerWhere,
+      select: {
+        id: true,
+        createdAt: true,
+        cohort: { select: { startDate: true } },
+        attendanceRecords: { select: { status: true } },
+        Milestone: {
+          select: {
+            status: true,
+            tasks: { select: { status: true } },
+          },
+        },
+        logbookEntries: { select: { status: true } },
+        WeeklyMentorTaskReview: { select: { competencyLevel: true } },
+        ProjectLearner: { select: { id: true } },
+      },
+    }),
     prisma.studentProfile.count({ where: learnerWhere }),
     prisma.logbookEntry.count({ where: { ...entryWhere, status: "PENDING" } }),
     prisma.logbookEntry.count({ where: { ...entryWhere, status: "APPROVED", updatedAt: { gte: today } } }),
@@ -28,5 +47,21 @@ export async function GET() {
       take: 5,
     }),
   ]);
-  return NextResponse.json({ success: true, stats: { totalLearners, pendingReviews, approvedToday, weeklySubmissions }, recentEntries });
+
+  const performances = learners.map((learner) => buildMentorLearnerPerformance({
+    learner: { id: learner.id, createdAt: learner.createdAt, cohort: learner.cohort ? { startDate: learner.cohort.startDate } : null },
+    attendanceRecords: learner.attendanceRecords,
+    milestones: learner.Milestone.map((milestone) => ({ status: milestone.status })),
+    milestoneTasks: learner.Milestone.flatMap((milestone) => milestone.tasks.map((task) => ({ status: task.status }))),
+    logbookEntries: learner.logbookEntries,
+    weeklyReviews: learner.WeeklyMentorTaskReview,
+    projectLearners: learner.ProjectLearner,
+  }));
+
+  return NextResponse.json({
+    success: true,
+    stats: { totalLearners, pendingReviews, approvedToday, weeklySubmissions },
+    summary: buildMentorDashboardSummary(performances),
+    recentEntries,
+  });
 }

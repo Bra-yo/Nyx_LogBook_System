@@ -28,6 +28,17 @@ export interface ReactPdfTemplateContext {
   generatedAt: string;
 }
 
+function formatDisplayDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const day = date.getDate();
+  const ordinal = day % 100 >= 11 && day % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][day % 10] ?? "th";
+  const month = date.toLocaleDateString("en-GB", { month: "long" });
+  const year = date.getFullYear();
+  return `${day}${ordinal} ${month} ${year}`;
+}
+
 export function buildReactPdfDocument(
   documentType: SupportedDocumentType,
   payload: object,
@@ -35,12 +46,20 @@ export function buildReactPdfDocument(
   identity: ReactPdfIdentityView,
   logoDataUri?: string,
 ): ReactElement {
-  if (documentType === "PROVISIONAL_ADMISSION_LETTER") {
+  if (
+    documentType === "PROVISIONAL_ADMISSION_LETTER" ||
+    documentType === "OFFICIAL_ADMISSION_LETTER"
+  ) {
+    const admissionPayload = {
+      ...(payload as ProvisionalAdmissionLetterPayload),
+      isOfficialAdmission: documentType === "OFFICIAL_ADMISSION_LETTER",
+    };
+
     return (
       <Document>
         <Page size="A4" style={styles.page}>
           <AdmissionLetterDocument
-            payload={payload as ProvisionalAdmissionLetterPayload}
+            payload={admissionPayload as ProvisionalAdmissionLetterPayload}
             context={context}
             identity={identity}
             logoDataUri={logoDataUri}
@@ -57,8 +76,6 @@ export function buildReactPdfDocument(
           <MentorLetterDocument
             payload={payload as TechnicalMentorEngagementLetterPayload}
             context={context}
-            identity={identity}
-            logoDataUri={logoDataUri}
           />
         </Page>
       </Document>
@@ -91,15 +108,23 @@ function AdmissionLetterDocument({
   logoDataUri?: string;
 }): ReactElement {
   const validityHours = payload.registrationValidityHours ?? 24;
+  const isOfficial = payload.isOfficialAdmission ?? false;
   const reference = `BGHUB-ADM-${new Date(context.generatedAt).getFullYear()}-${context.registrationIdentifier.match(/-(\d{5})$/)?.[1] ?? "00001"}`;
+  const title = isOfficial ? "Official admission" : "Provisional admission";
+  const heroTitle = isOfficial
+    ? "Official Admission to the BGhub Kenya Mentorship Programme"
+    : "Provisional Admission to the BGhub Kenya Mentorship Programme";
+  const heroNote = isOfficial
+    ? `Issued to ${payload.recipientName} | Registration status: Confirmed`
+    : `Issued to ${payload.recipientName} | Registration status: Provisional`;
 
   return (
     <View>
-      <DocumentHeader reference={reference} date={context.generatedAt} title="Provisional admission" logoDataUri={logoDataUri} />
+      <DocumentHeader reference={reference} date={context.generatedAt} title={title} logoDataUri={logoDataUri} />
       <View style={styles.heroBlock}>
         <Text style={styles.eyebrow}>Official programme correspondence</Text>
-        <Text style={styles.heroTitle}>Provisional Admission to the BGHUB Mentorship Programme</Text>
-        <Text style={styles.heroNote}>Issued to {payload.recipientName} | Registration status: Provisional</Text>
+        <Text style={styles.heroTitle}>{heroTitle}</Text>
+        <Text style={styles.heroNote}>{heroNote}</Text>
       </View>
 
       <Section title="Recipient">
@@ -114,8 +139,16 @@ function AdmissionLetterDocument({
 
       <Section title="Admission notice">
         <Text style={styles.prose}>Dear {payload.recipientName},</Text>
-        <Text style={styles.prose}>We are pleased to inform you that your application to join the BGHUB Mentorship Programme has been provisionally accepted, subject to payment of the prescribed registration fee.</Text>
-        <Text style={styles.prose}>You have been allocated the following Provisional Registration Number, which also serves as your payment account number for registration purposes.</Text>
+        <Text style={styles.prose}>
+          {isOfficial
+            ? "We are pleased to confirm that your payment has been received and your admission to the BGhub Kenya Mentorship Programme is now complete."
+            : "We are pleased to inform you that your application to join the BGhub Kenya Mentorship Programme has been provisionally accepted, subject to payment of the prescribed registration fee."}
+        </Text>
+        <Text style={styles.prose}>
+          {isOfficial
+            ? "Your registration identifier now serves as your permanent admission reference."
+            : "You have been allocated the following Provisional Registration Number, which also serves as your payment account number for registration purposes."}
+        </Text>
       </Section>
 
       <Section title="Registration and payment">
@@ -130,23 +163,37 @@ function AdmissionLetterDocument({
         />
       </Section>
 
+      {isOfficial ? (
+        <Section title="Login credentials">
+          <InformationCard
+            fields={[
+              { label: "Login email", value: payload.loginEmail ?? payload.email },
+              { label: "Username", value: payload.loginUsername ?? payload.email },
+              { label: "Default password", value: payload.defaultPassword ?? "ChangeMe123" },
+              { label: "Login URL", value: payload.loginUrl ?? "http://localhost:3000/auth/signin" },
+            ]}
+          />
+          <Text style={styles.prose}>Use these credentials to sign in to the BGhub Kenya platform. You will be prompted to change your password immediately after your first sign-in.</Text>
+        </Section>
+      ) : null}
+
       <Section title="Payment instructions">
         <Text style={styles.prose}>Pay via M-PESA Paybill</Text>
-        <Text style={styles.prose}>Business Name: Bob Grogan Consulting Ltd</Text>
+        <Text style={styles.prose}>Business Name: BGhub Kenya</Text>
         <Text style={styles.prose}>Paybill Number: 4148891</Text>
         <Text style={styles.prose}>Account Number: Your Provisional Registration Number (Example: CM-KE-00025 or BM-KE-00018)</Text>
         <Text style={styles.prose}>Kindly ensure that the Account Number entered during payment exactly matches your provisional registration number.</Text>
         <Text style={styles.prose}>Pay via Bank</Text>
-        <Text style={styles.prose}>Business Name: Bob Grogan Consulting Ltd</Text>
+        <Text style={styles.prose}>Business Name: BGhub Kenya</Text>
         <Text style={styles.prose}>KCB Bank, Account Number 1317224973, Machakos Branch</Text>
       </Section>
 
       <Section title="Confirmation of admission">
         <Text style={styles.prose}>Upon successful receipt and verification of your registration payment:</Text>
-        <Text style={styles.listItem}>Your provisional registration number shall become your permanent BGHUB Registration Number.</Text>
+        <Text style={styles.listItem}>Your provisional registration number shall become your permanent BGhub Kenya Registration Number.</Text>
         <Text style={styles.listItem}>Your admission shall be formally confirmed.</Text>
-        <Text style={styles.listItem}>An Official Letter of Admission will be sent to your registered email address.</Text>
-        <Text style={styles.listItem}>You will receive instructions for onboarding, orientation, and access to the BGHUB Learning and Mentorship Platform.</Text>
+        <Text style={styles.listItem}>An official letter of admission will be sent to your registered email address.</Text>
+        <Text style={styles.listItem}>You will receive instructions for onboarding, orientation, and access to the BGhub Kenya Learning and Mentorship Platform.</Text>
       </Section>
 
       <Section title="Important information">
@@ -165,13 +212,9 @@ function AdmissionLetterDocument({
 function MentorLetterDocument({
   payload,
   context,
-  identity,
-  logoDataUri,
 }: {
   payload: TechnicalMentorEngagementLetterPayload;
   context: ReactPdfTemplateContext;
-  identity: ReactPdfIdentityView;
-  logoDataUri?: string;
 }): ReactElement {
   const duties = [
     "Develop competency-based curriculums for various levels of competency",
@@ -201,92 +244,105 @@ function MentorLetterDocument({
     "Contribute to continuous improvement of the mentorship programme.",
   ];
 
-  const reference = `BGHUB-ENG-${new Date(context.generatedAt).getFullYear()}-${context.registrationIdentifier.match(/-(\d{5})$/)?.[1] ?? "00001"}`;
+  const displayDate = formatDisplayDate(context.generatedAt);
+  const referenceNumber = context.registrationIdentifier;
+  const technicalAreaValue = payload.technicalArea || "Human Resource Management";
 
   return (
-    <View>
-      <DocumentHeader reference={reference} date={context.generatedAt} title="Technical mentor engagement" logoDataUri={logoDataUri} />
-      <View style={styles.heroBlock}>
-        <Text style={styles.eyebrow}>Professional engagement</Text>
-        <Text style={styles.heroTitle}>Letter of Engagement as a Technical Mentor</Text>
-        <Text style={styles.heroNote}>Issued to {payload.mentorName} | {payload.technicalArea}</Text>
+    <View style={styles.letterPage}>
+      <Text style={styles.letterHeading}>BGHUB Kenya</Text>
+      <Text style={styles.letterSubtitle}>A Division of Bob Grogan Consulting Ltd</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.prose}>Ref: {referenceNumber}</Text>
+        <Text style={styles.prose}>Date: {displayDate}</Text>
       </View>
+      <View style={styles.headerRow}>
+        <Text style={styles.prose}>To: {payload.mentorName}</Text>
+        <Text style={styles.prose}>Email: {payload.email}</Text>
+      </View>
+      <Text style={styles.prose}>RE: LETTER OF ENGAGEMENT AS A TECHNICAL MENTOR</Text>
+      <Text style={styles.prose}>Dear {payload.mentorName},</Text>
+      <Text style={styles.prose}>On behalf of Bob Grogan Consulting Ltd, I am pleased to engage you as a Technical Mentor at BGHUB Kenya, a division of Bob Grogan Consulting Ltd.</Text>
+      <Text style={styles.prose}>BGHUB exists to develop highly competent professionals through structured workplace learning, technical mentorship, research, innovation, entrepreneurship, and digital transformation. As a Technical Mentor, you will play a strategic role in nurturing talent and preparing trainees for productive careers and professional practice.</Text>
+      <Text style={styles.prose}>This letter sets out the terms and conditions of your engagement.</Text>
 
-      <Section title="Recipient">
-        <InformationCard
-          fields={[
-            { label: "Name", value: payload.mentorName },
-            { label: "Email", value: payload.email },
-            { label: "Registration number", value: context.registrationIdentifier },
-          ]}
-        />
-        <Text style={styles.prose}>Dear {payload.mentorName},</Text>
-      </Section>
+      <Text style={styles.sectionTitle}>1. Nature of Engagement</Text>
+      <Text style={styles.prose}>Your engagement is on an independent consultancy basis and shall not be construed as creating an employer-employee relationship. Nothing in this agreement shall entitle you to employee benefits unless expressly agreed in writing.</Text>
+      <Text style={styles.prose}>You shall provide mentorship services as and when assigned by BGHUB.</Text>
 
-      <Section title="Engagement statement">
-        <Text style={styles.prose}>On behalf of Bob Grogan Consulting Ltd, I am pleased to engage you as a Technical Mentor at BGHUB Kenya, a division of Bob Grogan Consulting Ltd.</Text>
-        <Text style={styles.prose}>BGHUB exists to develop highly competent professionals through structured workplace learning, technical mentorship, research, innovation, entrepreneurship, and digital transformation. As a Technical Mentor, you will play a strategic role in nurturing talent and preparing trainees for productive careers and professional practice.</Text>
-        <Text style={styles.prose}>This letter sets out the terms and conditions of your engagement.</Text>
-      </Section>
+      <Text style={styles.sectionTitle}>2. Commencement</Text>
+      <Text style={styles.prose}>This engagement shall commence on {displayDate} and shall remain in force until terminated by either party in accordance with this agreement.</Text>
 
-      <Section title="1" number="1">
-        <Text style={styles.prose}>Nature of engagement</Text>
-        <Text style={styles.prose}>Your engagement is on an independent consultancy basis and shall not be construed as creating an employer-employee relationship. Nothing in this agreement shall entitle you to employee benefits unless expressly agreed in writing.</Text>
-        <Text style={styles.prose}>You shall provide mentorship services as and when assigned by BGHUB.</Text>
-      </Section>
+      <Text style={styles.sectionTitle}>3. Purpose of the Engagement</Text>
+      <Text style={styles.prose}>The purpose of this engagement is to provide high-quality technical mentorship that equips trainees with practical competencies, professional ethics, industry exposure, and workplace readiness.</Text>
 
-      <Section title="2" number="2">
-        <Text style={styles.prose}>Commencement</Text>
-        <Text style={styles.prose}>This engagement shall commence on {context.generatedAt} and shall remain in force until terminated by either party in accordance with this agreement.</Text>
-      </Section>
+      <Text style={styles.sectionTitle}>4. Duties and Responsibilities</Text>
+      <Text style={styles.prose}>As a Technical Mentor, you shall:</Text>
+      {duties.map((duty) => (
+        <Text style={styles.listItem} key={duty}>{duty}</Text>
+      ))}
 
-      <Section title="3" number="3">
-        <Text style={styles.prose}>Purpose of the engagement</Text>
-        <Text style={styles.prose}>The purpose of this engagement is to provide high-quality technical mentorship that equips trainees with practical competencies, professional ethics, industry exposure, and workplace readiness.</Text>
-      </Section>
+      <Text style={styles.sectionTitle}>5. Areas of Technical Mentorship</Text>
+      <Text style={styles.prose}>{technicalAreaValue}</Text>
 
-      <Section title="4" number="4">
-        <Text style={styles.prose}>Duties and responsibilities</Text>
-        <Text style={styles.prose}>As a Technical Mentor, you shall:</Text>
-        {duties.map((duty) => (
-          <Text style={styles.listItem} key={duty}>{duty}</Text>
-        ))}
-      </Section>
+      <Text style={styles.sectionTitle}>6. Performance Expectations</Text>
+      {expectations.map((expectation) => (
+        <Text style={styles.listItem} key={expectation}>{expectation}</Text>
+      ))}
 
-      <Section title="5" number="5">
-        <Text style={styles.prose}>Areas of technical mentorship</Text>
-        <Text style={styles.prose}>{payload.technicalArea || "Human Resource Management"}</Text>
-      </Section>
+      <Text style={styles.sectionTitle}>7. Confidentiality</Text>
+      <Text style={styles.prose}>You shall treat all information relating to Bob Grogan Consulting Ltd, BGHUB, clients, trainees, partners, research activities, business operations, intellectual property, and financial information as confidential.</Text>
+      <Text style={styles.prose}>You shall not disclose such information without prior written authorization.</Text>
+      <Text style={styles.prose}>This obligation shall survive termination of this engagement.</Text>
 
-      <Section title="6" number="6">
-        <Text style={styles.prose}>Performance expectation</Text>
-        {expectations.map((expectation) => (
-          <Text style={styles.listItem} key={expectation}>{expectation}</Text>
-        ))}
-      </Section>
+      <Text style={styles.sectionTitle}>8. Intellectual Property</Text>
+      <Text style={styles.prose}>Any manuals, curricula, assessment tools, reports, software, templates, presentations, research outputs, training materials, or other works developed specifically for BGHUB under this engagement shall become the property of Bob Grogan Consulting Ltd unless otherwise agreed in writing.</Text>
+      <Text style={styles.prose}>You shall retain ownership of intellectual property created independently prior to this engagement.</Text>
 
-      <Section title="7" number="7">
-        <Text style={styles.prose}>Confidentiality and professional conduct</Text>
-        <Text style={styles.prose}>You shall maintain confidentiality regarding trainee information, programme materials, and proprietary information of BGHUB and Bob Grogan Consulting Ltd, except where disclosure is required by law or authorized by BGHUB.</Text>
-      </Section>
+      <Text style={styles.sectionTitle}>9. Conflict of Interest</Text>
+      <Text style={styles.prose}>You shall disclose any actual or potential conflict of interest that may affect your ability to discharge your responsibilities impartially.</Text>
 
-      <Section title="8" number="8">
-        <Text style={styles.prose}>Reporting and communication</Text>
-        <Text style={styles.prose}>You shall provide mentorship reports and updates as required by BGHUB and shall participate in programme reviews, assessments, and feedback sessions when requested.</Text>
-      </Section>
+      <Text style={styles.sectionTitle}>10. Professional Conduct</Text>
+      <Text style={styles.prose}>You agree to uphold the highest standards of Integrity, Professionalism, Respect, Accountability, Confidentiality, Non-discrimination and Ethical conduct.</Text>
+      <Text style={styles.prose}>You shall comply with all BGHUB policies, procedures, and professional standards.</Text>
 
-      <Section title="9" number="9">
-        <Text style={styles.prose}>Term and termination</Text>
-        <Text style={styles.prose}>Either party may terminate this engagement upon reasonable notice, subject to the need to protect the continuity of programme delivery and trainee welfare.</Text>
-      </Section>
+      <Text style={styles.sectionTitle}>11. Honoraria</Text>
+      <Text style={styles.prose}>BGHUB Kenya treats mentorship as a way of giving back to society. As such, technical mentorship fee is highly subsidized to ensure affordability to mentees.</Text>
+      <Text style={styles.prose}>Mentees shall be charged a technical mentorship fee based on level of competency from beginner, intermediate and advanced.</Text>
+      <Text style={styles.prose}>All mentorship assignments will be supported by Local Service Orders (LSOs) clearly stipulating the honoraria, scope of work, timelines and deliverables.</Text>
+      <Text style={styles.prose}>The mentorship fee will be shared between BGHUB Kenya and the mentor in the ratio of 20:80.</Text>
+      <Text style={styles.prose}>The amount payable to a mentor shall be subject to withholding taxes.</Text>
+      <Text style={styles.prose}>It will be the responsibility of mentors to declare and pay income taxes due to the Kenya Revenue Authority.</Text>
 
-      <Section title="10" number="10">
-        <Text style={styles.prose}>Acceptance</Text>
-        <Text style={styles.prose}>Please confirm your acceptance of this engagement by signing and returning a copy of this letter to BGHUB.</Text>
-      </Section>
+      <Text style={styles.sectionTitle}>12. Reporting Relationship</Text>
+      <Text style={styles.prose}>For all mentorship assignments, you shall report to the Director, BGHUB Kenya, or such other officer as may be designated by the Director.</Text>
 
-      <VerificationPanel identity={identity} />
-      <DocumentFooter verificationPath={context.verificationPath} />
+      <Text style={styles.sectionTitle}>13. Working Arrangements</Text>
+      <Text style={styles.prose}>Mentorship activities may be conducted physically or virtually through the BGHUB Learning Platform or partner institutions or workshops.</Text>
+
+      <Text style={styles.sectionTitle}>14. Duration and Renewal</Text>
+      <Text style={styles.prose}>This engagement shall remain valid until terminated by either party.</Text>
+      <Text style={styles.prose}>Continuation of assignments shall depend upon programme needs, availability of mentorship opportunities, your performance and compliance with BGHUB standards.</Text>
+
+      <Text style={styles.sectionTitle}>15. Termination</Text>
+      <Text style={styles.prose}>Either party may terminate this engagement by giving thirty (30) days&apos; written notice.</Text>
+      <Text style={styles.prose}>Bob Grogan Consulting Ltd reserves the right to terminate this engagement immediately in the event of gross misconduct, professional negligence, breach of confidentiality, fraud or dishonesty, conflict of interest, poor professional conduct or any act that may bring BGHUB or Bob Grogan Consulting Ltd into disrepute.</Text>
+
+      <Text style={styles.sectionTitle}>16. Governing Law</Text>
+      <Text style={styles.prose}>This engagement shall be governed by the laws of the Republic of Kenya.</Text>
+
+      <Text style={styles.sectionTitle}>17. Acceptance</Text>
+      <Text style={styles.prose}>Kindly indicate your acceptance of this engagement by signing and returning a copy of this letter.</Text>
+      <Text style={styles.prose}>We welcome you to the BGHUB Technical Mentorship Network and look forward to your contribution towards developing competent professionals who will transform organizations and strengthen health systems in Kenya and across Africa.</Text>
+
+      <Text style={styles.prose}>For: Bob Grogan Consulting Ltd</Text>
+      <Text style={styles.prose}>Name __________________________________________ Designation ____________________</Text>
+      <Text style={styles.prose}>Signature: _______________________________ Date: _______________________________</Text>
+
+      <Text style={styles.sectionTitle}>ACCEPTANCE BY THE TECHNICAL MENTOR</Text>
+      <Text style={styles.prose}>I, _______________________________________________, accept my engagement as a Technical Mentor at BGHUB Kenya, a division of Bob Grogan Consulting Ltd, on the terms and conditions contained in this Letter of Engagement.</Text>
+      <Text style={styles.prose}>Signature: __________________________________ Date: _______________________________</Text>
+      <Text style={styles.prose}>National ID/Passport No.: _______________________ Telephone: _____________________ Email _________________________________________________</Text>
     </View>
   );
 }
@@ -372,8 +428,10 @@ function VerificationPanel({ identity }: { identity: ReactPdfIdentityView }): Re
         <Text style={styles.sectionTitle}>Document verification</Text>
         <Text style={styles.identifier}>{identity.registrationIdentifier}</Text>
         <Text style={styles.prose}>Scan the QR code or visit {identity.verificationPath} to verify this document.</Text>
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
         <Image src={identity.barcodeDataUri} style={styles.barcode} />
       </View>
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <Image src={identity.qrDataUri} style={styles.qrCode} />
     </View>
   );
@@ -383,9 +441,14 @@ function DocumentHeader({ reference, date, title, logoDataUri }: { reference: st
   return (
     <View style={styles.header}>
       <View style={styles.brandArea}>
-        {logoDataUri ? <Image src={logoDataUri} style={styles.logo} /> : null}
+        {logoDataUri ? (
+          <>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={logoDataUri} style={styles.logo} />
+          </>
+        ) : null}
         <View>
-          <Text style={styles.brandName}>BGHUB Kenya</Text>
+          <Text style={styles.brandName}>BGhub Kenya</Text>
           <Text style={styles.brandSubTitle}>A division of Bob Grogan Consulting Ltd</Text>
         </View>
       </View>
@@ -401,7 +464,7 @@ function DocumentHeader({ reference, date, title, logoDataUri }: { reference: st
 function DocumentFooter({ verificationPath }: { verificationPath: string }): ReactElement {
   return (
     <View style={styles.footer}>
-      <Text style={styles.footerText}>BGHUB Kenya | Bob Grogan Consulting Ltd</Text>
+      <Text style={styles.footerText}>BGhub Kenya | Bob Grogan Consulting Ltd</Text>
       <Text style={styles.footerText}>Verify: {verificationPath}</Text>
     </View>
   );
@@ -484,6 +547,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#cbd5e1",
     borderRadius: 6,
+  },
+  letterPage: {
+    padding: 10,
+    backgroundColor: "#ffffff",
+  },
+  letterHeading: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#0f172a",
+    marginBottom: 2,
+  },
+  letterSubtitle: {
+    fontSize: 10,
+    color: "#475569",
+    marginBottom: 8,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
   sectionTitle: {
     fontSize: 12,

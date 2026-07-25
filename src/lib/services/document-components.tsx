@@ -10,10 +10,10 @@ export interface DocumentIdentityView {
 export interface DocumentField { label: string; value: string; }
 
 export function Header({ reference, date, title, logoDataUri }: { reference: string; date: string; title: string; logoDataUri?: string }): ReactNode {
-  return <header className="document-header"><div className="brand">{logoDataUri ? <img src={logoDataUri} alt="" /> : null}<div><p className="brand-name">BGHUB Kenya</p><p className="brand-subtitle">A division of Bob Grogan Consulting Ltd</p></div></div><div className="header-meta"><strong>{reference}</strong>{date}<br />{title}</div></header>;
+  return <header className="document-header"><div className="brand">{logoDataUri ? <img src={logoDataUri} alt="" /> : null}<div><p className="brand-name">BGhub Kenya</p><p className="brand-subtitle">A division of Bob Grogan Consulting Ltd</p></div></div><div className="header-meta"><strong>{reference}</strong>{date}<br />{title}</div></header>;
 }
 
-export function Footer({ verificationPath }: { verificationPath: string }): ReactNode { return <footer className="document-footer"><span>BGHUB Kenya | Bob Grogan Consulting Ltd</span><span>Verify: {verificationPath}</span></footer>; }
+export function Footer({ verificationPath }: { verificationPath: string }): ReactNode { return <footer className="document-footer"><span>BGhub Kenya | Bob Grogan Consulting Ltd</span><span>Verify: {verificationPath}</span></footer>; }
 
 export function InformationCard({ fields }: { fields: DocumentField[] }): ReactNode { return <div className="information-card"><div className="information-grid">{fields.map((field) => <div key={field.label}><span className="field-label">{field.label}</span><span className="field-value">{field.value}</span></div>)}</div></div>; }
 

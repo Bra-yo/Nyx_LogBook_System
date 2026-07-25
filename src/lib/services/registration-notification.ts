@@ -50,7 +50,7 @@ export async function sendRegistrationNotification(user: RegisteredUser): Promis
       await createAndSendEmail({
         userId: user.id,
         to: user.email,
-        subject: "Provisional Admission to the BG HUB Mentorship Programme",
+        subject: "Provisional Admission to the BGhub Kenya Mentorship Programme",
         html: menteeEmail(user.name, user.registrationIdentifier, track, cohort),
         attachment: { filename: document.fileName, path: document.filePath, contentType: "application/pdf" },
       });
@@ -72,7 +72,7 @@ export async function sendRegistrationNotification(user: RegisteredUser): Promis
       await createAndSendEmail({
         userId: user.id,
         to: user.email,
-        subject: "Letter of Engagement – BG HUB Technical Mentor",
+        subject: "Letter of Engagement – BGhub Kenya Technical Mentor",
         html: mentorEmail(user.name, technicalArea, cohorts, user.registrationIdentifier),
         attachment: { filename: document.fileName, path: document.filePath, contentType: "application/pdf" },
       });
@@ -83,13 +83,13 @@ export async function sendRegistrationNotification(user: RegisteredUser): Promis
 }
 
 function layout(title: string, content: string): string {
-  return `<div style="font-family:Helvetica;line-height:1.6;color:#172033;max-width:640px"><h2>${title}</h2>${content}<p>For assistance, contact ${CONTACT_EMAIL} or ${CONTACT_PHONE}.</p><p>Regards,<br>BG HUB Consulting LTD</p></div>`;
+  return `<div style="font-family:Helvetica;line-height:1.6;color:#172033;max-width:640px"><h2>${title}</h2>${content}<p>For assistance, contact ${CONTACT_EMAIL} or ${CONTACT_PHONE}.</p><p>Regards,<br>BGhub Kenya</p></div>`;
 }
 
 function menteeEmail(name: string, identifier: string, track: string, cohort: string): string {
-  return layout("Welcome to the BG HUB Mentorship Programme", `<p>Dear ${escapeHtml(name)},</p><p>Welcome. Your provisional registration has been successfully completed.</p><ul><li><strong>Registration Identifier:</strong> ${escapeHtml(identifier)}</li><li><strong>Mentorship Track:</strong> ${escapeHtml(track)}</li><li><strong>Assigned Cohort:</strong> ${escapeHtml(cohort)}</li></ul><p>Your provisional registration is valid for 24 hours. Please complete the required programme payment within this period using the payment instructions provided by BG HUB. Your registration becomes permanent after payment confirmation.</p><p>Your provisional admission letter is attached for your records.</p>`);
+  return layout("Welcome to the BGhub Kenya Mentorship Programme", `<p>Dear ${escapeHtml(name)},</p><p>Welcome. Your provisional registration has been successfully completed.</p><ul><li><strong>Registration Identifier:</strong> ${escapeHtml(identifier)}</li><li><strong>Mentorship Track:</strong> ${escapeHtml(track)}</li><li><strong>Assigned Cohort:</strong> ${escapeHtml(cohort)}</li></ul><p>Your provisional registration is valid for 24 hours. Please complete the required programme payment within this period using the payment instructions provided by BGhub Kenya. Your registration becomes permanent after payment confirmation.</p><p>Your provisional admission letter is attached for your records.</p>`);
 }
 
 function mentorEmail(name: string, technicalArea: string, cohorts: string, identifier: string): string {
-  return layout("Welcome as a BG HUB Technical Mentor", `<p>Dear ${escapeHtml(name)},</p><p>Welcome to the BG HUB Mentorship Programme. We are pleased to confirm your technical mentor registration.</p><ul><li><strong>Technical Area:</strong> ${escapeHtml(technicalArea)}</li><li><strong>Assigned Cohort(s):</strong> ${escapeHtml(cohorts)}</li><li><strong>Registration Identifier:</strong> ${escapeHtml(identifier)}</li></ul><p>Your official engagement letter is attached for your records.</p>`);
+  return layout("Welcome as a BGhub Kenya Technical Mentor", `<p>Dear ${escapeHtml(name)},</p><p>Welcome to the BGhub Kenya Mentorship Programme. We are pleased to confirm your technical mentor registration.</p><ul><li><strong>Technical Area:</strong> ${escapeHtml(technicalArea)}</li><li><strong>Assigned Cohort(s):</strong> ${escapeHtml(cohorts)}</li><li><strong>Registration Identifier:</strong> ${escapeHtml(identifier)}</li></ul><p>Your official engagement letter is attached for your records.</p>`);
 }

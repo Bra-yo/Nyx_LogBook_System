@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
   Card,
@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,11 +16,10 @@ import {
   Search,
   Mail,
   Building,
-  Calendar,
-  MapPin,
-  BookOpen,
+  UserRound,
 } from "lucide-react";
 import Link from "next/link";
+import { RiskBadge } from "@/components/supervisor/mentorship-performance-card";
 
 interface Student {
   id: string;
@@ -43,7 +41,7 @@ interface Student {
     name: string;
     code: string;
   };
-  cohort?: { id: string; name: string; code: string; status: string };
+  cohort?: { id: string; name: string; code: string; status: string; mentorshipTrack?: string | null };
   supervisor?: {
     user: {
       name: string;
@@ -53,6 +51,14 @@ interface Student {
     user: {
       name: string;
     };
+  };
+  performance?: {
+    attendancePercentage: number;
+    taskCompletionPercentage: number;
+    worklogCompletionPercentage: number;
+    competencyProgressPercentage: number;
+    overallProgress: number;
+    riskStatus: string;
   };
   _count: {
     logbookEntries: number;
@@ -64,54 +70,69 @@ export default function SupervisorStudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [sort, setSort] = useState("name");
   const [cohortFilter, setCohortFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const fetchStudents = async () => {
-    try {
-      const response = await fetch("/api/supervisor/students?limit=100");
-      if (response.ok) {
-        const data = await response.json();
-        setStudents(data.students || []);
-      } else {
-        console.error("Failed to fetch students:", response.status);
-      }
-    } catch (error) {
-      console.error("Error fetching students:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    void fetchStudents();
+    let isMounted = true;
+
+    const loadStudents = async () => {
+      try {
+        const response = await fetch("/api/supervisor/students?limit=100");
+        if (response.ok) {
+          const data = await response.json();
+          if (isMounted) {
+            setStudents(data.students || []);
+          }
+        } else {
+          console.error("Failed to fetch students:", response.status);
+        }
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadStudents();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  useEffect(() => {
-    if (students.length > 0) {
-      const search = searchTerm.toLowerCase();
-      const filtered = students.filter(
-        (student) =>
+  const filteredStudents = useMemo(() => {
+    const search = searchTerm.toLowerCase();
+    return students
+      .filter((student) => {
+        const departmentName = student.department?.name.toLowerCase() || "";
+        return (
           student.user.name.toLowerCase().includes(search) ||
           student.user.email.toLowerCase().includes(search) ||
           student.regNumber.toLowerCase().includes(search) ||
-          student.department?.name.toLowerCase().includes(search),
-      ).filter((student) => cohortFilter === "all" || student.cohort?.id === cohortFilter)
-        .filter((student) => statusFilter === "all" || student.user.accountStatus === statusFilter)
-        .sort((left, right) => {
-          if (sort === "cohort") return (left.cohort?.name || "").localeCompare(right.cohort?.name || "");
-          if (sort === "progress") return (right._count.logbookEntries + right._count.attendanceRecords) - (left._count.logbookEntries + left._count.attendanceRecords);
-          return left.user.name.localeCompare(right.user.name);
-        });
-      setFilteredStudents(filtered);
-    } else {
-      setFilteredStudents([]);
-    }
-  }, [searchTerm, students, cohortFilter, statusFilter, sort]);
+          departmentName.includes(search)
+        );
+      })
+      .filter((student) => cohortFilter === "all" || student.cohort?.id === cohortFilter)
+      .filter((student) => statusFilter === "all" || student.user.accountStatus === statusFilter)
+      .sort((left, right) => {
+        if (sort === "cohort") {
+          return (left.cohort?.name || "").localeCompare(right.cohort?.name || "");
+        }
+        if (sort === "progress") {
+          return (right._count.logbookEntries + right._count.attendanceRecords) - (left._count.logbookEntries + left._count.attendanceRecords);
+        }
+        return left.user.name.localeCompare(right.user.name);
+      });
+  }, [cohortFilter, searchTerm, sort, statusFilter, students]);
 
-  const cohorts = Array.from(new Map(students.filter((student) => student.cohort).map((student) => [student.cohort!.id, student.cohort!])).values());
+  const cohorts = useMemo(
+    () => Array.from(new Map(students.filter((student) => student.cohort).map((student) => [student.cohort!.id, student.cohort!])).values()),
+    [students],
+  );
 
   if (loading) {
     return (
@@ -165,7 +186,6 @@ export default function SupervisorStudentsPage() {
           <select value={sort} onChange={(event) => setSort(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm"><option value="name">Sort: Name</option><option value="cohort">Sort: Cohort</option><option value="progress">Sort: Progress</option></select>
         </div>
 
-        {/* Students List */}
         {filteredStudents.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
@@ -183,114 +203,66 @@ export default function SupervisorStudentsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-2">
             {filteredStudents.map((student) => (
-              <Link key={student.id} href={`/supervisor/learners/${student.id}`} className="block"><Card className="transition-shadow hover:shadow-md">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Users className="h-4 w-4 text-primary" />
+              <Link key={student.id} href={`/supervisor/learners/${student.id}`} className="block">
+                <Card className="transition-shadow hover:shadow-md">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                          <UserRound className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">{student.user.name}</CardTitle>
+                          <CardDescription className="text-sm">{student.regNumber}</CardDescription>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-lg">
-                          {student.user.name}
-                        </CardTitle>
-                        <CardDescription className="text-sm">
-                          {student.regNumber}
-                        </CardDescription>
+                      {student.performance ? <RiskBadge status={student.performance.riskStatus} /> : null}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Badge variant="secondary">{student.cohort?.name || "No cohort"}</Badge>
+                      <Badge variant="outline">{student.cohort?.mentorshipTrack || "Track pending"}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        <span className="truncate">{student.user.email}</span>
                       </div>
+                      {student.department ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Building className="h-4 w-4" />
+                          <span>{student.department.name}</span>
+                        </div>
+                      ) : null}
                     </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2"><Badge variant="secondary">{student.cohort?.name || "No cohort"}</Badge><Badge variant="outline">{student.user.accountStatus}</Badge></div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {/* Contact Info */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="h-4 w-4" />
-                    <span className="truncate">{student.user.email}</span>
-                  </div>
-
-                  {/* Department */}
-                  {student.department && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Building className="h-4 w-4" />
-                      <span>
-                        {student.department.name} ({student.department.code})
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Academic Info */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <BookOpen className="h-4 w-4" />
-                    <span>
-                      Year {student.year}, Semester {student.semester}
-                    </span>
-                  </div>
-
-                  {/* Internship Info */}
-                  {student.internshipCompany && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      <span>{student.internshipCompany}</span>
-                    </div>
-                  )}
-
-                  {/* Internship Dates */}
-                  {student.internshipStartDate && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        {new Date(
-                          student.internshipStartDate,
-                        ).toLocaleDateString()}{" "}
-                        -
-                        {student.internshipEndDate
-                          ? new Date(
-                              student.internshipEndDate,
-                            ).toLocaleDateString()
-                          : "Present"}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Stats */}
-                  <div className="flex gap-4 pt-2 border-t">
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-primary">
-                        {student._count.logbookEntries}
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="rounded border p-3">
+                        <p className="text-xs uppercase text-muted-foreground">Attendance</p>
+                        <p className="mt-1 text-lg font-semibold">{student.performance?.attendancePercentage ?? 0}%</p>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Entries
+                      <div className="rounded border p-3">
+                        <p className="text-xs uppercase text-muted-foreground">Tasks</p>
+                        <p className="mt-1 text-lg font-semibold">{student.performance?.taskCompletionPercentage ?? 0}%</p>
+                      </div>
+                      <div className="rounded border p-3">
+                        <p className="text-xs uppercase text-muted-foreground">Worklogs</p>
+                        <p className="mt-1 text-lg font-semibold">{student.performance?.worklogCompletionPercentage ?? 0}%</p>
+                      </div>
+                      <div className="rounded border p-3">
+                        <p className="text-xs uppercase text-muted-foreground">Competency</p>
+                        <p className="mt-1 text-lg font-semibold">{student.performance?.competencyProgressPercentage ?? 0}%</p>
                       </div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-primary">
-                        {student._count.attendanceRecords}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Attendance
-                      </div>
+                    <div className="flex items-center justify-between border-t pt-2 text-sm text-muted-foreground">
+                      <span>Overall progress {student.performance?.overallProgress ?? 0}%</span>
+                      <span>{student.user.accountStatus}</span>
                     </div>
-                  </div>
-
-                  {/* Supervisor Info */}
-                  {student.supervisor && (
-                    <div className="text-xs text-muted-foreground pt-2 border-t">
-                      <strong>Supervisor:</strong>{" "}
-                      {student.supervisor.user.name}
-                    </div>
-                  )}
-
-                  {/* Lecturer Info */}
-                  {student.lecturer && (
-                    <div className="text-xs text-muted-foreground">
-                      <strong>Lecturer:</strong> {student.lecturer.user.name}
-                    </div>
-                  )}
-                </CardContent>
-              </Card></Link>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         )}

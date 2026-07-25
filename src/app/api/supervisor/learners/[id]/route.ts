@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { buildMentorCohortLearnerWhereClause } from "@/lib/access-control";
 import { DocumentIdentityService } from "@/lib/services/document-identity";
 import { buildLearnerProgress } from "@/lib/services/learner-progress";
+import { buildMentorLearnerPerformance } from "@/lib/services/mentor-performance";
 
 export async function GET(
   _request: Request,
@@ -43,7 +44,17 @@ export async function GET(
         },
       },
       department: { select: { id: true, name: true, code: true } },
-      cohort: { select: { id: true, name: true, code: true, mentorshipTrack: true, status: true } },
+      cohort: { select: { id: true, name: true, code: true, mentorshipTrack: true, status: true, startDate: true } },
+      attendanceRecords: { select: { status: true } },
+      Milestone: {
+        select: {
+          status: true,
+          tasks: { select: { status: true } },
+        },
+      },
+      logbookEntries: { select: { status: true } },
+      WeeklyMentorTaskReview: { select: { competencyLevel: true } },
+      ProjectLearner: { select: { id: true } },
       _count: {
         select: {
           logbookEntries: true,
@@ -85,11 +96,22 @@ export async function GET(
     }
   }
 
+  const performance = buildMentorLearnerPerformance({
+    learner: { id: learner.id, createdAt: learner.user.createdAt, cohort: learner.cohort ? { startDate: learner.cohort.startDate } : null },
+    attendanceRecords: learner.attendanceRecords,
+    milestones: learner.Milestone.map((milestone) => ({ status: milestone.status })),
+    milestoneTasks: learner.Milestone.flatMap((milestone) => milestone.tasks.map((task) => ({ status: task.status }))),
+    logbookEntries: learner.logbookEntries,
+    weeklyReviews: learner.WeeklyMentorTaskReview,
+    projectLearners: learner.ProjectLearner,
+  });
+
   return NextResponse.json({
     success: true,
     learner: {
       ...learner,
       progress: { ...buildLearnerProgress(learner.user, learner._count), approvedSubmissions },
+      performance,
       submissions,
       documents: {
         admissionLetter: Boolean(learner.user.registrationIdentifier),

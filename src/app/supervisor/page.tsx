@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { TimeGreeting } from "@/components/common/time-greeting";
@@ -18,69 +18,112 @@ import {
   FileText,
   Clock,
   CheckCircle,
-  AlertCircle,
   Eye,
   Folder,
   Plus,
   TrendingUp,
+  CalendarDays,
+  AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
-import { getLogbookDisplayStatus } from "@/lib/logbook-status";
+import { MetricCard, ProgressMeter, RiskBadge } from "@/components/supervisor/mentorship-performance-card";
+import { type MentorDashboardSummary } from "@/lib/services/mentor-performance";
+
+interface DashboardStats {
+  totalStudents: number;
+  pendingReviews: number;
+  approvedToday: number;
+  weeklySubmissions: number;
+}
+
+interface RecentActivityItem {
+  id: string;
+  studentName: string;
+  entryTitle: string;
+  status: string;
+  submittedAt: string;
+}
+
+interface DashboardApiResponse {
+  stats?: {
+    totalLearners?: number;
+    pendingReviews?: number;
+    approvedToday?: number;
+    weeklySubmissions?: number;
+  };
+  summary?: MentorDashboardSummary;
+  recentEntries?: Array<{
+    id: string;
+    title: string;
+    status?: string | null;
+    createdAt: string;
+    student: {
+      user: {
+        name: string;
+      };
+    };
+  }>;
+}
 
 export default function SupervisorDashboard() {
   const { data: session } = useSession();
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     pendingReviews: 0,
     approvedToday: 0,
     weeklySubmissions: 0,
   });
 
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [cohorts, setCohorts] = useState<any[]>([]);
+  const [dashboardSummary, setDashboardSummary] = useState<MentorDashboardSummary | null>(null);
+  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchDashboardData = async () => {
-    try {
-      const [dashboardResponse, cohortsResponse] = await Promise.all([
-        fetch("/api/supervisor/dashboard"),
-        fetch("/api/supervisor/cohorts"),
-      ]);
-
-      if (cohortsResponse.ok) {
-        const cohortsData = await cohortsResponse.json();
-        setCohorts(cohortsData.cohorts || []);
-      }
-
-      if (dashboardResponse.ok) {
-        const dashboardData = await dashboardResponse.json();
-        setStats((prev) => ({
-          ...prev,
-          totalStudents: dashboardData.stats?.totalLearners || 0,
-          pendingReviews: dashboardData.stats?.pendingReviews || 0,
-          approvedToday: dashboardData.stats?.approvedToday || 0,
-          weeklySubmissions: dashboardData.stats?.weeklySubmissions || 0,
-        }));
-
-        setRecentActivity(
-          (dashboardData.recentEntries || []).map((entry: any) => ({
-            id: entry.id,
-            studentName: entry.student.user.name,
-            entryTitle: entry.title,
-            status: getLogbookDisplayStatus(entry).toLowerCase(),
-            submittedAt: new Date(entry.createdAt).toLocaleDateString(),
-          })),
-        );
-      }
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    void fetchDashboardData();
+    let isMounted = true;
+
+    const loadDashboardData = async () => {
+      try {
+        const dashboardResponse = await fetch("/api/supervisor/dashboard");
+
+        if (dashboardResponse.ok) {
+          const dashboardData = (await dashboardResponse.json()) as DashboardApiResponse;
+          if (!isMounted) {
+            return;
+          }
+
+          setStats({
+            totalStudents: dashboardData.stats?.totalLearners || 0,
+            pendingReviews: dashboardData.stats?.pendingReviews || 0,
+            approvedToday: dashboardData.stats?.approvedToday || 0,
+            weeklySubmissions: dashboardData.stats?.weeklySubmissions || 0,
+          });
+
+          setDashboardSummary(dashboardData.summary || null);
+          setRecentActivity(
+            (dashboardData.recentEntries || []).map((entry) => ({
+              id: entry.id,
+              studentName: entry.student.user.name,
+              entryTitle: entry.title,
+              status: entry.status?.toLowerCase() || "pending",
+              submittedAt: new Date(entry.createdAt).toLocaleDateString(),
+            })),
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (loading) {
@@ -108,112 +151,95 @@ export default function SupervisorDashboard() {
     <DashboardLayout title="Mentor Dashboard">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <TimeGreeting userName={session?.user?.name} />
             <p className="text-muted-foreground">
-              Review and manage learner work records
+              Monitor mentee growth, identify risk early, and keep mentorship sessions on track.
             </p>
           </div>
-          <Link href="/supervisor/review">
-            <Button>
-              <Eye className="mr-2 h-4 w-4" />
-              Review Pending Learner Entries
-            </Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/supervisor/review">
+              <Button>
+                <Eye className="mr-2 h-4 w-4" />
+                Review Pending Entries
+              </Button>
+            </Link>
+            <Link href="/supervisor/students">
+              <Button variant="outline">
+                <Users className="mr-2 h-4 w-4" />
+                View Mentees
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Learners
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalStudents}</div>
-              <p className="text-xs text-muted-foreground">Assigned Learners</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Pending Reviews
-              </CardTitle>
-              <Clock className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">
-                {stats.pendingReviews}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Awaiting your review
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Approved Today
-              </CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {stats.approvedToday}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Entries reviewed today
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Weekly Submissions
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.weeklySubmissions}
-              </div>
-              <p className="text-xs text-muted-foreground">This week's total</p>
-            </CardContent>
-          </Card>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard title="Total Assigned Mentees" value={dashboardSummary?.totalAssignedMentees ?? stats.totalStudents} subtitle="Learners aligned to your mentorship" icon={<Users className="h-4 w-4" />} />
+          <MetricCard title="Active Mentees" value={dashboardSummary?.activeMentees ?? 0} subtitle="Progressing above the threshold" icon={<ShieldCheck className="h-4 w-4" />} tone="success" />
+          <MetricCard title="Upcoming Sessions" value={dashboardSummary?.upcomingMentorshipSessions ?? 0} subtitle="Planned mentorship touchpoints" icon={<CalendarDays className="h-4 w-4" />} />
+          <MetricCard title="Pending Reviews" value={dashboardSummary?.pendingReviews ?? stats.pendingReviews} subtitle="Awaiting your attention" icon={<Clock className="h-4 w-4" />} tone="warning" />
         </div>
 
-        {/* Recent Activity & Quick Actions */}
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard title="Average Attendance" value={`${dashboardSummary?.averageAttendance ?? 0}%`} subtitle="Attendance performance" icon={<CheckCircle className="h-4 w-4" />} />
+          <MetricCard title="Average Task Completion" value={`${dashboardSummary?.averageTaskCompletion ?? 0}%`} subtitle="Task completion across mentees" icon={<FileText className="h-4 w-4" />} />
+          <MetricCard title="Average Worklog Completion" value={`${dashboardSummary?.averageWorklogCompletion ?? 0}%`} subtitle="Worklogs submitted" icon={<TrendingUp className="h-4 w-4" />} />
+          <MetricCard title="Overall Progress" value={`${dashboardSummary?.overallProgressAverage ?? 0}%`} subtitle="Mentorship health index" icon={<AlertTriangle className="h-4 w-4" />} tone="success" />
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <Card>
             <CardHeader>
-              <CardTitle>My Cohorts</CardTitle>
-              <CardDescription>View your assigned cohorts and their mentees.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Mentorship Health Snapshot</CardTitle>
+                  <CardDescription>Colour-coded indicators for support, progress, and intervention needs.</CardDescription>
+                </div>
+                <Badge variant="secondary">Live indicators</Badge>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {cohorts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No cohorts assigned yet.</p>
-              ) : (
-                cohorts.map((cohort: any) => (
-                  <div key={cohort.id} className="rounded-lg border p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{cohort.name}</p>
-                        <p className="text-sm text-muted-foreground">{cohort.code}</p>
+              {dashboardSummary ? (
+                <>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-lg border p-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Average Programme Progress</p>
+                        <RiskBadge status={dashboardSummary.averageAttendance >= 70 ? "GREEN" : dashboardSummary.averageAttendance >= 50 ? "AMBER" : "RED"} />
                       </div>
-                      <Badge variant="secondary">{cohort.status}</Badge>
+                      <div className="mt-3">
+                        <ProgressMeter label="Overall progress" value={dashboardSummary.overallProgressAverage} tone={dashboardSummary.overallProgressAverage >= 70 ? "success" : dashboardSummary.overallProgressAverage >= 50 ? "warning" : "danger"} />
+                      </div>
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
-                      <span>Total Mentees: {cohort._count?.members ?? 0}</span>
-                      <span>Active Mentees: {cohort.members?.filter((member: any) => member.user)?.length ?? 0}</span>
+                    <div className="rounded-lg border p-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Needs follow-up</p>
+                        <Badge variant="outline">{Math.max(0, stats.totalStudents - (dashboardSummary.activeMentees || 0))} learners</Badge>
+                      </div>
+                      <p className="mt-3 text-sm text-muted-foreground">Mentorship risk is automatically derived from attendance, task completion, worklogs, and competency pace.</p>
                     </div>
                   </div>
-                ))
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <p className="text-sm font-medium">Mentorship signals</p>
+                    <div className="mt-3 grid gap-3 md:grid-cols-3">
+                      <div className="rounded border bg-background p-3">
+                        <p className="text-xs uppercase text-muted-foreground">Attendance</p>
+                        <p className="mt-1 text-xl font-semibold">{dashboardSummary.averageAttendance}%</p>
+                      </div>
+                      <div className="rounded border bg-background p-3">
+                        <p className="text-xs uppercase text-muted-foreground">Tasks</p>
+                        <p className="mt-1 text-xl font-semibold">{dashboardSummary.averageTaskCompletion}%</p>
+                      </div>
+                      <div className="rounded border bg-background p-3">
+                        <p className="text-xs uppercase text-muted-foreground">Worklogs</p>
+                        <p className="mt-1 text-xl font-semibold">{dashboardSummary.averageWorklogCompletion}%</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Loading mentorship insights…</p>
               )}
             </CardContent>
           </Card>
@@ -221,39 +247,24 @@ export default function SupervisorDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Recent Submissions</CardTitle>
-              <CardDescription>Latest learner work records</CardDescription>
+              <CardDescription>Latest learner records requiring attention</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {recentActivity.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600">No recent activity found.</p>
+                  <div className="rounded border border-dashed p-6 text-center text-sm text-muted-foreground">
+                    No recent activity found.
                   </div>
                 ) : (
-                  recentActivity.map((activity: any) => (
-                    <div
-                      key={activity.id}
-                      className="flex items-center space-x-4"
-                    >
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          activity.status === "approved"
-                            ? "bg-green-500"
-                            : activity.status === "pending"
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                        }`}
-                      />
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium">
-                          {activity.studentName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {activity.entryTitle}
-                        </p>
+                  recentActivity.map((activity) => (
+                    <div key={activity.id} className="flex items-start justify-between gap-3 rounded-lg border p-3">
+                      <div>
+                        <p className="text-sm font-medium">{activity.studentName}</p>
+                        <p className="text-xs text-muted-foreground">{activity.entryTitle}</p>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {activity.submittedAt}
+                      <div className="text-right">
+                        <Badge variant={activity.status === "approved" ? "secondary" : activity.status === "pending" ? "outline" : "destructive"}>{activity.status}</Badge>
+                        <p className="mt-1 text-xs text-muted-foreground">{activity.submittedAt}</p>
                       </div>
                     </div>
                   ))
@@ -261,42 +272,42 @@ export default function SupervisorDashboard() {
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common mentor tasks</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Link href="/supervisor/projects">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Folder className="mr-2 h-4 w-4" />
-                    Manage Projects
-                  </Button>
-                </Link>
-                <Link href="/supervisor/projects/new">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Project
-                  </Button>
-                </Link>
-                <Link href="/supervisor/students">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Users className="mr-2 h-4 w-4" />
-                    View All Learners
-                  </Button>
-                </Link>
-                <Link href="/supervisor/review">
-                  <Button variant="outline" className="w-full justify-start">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Review Pending Learner Entries
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Move quickly from overview to mentorship follow-up.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <Link href="/supervisor/projects">
+                <Button variant="outline" className="w-full justify-start">
+                  <Folder className="mr-2 h-4 w-4" />
+                  Manage Projects
+                </Button>
+              </Link>
+              <Link href="/supervisor/projects/new">
+                <Button variant="outline" className="w-full justify-start">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Project
+                </Button>
+              </Link>
+              <Link href="/supervisor/students">
+                <Button variant="outline" className="w-full justify-start">
+                  <Users className="mr-2 h-4 w-4" />
+                  View All Learners
+                </Button>
+              </Link>
+              <Link href="/supervisor/review">
+                <Button variant="outline" className="w-full justify-start">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Review Pending Entries
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

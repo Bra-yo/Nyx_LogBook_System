@@ -3,19 +3,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { buildMentorCohortLearnerWhereClause } from '@/lib/access-control'
-
-const querySchema = {
-  page: 1,
-  limit: 10,
-  search: undefined as string | undefined,
-  departmentId: undefined as string | undefined
-}
+import { buildMentorLearnerPerformance } from '@/lib/services/mentor-performance'
 
 // GET - Fetch all students for supervisor
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.role || session.user.role !== 'SUPERVISOR') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -37,7 +31,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build base filters for supervisor students queries
-    const where: any = buildMentorCohortLearnerWhereClause(supervisor.id)
+    const where = buildMentorCohortLearnerWhereClause(supervisor.id) as Record<string, unknown>
 
     if (search) {
       where.OR = [
@@ -96,6 +90,8 @@ export async function GET(request: NextRequest) {
             name: true,
             code: true,
             status: true,
+            mentorshipTrack: true,
+            startDate: true,
           },
         },
         supervisor: {
@@ -116,6 +112,16 @@ export async function GET(request: NextRequest) {
             }
           }
         },
+        attendanceRecords: { select: { status: true } },
+        Milestone: {
+          select: {
+            status: true,
+            tasks: { select: { status: true } },
+          },
+        },
+        logbookEntries: { select: { status: true } },
+        WeeklyMentorTaskReview: { select: { competencyLevel: true } },
+        ProjectLearner: { select: { id: true } },
         _count: {
           select: {
             logbookEntries: true,
@@ -129,7 +135,18 @@ export async function GET(request: NextRequest) {
     })
 
     const total = students.length
-    const pagedStudents = students.slice(skip, skip + limit)
+    const pagedStudents = students.map((student) => ({
+      ...student,
+      performance: buildMentorLearnerPerformance({
+        learner: { id: student.id, createdAt: student.createdAt, cohort: student.cohort ? { startDate: student.cohort.startDate } : null },
+        attendanceRecords: student.attendanceRecords,
+        milestones: student.Milestone.map((milestone) => ({ status: milestone.status })),
+        milestoneTasks: student.Milestone.flatMap((milestone) => milestone.tasks.map((task) => ({ status: task.status }))),
+        logbookEntries: student.logbookEntries,
+        weeklyReviews: student.WeeklyMentorTaskReview,
+        projectLearners: student.ProjectLearner,
+      }),
+    })).slice(skip, skip + limit)
 
     return NextResponse.json({
       success: true,

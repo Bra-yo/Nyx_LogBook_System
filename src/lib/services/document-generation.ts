@@ -10,6 +10,7 @@ import {
 
 export type SupportedDocumentType =
   | "PROVISIONAL_ADMISSION_LETTER"
+  | "OFFICIAL_ADMISSION_LETTER"
   | "TECHNICAL_MENTOR_ENGAGEMENT_LETTER"
   | "MENTEE_PROFILE";
 
@@ -32,6 +33,12 @@ export interface ProvisionalAdmissionLetterPayload {
   registrationStatus?: string;
   paymentStatus?: string;
   registrationValidityHours?: number;
+  loginEmail?: string;
+  loginUsername?: string;
+  defaultPassword?: string;
+  loginUrl?: string;
+  isOfficialAdmission?: boolean;
+  officialAdmissionIssuedAt?: string;
 }
 
 export interface TechnicalMentorEngagementLetterPayload {
@@ -181,7 +188,8 @@ export class DocumentGenerationService {
       : new Date().getFullYear();
 
     const docCode =
-      input.documentType === "PROVISIONAL_ADMISSION_LETTER"
+      input.documentType === "PROVISIONAL_ADMISSION_LETTER" ||
+      input.documentType === "OFFICIAL_ADMISSION_LETTER"
         ? "ADM"
         : input.documentType === "TECHNICAL_MENTOR_ENGAGEMENT_LETTER"
           ? "ENG"
