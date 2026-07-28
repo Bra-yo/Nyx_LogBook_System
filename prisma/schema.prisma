@@ -52,6 +52,61 @@ model Session {
   @@map("sessions")
 }
 
+enum LearningStatus {
+  ACTIVE
+  INACTIVE
+
+  @@map("learning_status")
+}
+
+enum CompetencyDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+
+  @@map("competency_difficulty")
+}
+
+/// Represents an academic learning area that groups related competencies and conceptually extends the existing department structure.
+model LearningArea {
+  id           String         @id @default(cuid())
+  name         String         @unique
+  code         String         @unique
+  description  String?
+  status       LearningStatus @default(ACTIVE)
+  sortOrder    Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  competencies Competency[]
+
+  @@index([status])
+  @@index([sortOrder])
+  @@map("learning_areas")
+}
+
+/// Represents a competency that belongs to one learning area and can be used across academic and assessment workflows.
+model Competency {
+  id                    String                @id @default(cuid())
+  code                  String                @unique
+  learningAreaId        String
+  name                  String
+  description           String?
+  status                LearningStatus        @default(ACTIVE)
+  difficulty            CompetencyDifficulty?
+  estimatedDurationWeeks Int?
+  sortOrder             Int                   @default(0)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  learningArea          LearningArea          @relation(fields: [learningAreaId], references: [id], onDelete: Cascade)
+
+  @@unique([learningAreaId, name])
+  @@index([learningAreaId, status])
+  @@index([status])
+  @@index([sortOrder])
+  @@map("competencies")
+}
+
 model Department {
   id            String              @id @default(cuid())
   name          String              @unique

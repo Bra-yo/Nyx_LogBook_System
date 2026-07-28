@@ -246,6 +246,11 @@ const navigationItems = {
       icon: Settings,
     },
     {
+      title: "Learning Areas",
+      href: "/admin/learning-areas",
+      icon: BookOpen,
+    },
+    {
       title: "Attendance",
       href: "/admin/attendance",
       icon: Clock,

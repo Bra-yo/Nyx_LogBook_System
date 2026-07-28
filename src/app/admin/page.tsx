@@ -21,6 +21,7 @@ import {
   Activity,
   BriefcaseBusiness,
   FolderKanban,
+  BookOpen,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -315,6 +316,12 @@ export default function AdminDashboard() {
                   <Button variant="outline" className="w-full justify-start">
                     <Settings className="mr-2 h-4 w-4" />
                     Department Management
+                  </Button>
+                </Link>
+                <Link href="/admin/learning-areas">
+                  <Button variant="outline" className="w-full justify-start">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Learning Architecture
                   </Button>
                 </Link>
                 <Link href="/admin/analytics">
