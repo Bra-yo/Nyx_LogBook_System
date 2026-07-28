@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { AlertCircle, BookOpen, BrainCircuit, Edit, Loader2, Trash2 } from 'lucide-react'
+import { AlertCircle, BookOpen, BrainCircuit, Edit, ListChecks, Loader2, Trash2 } from 'lucide-react'
 
 type LearningAreaStatus = 'ACTIVE' | 'INACTIVE'
 type CompetencyDifficulty = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT'
@@ -39,6 +39,18 @@ interface Competency {
   updatedAt: string
 }
 
+interface CompetencyGroup {
+  id: string
+  code: string
+  name: string
+  description?: string | null
+  status: LearningAreaStatus
+  competencyId: string
+  competency?: { id: string; name: string; code: string; learningArea?: { id: string; name: string; code: string } | null }
+  createdAt: string
+  updatedAt: string
+}
+
 interface LearningAreaFormState {
   name: string
   description: string
@@ -53,6 +65,13 @@ interface CompetencyFormState {
   status: LearningAreaStatus
   difficulty: CompetencyDifficulty | ''
   sortOrder: number
+}
+
+interface CompetencyGroupFormState {
+  competencyId: string
+  name: string
+  description: string
+  status: LearningAreaStatus
 }
 
 const getInitialLearningAreaForm = (): LearningAreaFormState => ({
@@ -71,29 +90,43 @@ const getInitialCompetencyForm = (): CompetencyFormState => ({
   sortOrder: 0,
 })
 
+const getInitialCompetencyGroupForm = (): CompetencyGroupFormState => ({
+  competencyId: '',
+  name: '',
+  description: '',
+  status: 'ACTIVE',
+})
+
 export default function LearningArchitecturePage() {
   const [learningAreas, setLearningAreas] = useState<LearningArea[]>([])
   const [competencies, setCompetencies] = useState<Competency[]>([])
+  const [competencyGroups, setCompetencyGroups] = useState<CompetencyGroup[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isSavingLearningArea, setIsSavingLearningArea] = useState(false)
   const [isSavingCompetency, setIsSavingCompetency] = useState(false)
+  const [isSavingCompetencyGroup, setIsSavingCompetencyGroup] = useState(false)
   const [learningAreaError, setLearningAreaError] = useState<string | null>(null)
   const [competencyError, setCompetencyError] = useState<string | null>(null)
+  const [competencyGroupError, setCompetencyGroupError] = useState<string | null>(null)
   const [learningAreaForm, setLearningAreaForm] = useState<LearningAreaFormState>(getInitialLearningAreaForm)
   const [competencyForm, setCompetencyForm] = useState<CompetencyFormState>(getInitialCompetencyForm)
+  const [competencyGroupForm, setCompetencyGroupForm] = useState<CompetencyGroupFormState>(getInitialCompetencyGroupForm)
   const [editingLearningAreaId, setEditingLearningAreaId] = useState<string | null>(null)
   const [editingCompetencyId, setEditingCompetencyId] = useState<string | null>(null)
+  const [editingCompetencyGroupId, setEditingCompetencyGroupId] = useState<string | null>(null)
 
   const fetchData = async () => {
     try {
       setLoadError(null)
-      const [areasResponse, competenciesResponse] = await Promise.all([
+      const [areasResponse, competenciesResponse, competencyGroupsResponse] = await Promise.all([
         fetch('/api/admin/learning-areas'),
         fetch('/api/admin/competencies'),
+        fetch('/api/admin/competency-groups'),
       ])
       const areasData = await areasResponse.json()
       const competenciesData = await competenciesResponse.json()
+      const competencyGroupsData = await competencyGroupsResponse.json()
 
       if (!areasResponse.ok || !areasData.success) {
         throw new Error(areasData.error || 'Failed to load learning areas')
@@ -103,8 +136,13 @@ export default function LearningArchitecturePage() {
         throw new Error(competenciesData.error || 'Failed to load competencies')
       }
 
+      if (!competencyGroupsResponse.ok || !competencyGroupsData.success) {
+        throw new Error(competencyGroupsData.error || 'Failed to load competency groups')
+      }
+
       setLearningAreas(areasData.learningAreas ?? [])
       setCompetencies(competenciesData.competencies ?? [])
+      setCompetencyGroups(competencyGroupsData.competencyGroups ?? [])
     } catch (error) {
       console.error(error)
       setLoadError(error instanceof Error ? error.message : 'Failed to load learning architecture data')
@@ -126,6 +164,12 @@ export default function LearningArchitecturePage() {
     setCompetencyForm(getInitialCompetencyForm())
     setEditingCompetencyId(null)
     setCompetencyError(null)
+  }
+
+  const resetCompetencyGroupForm = () => {
+    setCompetencyGroupForm(getInitialCompetencyGroupForm())
+    setEditingCompetencyGroupId(null)
+    setCompetencyGroupError(null)
   }
 
   const handleLearningAreaSubmit = async (event: React.FormEvent) => {
@@ -232,6 +276,53 @@ export default function LearningArchitecturePage() {
     }
   }
 
+  const handleCompetencyGroupSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    const trimmedName = competencyGroupForm.name.trim()
+
+    if (!competencyGroupForm.competencyId) {
+      setCompetencyGroupError('Please select a competency before saving.')
+      return
+    }
+
+    if (!trimmedName) {
+      setCompetencyGroupError('Competency group name is required.')
+      return
+    }
+
+    setCompetencyGroupError(null)
+    setIsSavingCompetencyGroup(true)
+    try {
+      const url = editingCompetencyGroupId ? `/api/admin/competency-groups/${editingCompetencyGroupId}` : '/api/admin/competency-groups'
+      const method = editingCompetencyGroupId ? 'PUT' : 'POST'
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          competencyId: competencyGroupForm.competencyId,
+          name: trimmedName,
+          description: competencyGroupForm.description.trim(),
+          status: competencyGroupForm.status,
+        }),
+      })
+      const result = await response.json()
+      if (result.success) {
+        toast.success(editingCompetencyGroupId ? 'Competency group updated' : 'Competency group created')
+        resetCompetencyGroupForm()
+        await fetchData()
+      } else {
+        setCompetencyGroupError(result.error || 'Unable to save competency group')
+        toast.error(result.error || 'Unable to save competency group')
+      }
+    } catch (error) {
+      console.error(error)
+      setCompetencyGroupError('Unable to save competency group')
+      toast.error('Unable to save competency group')
+    } finally {
+      setIsSavingCompetencyGroup(false)
+    }
+  }
+
   const deleteLearningArea = async (id: string) => {
     if (!confirm('Delete this learning area and its competencies?')) return
     try {
@@ -266,6 +357,23 @@ export default function LearningArchitecturePage() {
     }
   }
 
+  const deleteCompetencyGroup = async (id: string) => {
+    if (!confirm('Delete this competency group?')) return
+    try {
+      const response = await fetch(`/api/admin/competency-groups/${id}`, { method: 'DELETE' })
+      const result = await response.json()
+      if (result.success) {
+        toast.success('Competency group deleted')
+        await fetchData()
+      } else {
+        toast.error(result.error || 'Unable to delete competency group')
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error('Unable to delete competency group')
+    }
+  }
+
   const startEditLearningArea = (learningArea: LearningArea) => {
     setEditingLearningAreaId(learningArea.id)
     setLearningAreaForm({
@@ -288,6 +396,17 @@ export default function LearningArchitecturePage() {
       sortOrder: competency.sortOrder ?? 0,
     })
     setCompetencyError(null)
+  }
+
+  const startEditCompetencyGroup = (competencyGroup: CompetencyGroup) => {
+    setEditingCompetencyGroupId(competencyGroup.id)
+    setCompetencyGroupForm({
+      competencyId: competencyGroup.competencyId,
+      name: competencyGroup.name,
+      description: competencyGroup.description || '',
+      status: competencyGroup.status,
+    })
+    setCompetencyGroupError(null)
   }
 
   if (isLoading) {
@@ -444,6 +563,72 @@ export default function LearningArchitecturePage() {
                       <div className='flex gap-2'>
                         <Button variant='outline' size='sm' onClick={() => startEditCompetency(competency)}><Edit className='h-4 w-4' /></Button>
                         <Button variant='outline' size='sm' className='text-destructive' onClick={() => deleteCompetency(competency.id)}><Trash2 className='h-4 w-4' /></Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'><ListChecks className='h-4 w-4' />Competency Groups</CardTitle>
+            <CardDescription>Create and maintain competency groups for each competency.</CardDescription>
+          </CardHeader>
+          <CardContent className='space-y-4'>
+            <form onSubmit={handleCompetencyGroupSubmit} className='space-y-4'>
+              <div className='space-y-2'>
+                <Label>Parent Competency</Label>
+                <Select value={competencyGroupForm.competencyId} onValueChange={(value) => setCompetencyGroupForm((current) => ({ ...current, competencyId: value }))}>
+                  <SelectTrigger><SelectValue placeholder='Choose a competency' /></SelectTrigger>
+                  <SelectContent>
+                    {competencies.map((competency) => <SelectItem key={competency.id} value={competency.id}>{competency.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='competency-group-name'>Name</Label>
+                <Input id='competency-group-name' value={competencyGroupForm.name} onChange={(event) => setCompetencyGroupForm((current) => ({ ...current, name: event.target.value }))} placeholder='e.g. Frontend Beginner' required />
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='competency-group-description'>Description</Label>
+                <Input id='competency-group-description' value={competencyGroupForm.description} onChange={(event) => setCompetencyGroupForm((current) => ({ ...current, description: event.target.value }))} placeholder='Optional description' />
+              </div>
+              <div className='space-y-2'>
+                <Label>Status</Label>
+                <Select value={competencyGroupForm.status} onValueChange={(value) => setCompetencyGroupForm((current) => ({ ...current, status: value as LearningAreaStatus }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='ACTIVE'>Active</SelectItem>
+                    <SelectItem value='INACTIVE'>Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {competencyGroupError ? <p className='text-sm text-destructive'>{competencyGroupError}</p> : null}
+              <Button type='submit' disabled={isSavingCompetencyGroup}>
+                {isSavingCompetencyGroup ? <span className='flex items-center gap-2'><Loader2 className='h-4 w-4 animate-spin' />Saving…</span> : editingCompetencyGroupId ? 'Update Competency Group' : 'Create Competency Group'}
+              </Button>
+            </form>
+
+            <div className='space-y-3'>
+              {competencyGroups.length === 0 ? (
+                <div className='rounded-lg border border-dashed p-4 text-sm text-muted-foreground'>No competency groups yet.</div>
+              ) : (
+                competencyGroups.map((group) => (
+                  <div key={group.id} className='rounded-lg border p-3'>
+                    <div className='flex items-start justify-between gap-3'>
+                      <div>
+                        <div className='font-semibold'>{group.name}</div>
+                        <div className='text-sm text-muted-foreground'>Code: {group.code}</div>
+                        <div className='text-sm text-muted-foreground'>Parent competency: {group.competency?.name || 'Unknown'}</div>
+                        {group.description ? <div className='text-sm text-muted-foreground'>{group.description}</div> : null}
+                        <div className='text-xs text-muted-foreground mt-1'>Status: {group.status}</div>
+                      </div>
+                      <div className='flex gap-2'>
+                        <Button variant='outline' size='sm' onClick={() => startEditCompetencyGroup(group)}><Edit className='h-4 w-4' /></Button>
+                        <Button variant='outline' size='sm' className='text-destructive' onClick={() => deleteCompetencyGroup(group.id)}><Trash2 className='h-4 w-4' /></Button>
                       </div>
                     </div>
                   </div>

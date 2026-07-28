@@ -99,12 +99,31 @@ model Competency {
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   learningArea          LearningArea          @relation(fields: [learningAreaId], references: [id], onDelete: Cascade)
+  competencyGroups      CompetencyGroup[]
 
   @@unique([learningAreaId, name])
   @@index([learningAreaId, status])
   @@index([status])
   @@index([sortOrder])
   @@map("competencies")
+}
+
+/// Represents a competency group that belongs to one competency and can be used for future grouping workflows.
+model CompetencyGroup {
+  id           String         @id @default(cuid())
+  name         String
+  code         String         @unique
+  competencyId String
+  description  String?
+  status       LearningStatus @default(ACTIVE)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  competency   Competency     @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@unique([competencyId, name])
+  @@index([competencyId, status])
+  @@index([status])
+  @@map("competency_groups")
 }
 
 model Department {
