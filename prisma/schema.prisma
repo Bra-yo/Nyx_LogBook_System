@@ -110,20 +110,39 @@ model Competency {
 
 /// Represents a competency group that belongs to one competency and can be used for future grouping workflows.
 model CompetencyGroup {
-  id           String         @id @default(cuid())
-  name         String
-  code         String         @unique
-  competencyId String
-  description  String?
-  status       LearningStatus @default(ACTIVE)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  competency   Competency     @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  id                     String                  @id @default(cuid())
+  name                   String
+  code                   String                  @unique
+  competencyId           String
+  description            String?
+  status                 LearningStatus          @default(ACTIVE)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  competency             Competency              @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  mentorCompetencyGroups MentorCompetencyGroup[]
 
   @@unique([competencyId, name])
   @@index([competencyId, status])
   @@index([status])
   @@map("competency_groups")
+}
+
+model MentorCompetencyGroup {
+  id                  String          @id @default(cuid())
+  mentorId            String
+  competencyGroupId  String
+  status              LearningStatus  @default(ACTIVE)
+  notes               String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  mentor              SupervisorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  competencyGroup     CompetencyGroup @relation(fields: [competencyGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([mentorId, competencyGroupId])
+  @@index([mentorId, status])
+  @@index([competencyGroupId, status])
+  @@index([status])
+  @@map("mentor_competency_groups")
 }
 
 model Department {
@@ -360,6 +379,7 @@ model SupervisorProfile {
   user                   User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   WeeklyMentorTaskReview WeeklyMentorTaskReview[]
   reviewedTaskWorkLogs   TaskWorkLog[]               @relation("ReviewedTaskWorkLogs")
+  mentorCompetencyGroups MentorCompetencyGroup[]
 
   @@map("supervisor_profiles")
 }

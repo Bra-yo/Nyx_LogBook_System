@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { AlertCircle, BookOpen, BrainCircuit, Edit, ListChecks, Loader2, Trash2 } from 'lucide-react'
+import { AlertCircle, BookOpen, BrainCircuit, Edit, ListChecks, Loader2, Trash2, Users } from 'lucide-react'
 
 type LearningAreaStatus = 'ACTIVE' | 'INACTIVE'
 type CompetencyDifficulty = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT'
@@ -51,6 +51,20 @@ interface CompetencyGroup {
   updatedAt: string
 }
 
+interface SupervisorOption {
+  id: string
+  name: string
+  email: string
+}
+
+interface MentorCompetencyGroup {
+  id: string
+  status: LearningAreaStatus
+  notes?: string | null
+  mentor: { id: string; user: { id: string; name: string; email: string } }
+  competencyGroup: { id: string; name: string; code: string; competency: { id: string; name: string; code: string } }
+}
+
 interface LearningAreaFormState {
   name: string
   description: string
@@ -72,6 +86,13 @@ interface CompetencyGroupFormState {
   name: string
   description: string
   status: LearningAreaStatus
+}
+
+interface MentorCompetencyGroupFormState {
+  mentorId: string
+  competencyGroupId: string
+  status: LearningAreaStatus
+  notes: string
 }
 
 const getInitialLearningAreaForm = (): LearningAreaFormState => ({
@@ -97,36 +118,53 @@ const getInitialCompetencyGroupForm = (): CompetencyGroupFormState => ({
   status: 'ACTIVE',
 })
 
+const getInitialMentorCompetencyGroupForm = (): MentorCompetencyGroupFormState => ({
+  mentorId: '',
+  competencyGroupId: '',
+  status: 'ACTIVE',
+  notes: '',
+})
+
 export default function LearningArchitecturePage() {
   const [learningAreas, setLearningAreas] = useState<LearningArea[]>([])
   const [competencies, setCompetencies] = useState<Competency[]>([])
   const [competencyGroups, setCompetencyGroups] = useState<CompetencyGroup[]>([])
+  const [supervisors, setSupervisors] = useState<SupervisorOption[]>([])
+  const [mentorCompetencyGroups, setMentorCompetencyGroups] = useState<MentorCompetencyGroup[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isSavingLearningArea, setIsSavingLearningArea] = useState(false)
   const [isSavingCompetency, setIsSavingCompetency] = useState(false)
   const [isSavingCompetencyGroup, setIsSavingCompetencyGroup] = useState(false)
+  const [isSavingMentorCompetencyGroup, setIsSavingMentorCompetencyGroup] = useState(false)
   const [learningAreaError, setLearningAreaError] = useState<string | null>(null)
   const [competencyError, setCompetencyError] = useState<string | null>(null)
   const [competencyGroupError, setCompetencyGroupError] = useState<string | null>(null)
+  const [mentorCompetencyGroupError, setMentorCompetencyGroupError] = useState<string | null>(null)
   const [learningAreaForm, setLearningAreaForm] = useState<LearningAreaFormState>(getInitialLearningAreaForm)
   const [competencyForm, setCompetencyForm] = useState<CompetencyFormState>(getInitialCompetencyForm)
   const [competencyGroupForm, setCompetencyGroupForm] = useState<CompetencyGroupFormState>(getInitialCompetencyGroupForm)
+  const [mentorCompetencyGroupForm, setMentorCompetencyGroupForm] = useState<MentorCompetencyGroupFormState>(getInitialMentorCompetencyGroupForm)
   const [editingLearningAreaId, setEditingLearningAreaId] = useState<string | null>(null)
   const [editingCompetencyId, setEditingCompetencyId] = useState<string | null>(null)
   const [editingCompetencyGroupId, setEditingCompetencyGroupId] = useState<string | null>(null)
+  const [editingMentorCompetencyGroupId, setEditingMentorCompetencyGroupId] = useState<string | null>(null)
 
   const fetchData = async () => {
     try {
       setLoadError(null)
-      const [areasResponse, competenciesResponse, competencyGroupsResponse] = await Promise.all([
+      const [areasResponse, competenciesResponse, competencyGroupsResponse, supervisorsResponse, mentorCompetencyGroupsResponse] = await Promise.all([
         fetch('/api/admin/learning-areas'),
         fetch('/api/admin/competencies'),
         fetch('/api/admin/competency-groups'),
+        fetch('/api/admin/users?role=SUPERVISOR'),
+        fetch('/api/admin/mentor-competency-groups'),
       ])
       const areasData = await areasResponse.json()
       const competenciesData = await competenciesResponse.json()
       const competencyGroupsData = await competencyGroupsResponse.json()
+      const supervisorsData = await supervisorsResponse.json()
+      const mentorCompetencyGroupsData = await mentorCompetencyGroupsResponse.json()
 
       if (!areasResponse.ok || !areasData.success) {
         throw new Error(areasData.error || 'Failed to load learning areas')
@@ -140,9 +178,27 @@ export default function LearningArchitecturePage() {
         throw new Error(competencyGroupsData.error || 'Failed to load competency groups')
       }
 
+      if (!supervisorsResponse.ok || !Array.isArray(supervisorsData.users)) {
+        throw new Error(supervisorsData.error || 'Failed to load supervisors')
+      }
+
+      if (!mentorCompetencyGroupsResponse.ok || !mentorCompetencyGroupsData.success) {
+        throw new Error(mentorCompetencyGroupsData.error || 'Failed to load mentor expertise')
+      }
+
       setLearningAreas(areasData.learningAreas ?? [])
       setCompetencies(competenciesData.competencies ?? [])
       setCompetencyGroups(competencyGroupsData.competencyGroups ?? [])
+      setSupervisors(
+        supervisorsData.users
+          .filter((user: { supervisorProfile?: { id?: string } }) => user.supervisorProfile?.id)
+          .map((user: { supervisorProfile?: { id?: string }; name?: string; email?: string }) => ({
+            id: user.supervisorProfile?.id ?? '',
+            name: user.name ?? 'Unnamed mentor',
+            email: user.email ?? '',
+          })),
+      )
+      setMentorCompetencyGroups(mentorCompetencyGroupsData.mentorCompetencyGroups ?? [])
     } catch (error) {
       console.error(error)
       setLoadError(error instanceof Error ? error.message : 'Failed to load learning architecture data')
@@ -170,6 +226,12 @@ export default function LearningArchitecturePage() {
     setCompetencyGroupForm(getInitialCompetencyGroupForm())
     setEditingCompetencyGroupId(null)
     setCompetencyGroupError(null)
+  }
+
+  const resetMentorCompetencyGroupForm = () => {
+    setMentorCompetencyGroupForm(getInitialMentorCompetencyGroupForm())
+    setEditingMentorCompetencyGroupId(null)
+    setMentorCompetencyGroupError(null)
   }
 
   const handleLearningAreaSubmit = async (event: React.FormEvent) => {
@@ -323,6 +385,53 @@ export default function LearningArchitecturePage() {
     }
   }
 
+  const handleMentorCompetencyGroupSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    const trimmedNotes = mentorCompetencyGroupForm.notes.trim()
+
+    if (!mentorCompetencyGroupForm.mentorId) {
+      setMentorCompetencyGroupError('Please select a mentor before saving.')
+      return
+    }
+
+    if (!mentorCompetencyGroupForm.competencyGroupId) {
+      setMentorCompetencyGroupError('Please select a competency group before saving.')
+      return
+    }
+
+    setMentorCompetencyGroupError(null)
+    setIsSavingMentorCompetencyGroup(true)
+    try {
+      const url = editingMentorCompetencyGroupId ? `/api/admin/mentor-competency-groups/${editingMentorCompetencyGroupId}` : '/api/admin/mentor-competency-groups'
+      const method = editingMentorCompetencyGroupId ? 'PUT' : 'POST'
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mentorId: mentorCompetencyGroupForm.mentorId,
+          competencyGroupId: mentorCompetencyGroupForm.competencyGroupId,
+          status: mentorCompetencyGroupForm.status,
+          notes: trimmedNotes || null,
+        }),
+      })
+      const result = await response.json()
+      if (result.success) {
+        toast.success(editingMentorCompetencyGroupId ? 'Mentor expertise updated' : 'Mentor expertise created')
+        resetMentorCompetencyGroupForm()
+        await fetchData()
+      } else {
+        setMentorCompetencyGroupError(result.error || 'Unable to save mentor expertise')
+        toast.error(result.error || 'Unable to save mentor expertise')
+      }
+    } catch (error) {
+      console.error(error)
+      setMentorCompetencyGroupError('Unable to save mentor expertise')
+      toast.error('Unable to save mentor expertise')
+    } finally {
+      setIsSavingMentorCompetencyGroup(false)
+    }
+  }
+
   const deleteLearningArea = async (id: string) => {
     if (!confirm('Delete this learning area and its competencies?')) return
     try {
@@ -374,6 +483,23 @@ export default function LearningArchitecturePage() {
     }
   }
 
+  const deleteMentorCompetencyGroup = async (id: string) => {
+    if (!confirm('Remove this mentor expertise?')) return
+    try {
+      const response = await fetch(`/api/admin/mentor-competency-groups/${id}`, { method: 'DELETE' })
+      const result = await response.json()
+      if (result.success) {
+        toast.success('Mentor expertise removed')
+        await fetchData()
+      } else {
+        toast.error(result.error || 'Unable to remove mentor expertise')
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error('Unable to remove mentor expertise')
+    }
+  }
+
   const startEditLearningArea = (learningArea: LearningArea) => {
     setEditingLearningAreaId(learningArea.id)
     setLearningAreaForm({
@@ -407,6 +533,17 @@ export default function LearningArchitecturePage() {
       status: competencyGroup.status,
     })
     setCompetencyGroupError(null)
+  }
+
+  const startEditMentorCompetencyGroup = (mentorCompetencyGroup: MentorCompetencyGroup) => {
+    setEditingMentorCompetencyGroupId(mentorCompetencyGroup.id)
+    setMentorCompetencyGroupForm({
+      mentorId: mentorCompetencyGroup.mentor.id,
+      competencyGroupId: mentorCompetencyGroup.competencyGroup.id,
+      status: mentorCompetencyGroup.status,
+      notes: mentorCompetencyGroup.notes || '',
+    })
+    setMentorCompetencyGroupError(null)
   }
 
   if (isLoading) {
@@ -629,6 +766,77 @@ export default function LearningArchitecturePage() {
                       <div className='flex gap-2'>
                         <Button variant='outline' size='sm' onClick={() => startEditCompetencyGroup(group)}><Edit className='h-4 w-4' /></Button>
                         <Button variant='outline' size='sm' className='text-destructive' onClick={() => deleteCompetencyGroup(group.id)}><Trash2 className='h-4 w-4' /></Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'><Users className='h-4 w-4' />Mentor Expertise</CardTitle>
+            <CardDescription>Link mentors to competency groups and record expertise notes.</CardDescription>
+          </CardHeader>
+          <CardContent className='space-y-4'>
+            <form onSubmit={handleMentorCompetencyGroupSubmit} className='space-y-4'>
+              <div className='space-y-2'>
+                <Label>Mentor</Label>
+                <Select value={mentorCompetencyGroupForm.mentorId} onValueChange={(value) => setMentorCompetencyGroupForm((current) => ({ ...current, mentorId: value }))}>
+                  <SelectTrigger><SelectValue placeholder='Choose a mentor' /></SelectTrigger>
+                  <SelectContent>
+                    {supervisors.map((mentor) => <SelectItem key={mentor.id} value={mentor.id}>{mentor.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='space-y-2'>
+                <Label>Competency Group</Label>
+                <Select value={mentorCompetencyGroupForm.competencyGroupId} onValueChange={(value) => setMentorCompetencyGroupForm((current) => ({ ...current, competencyGroupId: value }))}>
+                  <SelectTrigger><SelectValue placeholder='Choose a competency group' /></SelectTrigger>
+                  <SelectContent>
+                    {competencyGroups.map((group) => <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='space-y-2'>
+                <Label>Status</Label>
+                <Select value={mentorCompetencyGroupForm.status} onValueChange={(value) => setMentorCompetencyGroupForm((current) => ({ ...current, status: value as LearningAreaStatus }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='ACTIVE'>Active</SelectItem>
+                    <SelectItem value='INACTIVE'>Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='mentor-expertise-notes'>Notes</Label>
+                <Input id='mentor-expertise-notes' value={mentorCompetencyGroupForm.notes} onChange={(event) => setMentorCompetencyGroupForm((current) => ({ ...current, notes: event.target.value }))} placeholder='Optional notes' />
+              </div>
+              {mentorCompetencyGroupError ? <p className='text-sm text-destructive'>{mentorCompetencyGroupError}</p> : null}
+              <Button type='submit' disabled={isSavingMentorCompetencyGroup}>
+                {isSavingMentorCompetencyGroup ? <span className='flex items-center gap-2'><Loader2 className='h-4 w-4 animate-spin' />Saving…</span> : editingMentorCompetencyGroupId ? 'Update Mentor Expertise' : 'Create Mentor Expertise'}
+              </Button>
+            </form>
+
+            <div className='space-y-3'>
+              {mentorCompetencyGroups.length === 0 ? (
+                <div className='rounded-lg border border-dashed p-4 text-sm text-muted-foreground'>No mentor expertise yet.</div>
+              ) : (
+                mentorCompetencyGroups.map((entry) => (
+                  <div key={entry.id} className='rounded-lg border p-3'>
+                    <div className='flex items-start justify-between gap-3'>
+                      <div>
+                        <div className='font-semibold'>{entry.mentor.user.name}</div>
+                        <div className='text-sm text-muted-foreground'>Competency group: {entry.competencyGroup.name}</div>
+                        <div className='text-sm text-muted-foreground'>Parent competency: {entry.competencyGroup.competency.name}</div>
+                        {entry.notes ? <div className='text-sm text-muted-foreground'>{entry.notes}</div> : null}
+                        <div className='text-xs text-muted-foreground mt-1'>Status: {entry.status}</div>
+                      </div>
+                      <div className='flex gap-2'>
+                        <Button variant='outline' size='sm' onClick={() => startEditMentorCompetencyGroup(entry)}><Edit className='h-4 w-4' /></Button>
+                        <Button variant='outline' size='sm' className='text-destructive' onClick={() => deleteMentorCompetencyGroup(entry.id)}><Trash2 className='h-4 w-4' /></Button>
                       </div>
                     </div>
                   </div>
