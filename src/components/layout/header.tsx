@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,6 +23,35 @@ interface HeaderProps {
 
 export function Header({ title, onMenuClick }: HeaderProps) {
   const { data: session } = useSession();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    async function loadCount() {
+      try {
+        const response = await fetch("/api/notifications/count");
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        setUnreadCount(data.unreadCount || 0);
+      } catch (error) {
+        console.error("Failed to load notification count:", error);
+      }
+    }
+
+    if (session?.user?.id) {
+      loadCount();
+    }
+  }, [session?.user?.id]);
+
+  const notificationHref =
+    session?.user?.role === "STUDENT"
+      ? "/student/notifications"
+      : session?.user?.role === "SUPERVISOR"
+      ? "/supervisor/notifications"
+      : session?.user?.role === "WORKER"
+      ? "/worker/notifications"
+      : "/help";
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-[#020617]/95 backdrop-blur">
@@ -50,10 +80,16 @@ export function Header({ title, onMenuClick }: HeaderProps) {
             </Button>
           </Link>
 
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-4 w-4" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-destructive"></span>
-          </Button>
+          <Link href={notificationHref} aria-label="Open notifications">
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 ? (
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-destructive px-1 text-[0.65rem] font-semibold text-white">
+                  {unreadCount}
+                </span>
+              ) : null}
+            </Button>
+          </Link>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

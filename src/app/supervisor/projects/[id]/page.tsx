@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
@@ -13,8 +13,18 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Folder, Users, FileText, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { terminology } from "@/lib/terminology";
+
+interface ProjectMemberSummary {
+  id: string;
+  worker: {
+    id: string;
+    fullName?: string | null;
+    email?: string | null;
+    user?: { name?: string | null; email?: string | null } | null;
+  };
+}
 
 interface ProjectDetail {
   id: string;
@@ -22,6 +32,7 @@ interface ProjectDetail {
   description: string | null;
   companyName: string | null;
   status: string;
+  mentor?: { id: string; user?: { name?: string | null } } | null;
   department?: { name: string };
   learners: Array<{
     learner: {
@@ -37,6 +48,7 @@ interface ProjectDetail {
     startDate: string;
     endDate: string;
   }>;
+  LogbookEntry?: Array<{ id: string; title: string; status: string; createdAt: string }>;
 }
 
 export default function ProjectDetailsPage() {
@@ -45,16 +57,14 @@ export default function ProjectDetailsPage() {
   const projectId = (params as { id: string }).id;
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<ProjectMemberSummary[]>([]);
   const [adding, setAdding] = useState(false);
   const [workerSearch, setWorkerSearch] = useState("");
   const [searchResults, setSearchResults] = useState<
     Array<{ id: string; fullName?: string; email?: string }>
   >([]);
 
-  // effect moved below fetchProject/fetchMembers definitions to satisfy lint
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     try {
       const res = await fetch(`/api/supervisor/projects/${projectId}/workers`);
       if (res.ok) {
@@ -64,7 +74,7 @@ export default function ProjectDetailsPage() {
     } catch (error) {
       console.error("Failed to load project members:", error);
     }
-  };
+  }, [projectId]);
 
   const searchWorkers = async (term: string) => {
     try {
@@ -126,7 +136,7 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  const fetchProject = async () => {
+  const fetchProject = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/supervisor/projects/${projectId}`);
@@ -142,12 +152,16 @@ export default function ProjectDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId, router]);
 
   useEffect(() => {
-    if (projectId) fetchProject();
-    if (projectId) fetchMembers();
-  }, [projectId]);
+    if (projectId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void fetchProject();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void fetchMembers();
+    }
+  }, [fetchProject, fetchMembers, projectId]);
 
   return (
     <DashboardLayout title={project?.title || terminology.project}>
@@ -203,7 +217,7 @@ export default function ProjectDetailsPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center min-h-[280px]">
+          <div className="flex min-h-70 items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : !project ? (
@@ -223,7 +237,7 @@ export default function ProjectDetailsPage() {
                   {project.description || "No description provided."}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-3">
+              <CardContent className="grid gap-4 md:grid-cols-4">
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <div className="font-medium">Company</div>
                   <div>{project.companyName || "Not provided"}</div>
@@ -235,6 +249,10 @@ export default function ProjectDetailsPage() {
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <div className="font-medium">Status</div>
                   <Badge variant="secondary">{project.status}</Badge>
+                </div>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <div className="font-medium">Mentor</div>
+                  <div>{project.mentor?.user?.name || "Pending allocation"}</div>
                 </div>
               </CardContent>
             </Card>
@@ -323,6 +341,32 @@ export default function ProjectDetailsPage() {
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Evidence and progress</CardTitle>
+                <CardDescription>Recent logbook evidence linked to this project</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {project.LogbookEntry && project.LogbookEntry.length > 0 ? (
+                  <div className="space-y-2">
+                    {project.LogbookEntry.map((entry) => (
+                      <div key={entry.id} className="rounded-lg border p-3 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="font-medium">{entry.title}</div>
+                          <Badge variant="secondary">{entry.status}</Badge>
+                        </div>
+                        <div className="mt-1 text-muted-foreground">
+                          {new Date(entry.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No student evidence has been linked to this project yet.</p>
+                )}
               </CardContent>
             </Card>
 

@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Building, Users, FileText } from 'lucide-react'
+import { Plus, FileText } from 'lucide-react'
 import { terminology } from '@/lib/terminology'
 
 interface ProjectSummary {
@@ -14,9 +14,16 @@ interface ProjectSummary {
   title: string
   companyName: string | null
   status: string
+  mentor?: {
+    user?: {
+      name?: string | null
+    }
+  } | null
+  milestones: Array<{ id: string; status: string }>
   _count: {
     learners: number
     milestones: number
+    LogbookEntry: number
   }
 }
 
@@ -24,11 +31,7 @@ export default function SupervisorProjectsPage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchProjects()
-  }, [])
-
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch('/api/supervisor/projects')
@@ -41,7 +44,12 @@ export default function SupervisorProjectsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchProjects()
+  }, [fetchProjects])
 
   return (
     <DashboardLayout title={terminology.projects}>
@@ -60,7 +68,7 @@ export default function SupervisorProjectsPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center min-h-[320px]">
+          <div className="flex min-h-80 items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : projects.length === 0 ? (
@@ -102,10 +110,14 @@ export default function SupervisorProjectsPage() {
                     <div>Competency milestones</div>
                   </div>
                   <div className="space-y-1 text-sm text-muted-foreground">
-                    <div className="font-medium">{project.companyName || '—'}</div>
-                    <div>Company</div>
+                    <div className="font-medium">{project._count.LogbookEntry}</div>
+                    <div>Evidence entries</div>
                   </div>
-                  <div className="flex items-end justify-end">
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    <div className="font-medium">{Math.round((project.milestones.filter((milestone) => milestone.status === 'COMPLETED').length / Math.max(1, project.milestones.length)) * 100)}%</div>
+                    <div>Milestone progress</div>
+                  </div>
+                  <div className="flex items-end justify-end md:col-span-4">
                     <Button asChild size="sm">
                       <Link href={`/supervisor/projects/${project.id}`}>View Project</Link>
                     </Button>

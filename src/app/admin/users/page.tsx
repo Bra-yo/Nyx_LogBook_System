@@ -153,7 +153,7 @@ export default function UsersPage() {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getDepartmentName(user).toLowerCase().includes(searchTerm.toLowerCase());
+      getProfileContext(user).toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === "all" || user.role === filterRole;
     const matchesStatus =
       filterStatus === "all" ||
@@ -162,7 +162,7 @@ export default function UsersPage() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const getDepartmentName = (user: User): string => {
+  const getProfileContext = (user: User): string => {
     if (user.studentProfile?.department)
       return user.studentProfile.department.name;
     if (user.supervisorProfile?.department)
@@ -170,7 +170,7 @@ export default function UsersPage() {
     if (user.lecturerProfile?.department)
       return user.lecturerProfile.department.name;
     if (user.adminProfile?.department) return user.adminProfile.department.name;
-    return "No Department";
+    return "No learning context";
   };
 
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
@@ -474,7 +474,7 @@ export default function UsersPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by name, email, or department..."
+                    placeholder="Search by name, email, or learning context..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -575,7 +575,7 @@ export default function UsersPage() {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Department</TableHead>
+                    <TableHead>Learning context</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Last Login</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -601,7 +601,7 @@ export default function UsersPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">{getDepartmentName(user)}</div>
+                        <div className="text-sm">{getProfileContext(user)}</div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

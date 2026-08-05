@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
@@ -24,6 +24,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { getLogbookDisplayStatus } from "@/lib/logbook-status";
+import { buildLearnerAnalyticsSnapshot } from "@/lib/services/analytics";
 import { LogStatus } from "@/types";
 
 interface LogbookEntry {
@@ -32,6 +33,7 @@ interface LogbookEntry {
   description: string;
   date: string;
   status: LogStatus;
+  hoursWorked?: number | null;
   comments?: Array<{
     status: string;
     createdAt: string;
@@ -80,6 +82,7 @@ interface WorkDashboardProps {
   workRecordsButtonLabel?: string;
   calendarButtonLabel?: string;
   reportsButtonLabel?: string;
+  children?: ReactNode;
 }
 
 export function WorkDashboard({
@@ -96,6 +99,7 @@ export function WorkDashboard({
   workRecordsButtonLabel = "View All Work Records",
   calendarButtonLabel = "View Calendar",
   reportsButtonLabel = "Generate Report",
+  children,
 }: WorkDashboardProps) {
   const { data: session } = useSession();
   const [stats, setStats] = useState<DashboardStats>({
@@ -106,6 +110,7 @@ export function WorkDashboard({
     progressPercentage: 0,
   });
   const [recentActivity, setRecentActivity] = useState<LogbookEntry[]>([]);
+  const [learnerAnalytics, setLearnerAnalytics] = useState<ReturnType<typeof buildLearnerAnalyticsSnapshot> | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = useCallback(async () => {
@@ -119,6 +124,7 @@ export function WorkDashboard({
 
       let entries: LogbookEntry[] = [];
       let projectTasks: ProjectTask[] = [];
+      let projectsPayload: ProjectData[] = [];
 
       if (entriesResponse.ok) {
         const entriesData = await entriesResponse.json();
@@ -127,8 +133,8 @@ export function WorkDashboard({
 
       if (projectsResponse.ok) {
         const projectsData = await projectsResponse.json();
-        const projects: ProjectData[] = projectsData.projects || [];
-        projectTasks = projects.flatMap((project) =>
+        projectsPayload = projectsData.projects || [];
+        projectTasks = projectsPayload.flatMap((project) =>
           project.milestones.flatMap((milestone) => milestone.tasks),
         );
       }
@@ -161,8 +167,18 @@ export function WorkDashboard({
         progressPercentage,
       };
 
+      const analyticsSnapshot = buildLearnerAnalyticsSnapshot({
+        learningPaths: [],
+        assessments: [],
+        logbookEntries: entries.map((entry) => ({ status: entry.status, hoursWorked: entry.hoursWorked ?? 0 })),
+        evidenceItems: [],
+        projects: projectsPayload,
+        pendingReviews: calculatedStats.pendingReviews,
+      });
+
       setStats(calculatedStats);
       setRecentActivity(entriesWithDisplayStatus.slice(0, 3));
+      setLearnerAnalytics(analyticsSnapshot);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -395,6 +411,35 @@ export function WorkDashboard({
             </CardContent>
           </Card>
         </div>
+        {learnerAnalytics ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Learning Analytics</CardTitle>
+              <CardDescription>Your current progress and recent signals</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-lg border p-3">
+                  <p className="text-sm text-muted-foreground">Current Path</p>
+                  <p className="mt-1 font-medium">{learnerAnalytics.currentLearningPath}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-sm text-muted-foreground">Competency Completion</p>
+                  <p className="mt-1 font-medium">{learnerAnalytics.competencyCompletion}%</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-sm text-muted-foreground">Hours Logged</p>
+                  <p className="mt-1 font-medium">{learnerAnalytics.hoursLogged}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-sm text-muted-foreground">Trend</p>
+                  <p className="mt-1 font-medium">{learnerAnalytics.trend.label}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+        {children ? <div className="grid gap-4">{children}</div> : null}
       </div>
     </DashboardLayout>
   );

@@ -28,6 +28,11 @@ const updateUserSchema = z.object({
   registrationType: z.enum(["CAREER_MENTEE", "BUSINESS_MENTEE"]).optional(),
   mentorshipTrack: z.enum(["CAREER", "BUSINESS"]).optional(),
   cohortId: z.string().optional(),
+  learningAreaId: z.string().trim().min(1, "Learning area is required for learner accounts").optional(),
+  mentorCapacity: z.coerce.number().int().min(1).max(500).optional(),
+  employmentType: z.string().optional(),
+  maxActiveMentees: z.coerce.number().int().min(1).max(500).optional(),
+  isAcceptingNewMentees: z.boolean().optional(),
 });
 
 // GET - Fetch single user
@@ -64,6 +69,9 @@ export async function GET(
         supervisorProfile: {
           include: {
             department: true,
+            students: {
+              select: { id: true },
+            },
           },
         },
         lecturerProfile: {
@@ -254,6 +262,11 @@ export async function PUT(
       // Update or create role-specific profile
       if (roleToUpdate === "STUDENT") {
         const resolvedDepartmentId = effectiveDepartmentId || "";
+        const studentLearningAreaId = validatedData.learningAreaId?.trim();
+        if (roleToUpdate === "STUDENT" && !studentLearningAreaId && !existingUser.studentProfile?.learningAreaId) {
+          throw new Error("Learning area is required for learner accounts");
+        }
+
         const profileUpdate: {
           departmentId: string;
           regNumber: string;
@@ -264,6 +277,8 @@ export async function PUT(
           lecturerId?: string | null;
           cohortId?: string | null;
           mentorshipTrack?: "CAREER" | "BUSINESS" | null;
+          learningAreaId?: string | null;
+          registrationType?: "CAREER_MENTEE" | "BUSINESS_MENTEE" | null;
         } = {
           departmentId: resolvedDepartmentId,
           regNumber: existingUser.studentProfile?.regNumber || `CM-${Date.now()}`,
@@ -271,6 +286,16 @@ export async function PUT(
           semester: existingUser.studentProfile?.semester || 1,
           internshipCompany: existingUser.studentProfile?.internshipCompany ?? null,
         };
+
+        if (studentLearningAreaId) {
+          const learningArea = await tx.learningArea.findUnique({ where: { id: studentLearningAreaId } });
+          if (!learningArea) {
+            throw new Error("Learning area not found");
+          }
+          profileUpdate.learningAreaId = learningArea.id;
+        } else if (existingUser.studentProfile?.learningAreaId) {
+          profileUpdate.learningAreaId = existingUser.studentProfile.learningAreaId;
+        }
 
         if (validatedData.supervisorId !== undefined)
           profileUpdate.supervisorId = validatedData.supervisorId;
@@ -280,6 +305,8 @@ export async function PUT(
           profileUpdate.cohortId = validatedData.cohortId;
         if (validatedData.mentorshipTrack !== undefined)
           profileUpdate.mentorshipTrack = validatedData.mentorshipTrack;
+        if (validatedData.registrationType !== undefined)
+          profileUpdate.registrationType = validatedData.registrationType;
 
         await tx.studentProfile.upsert({
           where: { userId: resolvedParams.id },
@@ -294,6 +321,7 @@ export async function PUT(
             lecturerId: profileUpdate.lecturerId,
             cohortId: profileUpdate.cohortId,
             mentorshipTrack: profileUpdate.mentorshipTrack,
+            learningAreaId: profileUpdate.learningAreaId,
           },
           update: profileUpdate,
         });
@@ -306,12 +334,22 @@ export async function PUT(
         const resolvedDepartmentId = effectiveDepartmentId || "";
         const profileData: {
           departmentId: string;
+          learningAreaId?: string | null;
           title?: string | null;
           company?: string | null;
+          mentorCapacity: number;
+          employmentType?: string | null;
+          maxActiveMentees: number;
+          isAcceptingNewMentees: boolean;
         } = {
           departmentId: resolvedDepartmentId,
+          learningAreaId: validatedData.learningAreaId?.trim() || existingUser.supervisorProfile?.learningAreaId || null,
           title: validatedData.title ?? existingUser.supervisorProfile?.title,
           company,
+          mentorCapacity: validatedData.mentorCapacity ?? existingUser.supervisorProfile?.mentorCapacity ?? 10,
+          employmentType: validatedData.employmentType?.trim() || existingUser.supervisorProfile?.employmentType || null,
+          maxActiveMentees: validatedData.maxActiveMentees ?? existingUser.supervisorProfile?.maxActiveMentees ?? 10,
+          isAcceptingNewMentees: validatedData.isAcceptingNewMentees ?? existingUser.supervisorProfile?.isAcceptingNewMentees ?? true,
         };
 
         await tx.supervisorProfile.upsert({
@@ -319,8 +357,13 @@ export async function PUT(
           create: {
             userId: resolvedParams.id,
             departmentId: profileData.departmentId || "",
+            learningAreaId: profileData.learningAreaId ?? null,
             title: profileData.title ?? null,
             company: profileData.company,
+            mentorCapacity: profileData.mentorCapacity,
+            employmentType: profileData.employmentType ?? null,
+            maxActiveMentees: profileData.maxActiveMentees,
+            isAcceptingNewMentees: profileData.isAcceptingNewMentees,
           },
           update: profileData,
         });

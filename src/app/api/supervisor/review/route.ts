@@ -71,7 +71,20 @@ export async function GET(request: NextRequest) {
               }
             }
           }
-        }
+        },
+        learningPath: {
+          include: {
+            competency: {
+              include: {
+                learningArea: true
+              }
+            }
+          }
+        },
+        project: true,
+        milestone: true,
+        milestoneTask: true,
+        evidenceItems: true,
       },
       orderBy: {
         date: 'desc'

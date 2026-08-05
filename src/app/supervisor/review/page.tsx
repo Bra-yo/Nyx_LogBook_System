@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
   Card,
@@ -9,9 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Calendar, FileText } from "lucide-react";
+import { User, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { CompetencyReviewForm } from "@/components/supervisor/competency-review-form";
 import {
@@ -40,7 +39,7 @@ interface LogbookEntry {
     };
   };
   comments?: Array<{
-    competencyLevel: number;
+    competencyScore: number;
     competencyLabel: string;
     competencyDescription: string;
     optionalComment?: string;
@@ -51,6 +50,19 @@ interface LogbookEntry {
     status: string;
     assessedAt?: string;
   };
+  learningPath?: {
+    competency: {
+      name: string;
+      code: string;
+      learningArea: {
+        name: string;
+      };
+    };
+  };
+  project?: { title: string };
+  milestone?: { title: string };
+  milestoneTask?: { title: string };
+  evidenceItems?: Array<{ id: string; type: string; title?: string; url: string }>;
 }
 
 export default function SupervisorReviewPage() {
@@ -59,11 +71,7 @@ export default function SupervisorReviewPage() {
   const [selectedEntry, setSelectedEntry] = useState<LogbookEntry | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchPendingEntries();
-  }, []);
-
-  const fetchPendingEntries = async () => {
+  const fetchPendingEntries = useCallback(async () => {
     try {
       const response = await fetch("/api/supervisor/review");
       if (response.ok) {
@@ -77,7 +85,15 @@ export default function SupervisorReviewPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchPendingEntries();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [fetchPendingEntries]);
 
   const handleEntrySelect = (entry: LogbookEntry) => {
     setSelectedEntry(entry);
@@ -107,8 +123,8 @@ export default function SupervisorReviewPage() {
       if (response.ok) {
         const data = await response.json();
         // Update the entry in local state
-        setEntries(
-          entries.map((entry) =>
+        setEntries((currentEntries) =>
+          currentEntries.map((entry) =>
             entry.id === entryId
               ? {
                   ...entry,
@@ -262,6 +278,22 @@ export default function SupervisorReviewPage() {
                           </div>
                         )}
 
+                        {entry.evidenceItems && entry.evidenceItems.length > 0 && (
+                          <div className="mt-4 p-3 bg-muted rounded">
+                            <h4 className="font-medium text-sm mb-2">Evidence</h4>
+                            <div className="space-y-2 text-sm text-muted-foreground">
+                              {entry.evidenceItems.map((item) => (
+                                <div key={item.id}>
+                                  <div className="font-medium">{item.title || item.type}</div>
+                                  <a href={item.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                                    {item.url}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         {entry.comments && entry.comments.length > 0 && (
                           <div className="mt-4 p-3 bg-muted rounded">
                             <h4 className="font-medium text-sm mb-2">
@@ -271,10 +303,10 @@ export default function SupervisorReviewPage() {
                               <div>
                                 <strong>Competency:</strong>{" "}
                                 {entry.comments[0].competencyLabel} (
-                                {entry.comments[0].competencyLevel})
+                                {entry.comments[0].competencyScore})
                               </div>
                               <div>
-                                <strong>Status:</strong> {getStatusBadge(entry)}
+                                <strong>Status:</strong> {entry.comments[0].status}
                               </div>
                               {entry.comments[0].optionalComment && (
                                 <div>

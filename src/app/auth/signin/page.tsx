@@ -40,21 +40,30 @@ export default function SignInPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        const message = typeof result.error === "string" ? result.error : "Invalid email or password";
+        setError(message);
       } else if (result?.ok) {
-        // Get session to determine user role and redirect
         const session = await getSession();
         if (session) {
           const roleRedirects = {
-            STUDENT: "/student",
             SUPERVISOR: "/supervisor",
             LECTURER: "/lecturer",
             ADMIN: "/admin",
             WORKER: "/worker",
           };
+
+          if (session.user.role === "STUDENT") {
+            const onboardingResponse = await fetch("/api/student/onboarding");
+            const onboardingData = await onboardingResponse.json().catch(() => ({}));
+            if (onboardingResponse.ok && onboardingData.success && !onboardingData.studentProfile?.onboardingCompleted) {
+              router.push("/student/onboarding");
+              return;
+            }
+          }
+
           router.push(
             roleRedirects[session.user.role as keyof typeof roleRedirects] ||
-              "/",
+              "/student",
           );
         }
       }
@@ -73,17 +82,17 @@ export default function SignInPage() {
           <div className="flex justify-center">
             <div className="flex items-center justify-center min-w-0">
               <Image
-                src="/bob-grogan-logo.png"
-                alt="BGhub Kenya Logo"
+                src="/bghub-logo-black.jpeg"
+                alt="BGHUB Kenya Logo"
                 width={180}
                 height={56}
                 className="object-contain h-10 w-auto sm:h-12 md:h-20"
               />
             </div>
           </div>
-          <h1 className="text-2xl font-bold">Welcome to {BRANDING.appName}</h1>
+          <h1 className="text-2xl font-bold">Welcome to BGHUB Kenya WorkLog</h1>
           <p className="text-muted-foreground">
-            Sign in to your WorkLog account
+            Sign in to your learning workspace
           </p>
         </div>
 
@@ -92,7 +101,7 @@ export default function SignInPage() {
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
             <CardDescription>
-              Enter your credentials to access your WorkLog account
+              Enter your credentials to access your learning workspace
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -53,6 +53,15 @@ interface PortfolioCertificate {
   uploadedAt: string;
 }
 
+interface PortfolioProjectSummary {
+  title: string;
+  status: string;
+  completionPercentage: number;
+  mentorName?: string | null;
+  latestActivityTitle?: string | null;
+  evidenceCount: number;
+}
+
 interface PortfolioResponse {
   user: {
     id: string;
@@ -82,6 +91,8 @@ interface PortfolioResponse {
   };
   achievements: Array<{ title: string; detail: string }>;
   timeline: Array<{ title: string; date: string; type: string }>;
+  projects: PortfolioProjectSummary[];
+  competencyHighlights: Array<{ title: string; detail: string }>;
   charts: {
     weeklyHours: Array<{ label: string; totalHours: number }>;
     monthlyHours: Array<{ label: string; totalHours: number }>;
@@ -188,6 +199,41 @@ export default function PortfolioPage() {
         )
       : [];
 
+    const normalizedProjects = Array.isArray(payload.projects)
+      ? payload.projects.filter(
+          (item): item is PortfolioProjectSummary =>
+            typeof item === "object" &&
+            item !== null &&
+            typeof (item as { title?: unknown }).title === "string" &&
+            typeof (item as { status?: unknown }).status === "string",
+        ).map((item) => ({
+          title: item.title,
+          status: item.status,
+          completionPercentage:
+            typeof item.completionPercentage === "number"
+              ? item.completionPercentage
+              : 0,
+          mentorName:
+            typeof item.mentorName === "string" ? item.mentorName : null,
+          latestActivityTitle:
+            typeof item.latestActivityTitle === "string"
+              ? item.latestActivityTitle
+              : null,
+          evidenceCount:
+            typeof item.evidenceCount === "number" ? item.evidenceCount : 0,
+        }))
+      : [];
+
+    const normalizedCompetencyHighlights = Array.isArray(payload.competencyHighlights)
+      ? payload.competencyHighlights.filter(
+          (item): item is { title: string; detail: string } =>
+            typeof item === "object" &&
+            item !== null &&
+            typeof (item as { title?: unknown }).title === "string" &&
+            typeof (item as { detail?: unknown }).detail === "string",
+        )
+      : [];
+
     return {
       user: {
         id: typeof user.id === "string" ? user.id : "",
@@ -245,6 +291,8 @@ export default function PortfolioPage() {
       },
       achievements: normalizedAchievements,
       timeline: normalizedTimeline,
+      projects: normalizedProjects,
+      competencyHighlights: normalizedCompetencyHighlights,
       charts: {
         weeklyHours: Array.isArray(charts.weeklyHours as unknown)
           ? (charts.weeklyHours as unknown[]).filter(
@@ -675,6 +723,53 @@ export default function PortfolioPage() {
                   <Plus className="mr-2 h-4 w-4" />
                   Add skill
                 </Button>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className="print-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Applied learning evidence
+            </CardTitle>
+            <CardDescription>
+              Projects remain evidence of applied learning, while competency growth is captured through assessments.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              {portfolio.projects.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No project evidence has been linked to your portfolio yet.</p>
+              ) : (
+                portfolio.projects.map((project) => (
+                  <div key={project.title} className="rounded-lg border p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium">{project.title}</p>
+                      <Badge variant="secondary">{project.status}</Badge>
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {project.completionPercentage}% complete • {project.evidenceCount} evidence entries
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Mentor: {project.mentorName || "Pending allocation"}
+                    </p>
+                    {project.latestActivityTitle ? (
+                      <p className="mt-1 text-xs text-muted-foreground">Latest activity: {project.latestActivityTitle}</p>
+                    ) : null}
+                  </div>
+                ))
+              )}
+            </div>
+            {portfolio.competencyHighlights.length > 0 ? (
+              <div className="space-y-2">
+                {portfolio.competencyHighlights.map((highlight) => (
+                  <div key={highlight.title} className="rounded-lg border border-dashed p-3">
+                    <p className="font-medium">{highlight.title}</p>
+                    <p className="text-sm text-muted-foreground">{highlight.detail}</p>
+                  </div>
+                ))}
               </div>
             ) : null}
           </CardContent>

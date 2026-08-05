@@ -114,8 +114,8 @@ function AdmissionLetterDocument({
   const reference = `BGHUB-ADM-${new Date(context.generatedAt).getFullYear()}-${context.registrationIdentifier.match(/-(\d{5})$/)?.[1] ?? "00001"}`;
   const title = isOfficial ? "Official admission" : "Provisional admission";
   const heroTitle = isOfficial
-    ? "Official Admission to the BGhub Kenya Mentorship Programme"
-    : "Provisional Admission to the BGhub Kenya Mentorship Programme";
+    ? "Official Admission to the BGHUB Kenya Mentorship Programme"
+    : "Provisional Admission to the BGHUB Kenya Mentorship Programme";
   const heroNote = isOfficial
     ? `Issued to ${payload.recipientName} | Registration status: Confirmed`
     : `Issued to ${payload.recipientName} | Registration status: Provisional`;
@@ -143,8 +143,8 @@ function AdmissionLetterDocument({
         <Text style={styles.prose}>Dear {payload.recipientName},</Text>
         <Text style={styles.prose}>
           {isOfficial
-            ? "We are pleased to confirm that your payment has been received and your admission to the BGhub Kenya Mentorship Programme is now complete."
-            : "We are pleased to inform you that your application to join the BGhub Kenya Mentorship Programme has been provisionally accepted, subject to payment of the prescribed registration fee."}
+            ? "We are pleased to confirm that your payment has been received and your admission to the BGHUB Kenya Mentorship Programme is now complete."
+            : "We are pleased to inform you that your application to join the BGHUB Kenya Mentorship Programme has been provisionally accepted, subject to payment of the prescribed registration fee."}
         </Text>
         <Text style={styles.prose}>
           {isOfficial
@@ -175,27 +175,47 @@ function AdmissionLetterDocument({
               { label: "Login URL", value: payload.loginUrl ?? "http://localhost:3000/auth/signin" },
             ]}
           />
-          <Text style={styles.prose}>Use these credentials to sign in to the BGhub Kenya platform. You will be prompted to change your password immediately after your first sign-in.</Text>
+          <Text style={styles.prose}>Use these credentials to sign in to the BGHUB Kenya platform. You will be prompted to change your password immediately after your first sign-in.</Text>
         </Section>
       ) : null}
 
       <Section title="Payment instructions">
         <Text style={styles.prose}>Pay via M-PESA Paybill</Text>
-        <Text style={styles.prose}>Business Name: BGhub Kenya</Text>
+        <Text style={styles.prose}>Business Name: BGHUB Kenya</Text>
         <Text style={styles.prose}>Paybill Number: 4148891</Text>
         <Text style={styles.prose}>Account Number: Your Provisional Registration Number (Example: CM-KE-00025 or BM-KE-00018)</Text>
         <Text style={styles.prose}>Kindly ensure that the Account Number entered during payment exactly matches your provisional registration number.</Text>
         <Text style={styles.prose}>Pay via Bank</Text>
-        <Text style={styles.prose}>Business Name: BGhub Kenya</Text>
+        <Text style={styles.prose}>Business Name: BGHUB Kenya</Text>
         <Text style={styles.prose}>KCB Bank, Account Number 1317224973, Machakos Branch</Text>
       </Section>
 
+      {payload.learningArea ? (
+        <Section title="Assigned Learning Area">
+          <Text style={styles.prose}>{payload.learningArea}</Text>
+        </Section>
+      ) : null}
+
+      {payload.selectedCompetencies?.length ? (
+        <Section title="Selected Competencies">
+          {payload.selectedCompetencies.map((competency) => (
+            <Text style={styles.listItem} key={competency}>• {competency}</Text>
+          ))}
+        </Section>
+      ) : null}
+
       <Section title="Confirmation of admission">
         <Text style={styles.prose}>Upon successful receipt and verification of your registration payment:</Text>
-        <Text style={styles.listItem}>Your provisional registration number shall become your permanent BGhub Kenya Registration Number.</Text>
+        <Text style={styles.listItem}>Your provisional registration number shall become your permanent BGHUB Kenya Registration Number.</Text>
         <Text style={styles.listItem}>Your admission shall be formally confirmed.</Text>
         <Text style={styles.listItem}>An official letter of admission will be sent to your registered email address.</Text>
-        <Text style={styles.listItem}>You will receive instructions for onboarding, orientation, and access to the BGhub Kenya Learning and Mentorship Platform.</Text>
+        <Text style={styles.listItem}>You will receive instructions for onboarding, orientation, and access to the BGHUB Kenya Learning and Mentorship Platform.</Text>
+      </Section>
+
+      <Section title="Programme acknowledgement">
+        <Text style={styles.prose}>
+          By completing onboarding and accessing your BGHUB Kenya WorkLog account, you acknowledge acceptance into the BGHUB Kenya mentorship programme and agree to follow the programme requirements.
+        </Text>
       </Section>
 
       <Section title="Important information">
@@ -266,7 +286,7 @@ function MentorLetterDocument({
       <View style={styles.heroBlock}>
         <Text style={styles.eyebrow}>Professional engagement correspondence</Text>
         <Text style={styles.heroTitle}>Technical Mentor Engagement Letter</Text>
-        <Text style={styles.heroNote}>Issued by BGhub Kenya, a division of Bob Grogan Consulting Ltd</Text>
+        <Text style={styles.heroNote}>Issued by BGHUB Kenya, a division of Bob Grogan Consulting Ltd</Text>
       </View>
 
       <Section title="Recipient details">
@@ -305,6 +325,20 @@ function MentorLetterDocument({
 
       <Text style={styles.sectionTitle}>5. Areas of Technical Mentorship</Text>
       <Text style={styles.prose}>{technicalAreaValue}</Text>
+
+      {payload.assignedLearningArea ? (
+        <Section title="Assigned Learning Area">
+          <Text style={styles.prose}>{payload.assignedLearningArea}</Text>
+        </Section>
+      ) : null}
+
+      {payload.assignedCompetencies?.length ? (
+        <Section title="Assigned Competencies">
+          {payload.assignedCompetencies.map((competency) => (
+            <Text style={styles.listItem} key={competency}>• {competency}</Text>
+          ))}
+        </Section>
+      ) : null}
 
       <Text style={styles.sectionTitle}>6. Performance Expectations</Text>
       {expectations.map((expectation) => (
@@ -353,19 +387,10 @@ function MentorLetterDocument({
       <Text style={styles.prose}>This engagement shall be governed by the laws of the Republic of Kenya.</Text>
 
       <Text style={styles.sectionTitle}>17. Acceptance</Text>
-      <Text style={styles.prose}>Kindly indicate your acceptance of this engagement by signing and returning a copy of this letter.</Text>
+      <Text style={styles.prose}>
+        By completing onboarding and accessing your BGHUB Kenya WorkLog account, you acknowledge acceptance of this appointment and agree to fulfil your mentorship responsibilities in accordance with BGHUB Kenya policies.
+      </Text>
       <Text style={styles.prose}>We welcome you to the BGHUB Technical Mentorship Network and look forward to your contribution towards developing competent professionals who will transform organizations and strengthen health systems in Kenya and across Africa.</Text>
-
-      <Section title="For: Bob Grogan Consulting Ltd">
-        <Text style={styles.prose}>Name __________________________________________ Designation ____________________</Text>
-        <Text style={styles.prose}>Signature: _______________________________ Date: _______________________________</Text>
-      </Section>
-
-      <Section title="Acceptance by the Technical Mentor">
-        <Text style={styles.prose}>I, _______________________________________________, accept my engagement as a Technical Mentor at BGHUB Kenya, a division of Bob Grogan Consulting Ltd, on the terms and conditions contained in this Letter of Engagement.</Text>
-        <Text style={styles.prose}>Signature: __________________________________ Date: _______________________________</Text>
-        <Text style={styles.prose}>National ID/Passport No.: _______________________ Telephone: _____________________ Email _________________________________________________</Text>
-      </Section>
 
       <VerificationPanel identity={identity} />
       <DocumentFooter verificationPath={context.verificationPath} />
@@ -474,7 +499,7 @@ function DocumentHeader({ reference, date, title, logoDataUri }: { reference: st
           </>
         ) : null}
         <View>
-          <Text style={styles.brandName}>BGhub Kenya</Text>
+          <Text style={styles.brandName}>BGHUB Kenya</Text>
           <Text style={styles.brandSubTitle}>A division of Bob Grogan Consulting Ltd</Text>
         </View>
       </View>
@@ -490,7 +515,7 @@ function DocumentHeader({ reference, date, title, logoDataUri }: { reference: st
 function DocumentFooter({ verificationPath }: { verificationPath: string }): ReactElement {
   return (
     <View style={styles.footer}>
-      <Text style={styles.footerText}>BGhub Kenya | Bob Grogan Consulting Ltd</Text>
+      <Text style={styles.footerText}>BGHUB Kenya | Bob Grogan Consulting Ltd</Text>
       <Text style={styles.footerText}>Verify: {verificationPath}</Text>
     </View>
   );

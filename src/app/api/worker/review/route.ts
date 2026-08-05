@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { createNotificationEvent } from "@/lib/services/notification-service";
 import { z } from "zod";
 import { buildMentorProjectWhereClause } from "@/lib/access-control";
 
@@ -125,8 +126,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (entry.worker.user) {
-      await prisma.notification.create({
-        data: {
+      await createNotificationEvent(
+        {
           userId: entry.worker.user.id,
           title:
             validatedData.status === "APPROVED"
@@ -137,8 +138,26 @@ export async function POST(request: NextRequest) {
               ? "Your work log has been approved by your supervisor."
               : "Your work log has been rejected. Please review the comment and submit again.",
           type: validatedData.status === "APPROVED" ? "success" : "error",
+          category: "WORK_LOG",
+          entityType: "TaskWorkLog",
+          entityId: entry.id,
         },
-      });
+        {
+          userId: entry.worker.user.id,
+          eventType: "WORK_LOG_REVIEW",
+          title:
+            validatedData.status === "APPROVED"
+              ? "Work log approved"
+              : "Work log rejected",
+          description:
+            validatedData.status === "APPROVED"
+              ? "Your supervisor approved your work log entry."
+              : "Your supervisor rejected your work log entry. Review the comments and submit again.",
+          entityType: "TaskWorkLog",
+          entityId: entry.id,
+          metadata: { status: validatedData.status },
+        },
+      );
     }
 
     return NextResponse.json({ success: true, message: "Review saved" });

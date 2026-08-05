@@ -1,12 +1,26 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { AccountStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { UserRole } from "@/types";
 
 export async function authorizeCredentials(
   credentials?: Partial<Record<"email" | "password", string | undefined>> | null,
-) {
+): Promise<
+  | {
+      id: string;
+      email: string;
+      name: string;
+      role: UserRole;
+      mustChangePassword: boolean;
+      registrationIdentifier: string | null;
+      accountStatus: AccountStatus;
+      paymentStatus: PaymentStatus;
+      profile?: Record<string, unknown>;
+    }
+  | null
+> {
   if (!credentials?.email || !credentials?.password) {
     return null;
   }
@@ -47,11 +61,11 @@ export async function authorizeCredentials(
   }
 
   if (!user.isActive) {
-    return null;
+    throw new Error("Your account has been deactivated. Please contact the administrator.");
   }
 
   if (user.role === "STUDENT" && user.accountStatus !== "ACTIVE") {
-    return null;
+    throw new Error("Your learner account is pending payment confirmation or activation. Please contact the administrator for assistance.");
   }
 
   const profile =
@@ -67,8 +81,8 @@ export async function authorizeCredentials(
     role: user.role as UserRole,
     mustChangePassword: user.mustChangePassword,
     registrationIdentifier: user.registrationIdentifier,
-    accountStatus: user.accountStatus,
-    paymentStatus: user.paymentStatus,
+    accountStatus: user.accountStatus as AccountStatus,
+    paymentStatus: user.paymentStatus as PaymentStatus,
     profile: profile as Record<string, unknown> | undefined,
   };
 }
@@ -86,7 +100,12 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        return authorizeCredentials(credentials);
+        try {
+          return await authorizeCredentials(credentials);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Authentication failed";
+          throw new Error(message);
+        }
       },
     }),
   ],

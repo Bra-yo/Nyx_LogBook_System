@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createNotificationEvent } from '@/lib/services/notification-service'
 
 // POST - Submit milestone for mentor review
 export async function POST(
@@ -71,9 +72,33 @@ export async function POST(
       include: {
         entries: { select: { id: true } },
         mentorAssessment: { select: { id: true, status: true } },
-        lecturerAssessment: { select: { id: true, status: true } }
+        lecturerAssessment: { select: { id: true, status: true } },
+        mentor: { include: { user: true } },
       }
     })
+
+    if (updatedMilestone.mentor?.user) {
+      await createNotificationEvent(
+        {
+          userId: updatedMilestone.mentor.user.id,
+          title: 'Milestone submitted',
+          message: `A learner has submitted milestone "${updatedMilestone.title}" for review.`,
+          type: 'info',
+          category: 'MILESTONE',
+          entityType: 'Milestone',
+          entityId: id,
+        },
+        {
+          userId: session.user.id,
+          eventType: 'MILESTONE_SUBMITTED',
+          title: 'Milestone submitted',
+          description: `You submitted milestone "${updatedMilestone.title}" for review.`,
+          entityType: 'Milestone',
+          entityId: id,
+          metadata: { milestoneId: id },
+        },
+      );
+    }
 
     return NextResponse.json({
       success: true,

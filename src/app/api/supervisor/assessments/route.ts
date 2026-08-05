@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createNotificationEvent } from '@/lib/services/notification-service'
 import { z } from 'zod'
 
 const competencyLevels = [
@@ -134,6 +135,29 @@ export async function POST(request: NextRequest) {
         ...assessmentData
       }
     })
+
+    if (logbookEntry.student?.user) {
+      await createNotificationEvent(
+        {
+          userId: logbookEntry.student.user.id,
+          title: 'Supervisor assessment saved',
+          message: `Your assessment for work log entry "${logbookEntry.title}" has been recorded.`,
+          type: 'info',
+          category: 'ASSESSMENT',
+          entityType: 'SupervisorComment',
+          entityId: assessment.id,
+        },
+        {
+          userId: logbookEntry.student.user.id,
+          eventType: 'SUPERVISOR_ASSESSMENT',
+          title: 'Supervisor assessment received',
+          description: `A supervisor completed your assessment for "${logbookEntry.title}".`,
+          entityType: 'SupervisorComment',
+          entityId: assessment.id,
+          metadata: { status: assessment.status, score: assessment.competencyScore },
+        },
+      )
+    }
 
     return NextResponse.json({
       success: true,

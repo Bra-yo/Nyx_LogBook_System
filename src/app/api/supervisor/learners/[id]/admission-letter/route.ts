@@ -11,8 +11,20 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (session?.user?.role !== "SUPERVISOR") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const supervisor = await prisma.supervisorProfile.findUnique({ where: { userId: session.user.id }, select: { id: true } });
   const { id } = await params;
-  const learner = supervisor ? await prisma.studentProfile.findFirst({ where: { id, ...buildMentorCohortLearnerWhereClause(supervisor.id) }, include: { user: true, cohort: true } }) : null;
+  const learner = supervisor ? await prisma.studentProfile.findFirst({
+    where: { id, ...buildMentorCohortLearnerWhereClause(supervisor.id) },
+    include: { user: true, cohort: true, learningArea: true },
+  }) : null;
   if (!learner?.user.registrationIdentifier) return NextResponse.json({ error: "Learner document unavailable" }, { status: 404 });
+
+  const learningPaths = await prisma.learnerLearningPath.findMany({
+    where: { learnerId: learner.user.id },
+    include: { competency: true },
+  });
+  const selectedCompetencies = Array.from(
+    new Set(learningPaths.map((path) => path.competency?.name).filter(Boolean) as string[]),
+  );
+
   const artifact = await DocumentGenerationService.generateDocument("PROVISIONAL_ADMISSION_LETTER", {
     recipientName: learner.user.name,
     email: learner.user.email,
@@ -21,6 +33,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     registrationIdentifier: learner.user.registrationIdentifier,
     paymentStatus: "Pending",
     registrationStatus: "Provisional",
+    learningArea: learner.learningArea?.name,
+    selectedCompetencies,
   });
   return new NextResponse(await readFile(artifact.filePath), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${artifact.fileName}"` } });
 }

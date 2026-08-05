@@ -39,22 +39,22 @@ export default function Home() {
       {/* Hero Section */}
       <section className="container px-6 py-24 text-center">
         <div className="mx-auto max-w-3xl space-y-8">
-          <div className="mx-auto mb-8 flex h-28 w-28 sm:h-36 sm:w-36 md:h-44 md:w-44 items-center justify-center rounded-2xl bg-white p-3 shadow-lg">
+          <div className="mx-auto mb-8 flex h-28 w-28 sm:h-36 sm:w-36 md:h-44 md:w-44 items-center justify-center">
             <Image
-              src="/bob-grogan-logo.png"
-              alt="BGhub Kenya Logo"
+              src="/bghub-logo-black.jpeg"
+              alt="BGHUB Kenya Logo"
               width={180}
               height={56}
               className="mx-auto h-24 w-auto sm:h-32 md:h-40 object-contain"
             />
           </div>
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-            WorkLog
-            <span className="block text-primary">Management System</span>
+            BGHUB Kenya
+            <span className="block text-primary">WorkLog</span>
           </h1>
           <p className="text-xl text-muted-foreground">
-            A comprehensive platform for users to manage work records, real-time
-            tracking, and assessments.
+            A learning-centered platform for learners to record evidence,
+            track competency milestones, and collaborate with mentors.
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Link href="/auth/signin">
@@ -63,9 +63,11 @@ export default function Home() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Button variant="outline" size="lg" className="text-lg px-8">
-              Learn More
-            </Button>
+            <Link href="/help">
+              <Button variant="outline" size="lg" className="text-lg px-8">
+                Learn More
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -73,9 +75,9 @@ export default function Home() {
       {/* Features */}
       <section className="container px-6 py-24">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold mb-4">Role-Based Features</h2>
+          <h2 className="text-3xl font-bold mb-4">Architecture-aligned Roles</h2>
           <p className="text-xl text-muted-foreground">
-            Tailored experiences for every user type
+            Tailored experiences for learners, mentors, lecturers, and support roles
           </p>
         </div>
 
@@ -105,9 +107,9 @@ export default function Home() {
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                 <Users className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle>Supervisors</CardTitle>
+              <CardTitle>Mentors</CardTitle>
               <CardDescription>
-                Review student entries and provide valuable feedback
+                Review learner progress and provide structured feedback
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -168,10 +170,10 @@ export default function Home() {
         <Card className="bg-primary text-primary-foreground">
           <CardContent className="px-12 py-16 text-center">
             <h2 className="text-3xl font-bold mb-4">
-              Ready to streamline your internship management?
+              Ready to support learner growth?
             </h2>
             <p className="text-xl mb-8 opacity-90">
-              Join teams using {BRANDING.appName}
+              Join programs using {BRANDING.appName}
             </p>
             <Link href="/auth/signin">
               <Button size="lg" variant="secondary" className="text-lg px-8">

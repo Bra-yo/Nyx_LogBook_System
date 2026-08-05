@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -10,14 +10,14 @@ export async function GET() {
       totalLecturers,
       totalAdmins,
       totalWorkers,
-      totalDepartments,
+      totalLearningAreas,
     ] = await Promise.all([
       prisma.user.count({ where: { role: "STUDENT" } }),
       prisma.user.count({ where: { role: "SUPERVISOR" } }),
       prisma.user.count({ where: { role: "LECTURER" } }),
       prisma.user.count({ where: { role: "ADMIN" } }),
       prisma.user.count({ where: { role: "WORKER" } }),
-      prisma.department.count(),
+      prisma.learningArea.count(),
     ]);
 
     // Get logbook stats
@@ -42,7 +42,7 @@ export async function GET() {
         totalLecturers,
         totalAdmins,
         totalWorkers,
-        totalDepartments,
+        totalLearningAreas,
         totalLogbookEntries,
         pendingReviews,
         weeklySubmissions,

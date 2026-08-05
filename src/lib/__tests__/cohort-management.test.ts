@@ -23,7 +23,8 @@ test("rejects archived cohorts and full cohorts for enrollment", () => {
     5,
   );
 
-  assert.match(archived, /archived/i);
+  assert.ok(archived, "expected a validation error for archived cohorts");
+  assert.match(archived ?? "", /archived/i);
 
   const full = validateCohortForEnrollment(
     {
@@ -34,5 +35,6 @@ test("rejects archived cohorts and full cohorts for enrollment", () => {
     5,
   );
 
-  assert.match(full, /capacity/i);
+  assert.ok(full, "expected a validation error for full cohorts");
+  assert.match(full ?? "", /capacity/i);
 });

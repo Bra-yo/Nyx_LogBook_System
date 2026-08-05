@@ -9,35 +9,44 @@ datasource db {
 }
 
 model User {
-  id                     String             @id @default(cuid())
-  email                  String             @unique
-  name                   String
-  password               String
-  role                   UserRole
-  avatar                 String?
-  isActive               Boolean            @default(true)
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
-  mustChangePassword     Boolean            @default(false)
-  registrationIdentifier String?            @unique
-  phone                  String?
-  paymentStatus          PaymentStatus      @default(PENDING)
-  accountStatus          AccountStatus      @default(PENDING_PAYMENT)
-  paymentConfirmedAt     DateTime?
-  paymentConfirmedBy     String?
-  bio                    String?
-  skills                 String[]           @default([])
-  certificates           Json?
-  socialLinks            Json?
-  adminProfile           AdminProfile?
-  auditLogs              AuditLog[]
-  lecturerProfile        LecturerProfile?
-  emailDeliveries        EmailDelivery[]
-  notifications          Notification[]
-  sessions               Session[]
-  studentProfile         StudentProfile?
-  supervisorProfile      SupervisorProfile?
-  workerProfile          WorkerProfile?
+  id                         String                    @id @default(cuid())
+  email                      String                    @unique
+  name                       String
+  password                   String
+  role                       UserRole
+  avatar                     String?
+  isActive                   Boolean                   @default(true)
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+  mustChangePassword         Boolean                   @default(false)
+  registrationIdentifier     String?                   @unique
+  phone                      String?
+  paymentStatus              PaymentStatus             @default(PENDING)
+  accountStatus              AccountStatus             @default(PENDING_PAYMENT)
+  paymentConfirmedAt         DateTime?
+  paymentConfirmedBy         String?
+  bio                        String?
+  skills                     String[]                  @default([])
+  certificates               Json?
+  socialLinks                Json?
+  adminProfile               AdminProfile?
+  allocatedMentorAllocations LearnerMentorAllocation[] @relation("AllocatedMentorAllocations")
+  activityTimelineEntries    ActivityTimelineEntry[]
+  announcementsCreated       Announcement[]            @relation("AnnouncementAuthor")
+  auditLogs                  AuditLog[]
+  conversationsInitiated     Conversation[]            @relation("ConversationParticipantOne")
+  conversationsReceived      Conversation[]            @relation("ConversationParticipantTwo")
+  lecturerProfile            LecturerProfile?
+  emailDeliveries            EmailDelivery[]
+  learnerLearningPaths       LearnerLearningPath[]
+  messagesReceived           Message[]                 @relation("MessageRecipient")
+  messagesSent               Message[]                 @relation("MessageSender")
+  notifications              Notification[]
+  preference                 UserPreference?
+  sessions                   Session[]
+  studentProfile             StudentProfile?
+  supervisorProfile          SupervisorProfile?
+  workerProfile              WorkerProfile?
 
   @@map("users")
 }
@@ -68,17 +77,51 @@ enum CompetencyDifficulty {
   @@map("competency_difficulty")
 }
 
+enum LearnerPathStatus {
+  PLANNED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+
+  @@map("learner_path_status")
+}
+
+enum MentorAllocationStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  ENDED
+  REASSIGNED
+
+  @@map("mentor_allocation_status")
+}
+
+enum MentorAllocationReason {
+  AUTO_MATCH
+  MANUAL_ASSIGNMENT
+  WORKLOAD_BALANCING
+  SPECIALIST_REQUEST
+  MENTOR_LEFT
+  LEARNER_REQUEST
+
+  @@map("mentor_allocation_reason")
+}
+
 /// Represents an academic learning area that groups related competencies and conceptually extends the existing department structure.
 model LearningArea {
-  id           String         @id @default(cuid())
-  name         String         @unique
-  code         String         @unique
-  description  String?
-  status       LearningStatus @default(ACTIVE)
-  sortOrder    Int            @default(0)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  competencies Competency[]
+  id            String            @id @default(cuid())
+  name          String            @unique
+  code          String            @unique
+  description   String?
+  status        LearningStatus    @default(ACTIVE)
+  sortOrder     Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  announcements Announcement[]
+  competencies  Competency[]
+  students      StudentProfile[]
+  supervisors   SupervisorProfile[]
 
   @@index([status])
   @@index([sortOrder])
@@ -87,19 +130,20 @@ model LearningArea {
 
 /// Represents a competency that belongs to one learning area and can be used across academic and assessment workflows.
 model Competency {
-  id                    String                @id @default(cuid())
-  code                  String                @unique
-  learningAreaId        String
-  name                  String
-  description           String?
-  status                LearningStatus        @default(ACTIVE)
-  difficulty            CompetencyDifficulty?
+  id                     String                @id @default(cuid())
+  code                   String                @unique
+  learningAreaId         String
+  name                   String
+  description            String?
+  status                 LearningStatus        @default(ACTIVE)
+  difficulty             CompetencyDifficulty?
   estimatedDurationWeeks Int?
-  sortOrder             Int                   @default(0)
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  learningArea          LearningArea          @relation(fields: [learningAreaId], references: [id], onDelete: Cascade)
-  competencyGroups      CompetencyGroup[]
+  sortOrder              Int                   @default(0)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  learningArea           LearningArea          @relation(fields: [learningAreaId], references: [id], onDelete: Cascade)
+  competencyGroups       CompetencyGroup[]
+  learnerLearningPaths   LearnerLearningPath[]
 
   @@unique([learningAreaId, name])
   @@index([learningAreaId, status])
@@ -127,16 +171,61 @@ model CompetencyGroup {
   @@map("competency_groups")
 }
 
+model LearnerLearningPath {
+  id                String                    @id @default(cuid())
+  learnerId         String
+  competencyId      String
+  status            LearnerPathStatus         @default(PLANNED)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  assessments       CompetencyAssessment[]
+  learner           User                      @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  competency        Competency                @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  mentorAllocations LearnerMentorAllocation[]
+  logbookEntries    LogbookEntry[]
+  studentProfiles   StudentProfile[]
+
+  @@index([learnerId, competencyId])
+  @@index([learnerId, status])
+  @@index([competencyId, status])
+  @@index([status])
+  @@map("learner_learning_paths")
+}
+
+model LearnerMentorAllocation {
+  id               String                 @id @default(cuid())
+  learningPathId   String
+  mentorId         String
+  status           MentorAllocationStatus @default(PENDING)
+  allocationReason MentorAllocationReason @default(AUTO_MATCH)
+  allocatedBy      String?
+  startedAt        DateTime
+  endedAt          DateTime?
+  notes            String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  learningPath     LearnerLearningPath    @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  mentor           SupervisorProfile      @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  allocatedByUser  User?                  @relation("AllocatedMentorAllocations", fields: [allocatedBy], references: [id])
+
+  @@index([mentorId, status])
+  @@index([learningPathId, status])
+  @@index([status])
+  @@map("learner_mentor_allocations")
+}
+
 model MentorCompetencyGroup {
-  id                  String          @id @default(cuid())
-  mentorId            String
-  competencyGroupId  String
-  status              LearningStatus  @default(ACTIVE)
-  notes               String?
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  mentor              SupervisorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade)
-  competencyGroup     CompetencyGroup @relation(fields: [competencyGroupId], references: [id], onDelete: Cascade)
+  id                String            @id @default(cuid())
+  mentorId          String
+  competencyGroupId String
+  status            LearningStatus    @default(ACTIVE)
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  mentor            SupervisorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  competencyGroup   CompetencyGroup   @relation(fields: [competencyGroupId], references: [id], onDelete: Cascade)
 
   @@unique([mentorId, competencyGroupId])
   @@index([mentorId, status])
@@ -202,23 +291,23 @@ model ProjectLearner {
 }
 
 model Cohort {
-  id                String                   @id @default(cuid())
-  name              String
-  code              String                   @unique
-  mentorshipTrack   MentorshipTrack
-  status            CohortStatus             @default(UPCOMING)
-  description       String?
-  maximumCapacity   Int                      @default(25)
-  startDate         DateTime?
-  endDate           DateTime?
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
-  clickupListId     String?
+  id                  String                   @id @default(cuid())
+  name                String
+  code                String                   @unique
+  mentorshipTrack     MentorshipTrack
+  status              CohortStatus             @default(UPCOMING)
+  description         String?
+  maximumCapacity     Int                      @default(25)
+  startDate           DateTime?
+  endDate             DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  clickupListId       String?
   clickupLastSyncedAt DateTime?
-  clickupSyncStatus  String?
-  clickupSyncError   String?
-  members           StudentProfile[]
-  mentorAssignments CohortMentorAssignment[]
+  clickupSyncStatus   String?
+  clickupSyncError    String?
+  members             StudentProfile[]
+  mentorAssignments   CohortMentorAssignment[]
 
   @@map("cohorts")
 }
@@ -240,15 +329,20 @@ model StudentProfile {
   userId                 String                   @unique
   regNumber              String                   @unique
   departmentId           String
+  learningAreaId         String?
   supervisorId           String?
+  mentorId               String?
   lecturerId             String?
   cohortId               String?
+  learningPathId         String?
   mentorshipTrack        MentorshipTrack?
+  registrationType       RegistrationType?
   year                   Int
   semester               Int
   internshipCompany      String?
   internshipStartDate    DateTime?
   internshipEndDate      DateTime?
+  onboardingCompleted    Boolean                  @default(false)
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   clickupTaskId          String?
@@ -262,8 +356,11 @@ model StudentProfile {
   Milestone              Milestone[]
   cohort                 Cohort?                  @relation(fields: [cohortId], references: [id])
   department             Department               @relation(fields: [departmentId], references: [id])
+  learningArea           LearningArea?            @relation(fields: [learningAreaId], references: [id], onDelete: SetNull)
   lecturer               LecturerProfile?         @relation(fields: [lecturerId], references: [id])
   supervisor             SupervisorProfile?       @relation(fields: [supervisorId], references: [id])
+  mentor                 SupervisorProfile?       @relation("MentoredStudents", fields: [mentorId], references: [id], onDelete: SetNull)
+  learningPath           LearnerLearningPath?     @relation(fields: [learningPathId], references: [id], onDelete: SetNull)
   user                   User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   WeeklyMentorTaskReview WeeklyMentorTaskReview[]
 
@@ -360,26 +457,35 @@ model TaskWorkLog {
 }
 
 model SupervisorProfile {
-  id                     String                      @id @default(cuid())
-  userId                 String                      @unique
-  departmentId           String
-  title                  String?
-  company                String?
-  createdAt              DateTime                    @default(now())
-  updatedAt              DateTime                    @updatedAt
-  milestoneAssessments   MilestoneMentorAssessment[]
-  Milestone              Milestone[]
-  officeLocations        OfficeLocation[]
-  mentoredProjects       Project[]                   @relation("MentorProjects")
-  supervisedProjects     Project[]                   @relation("SupervisorProjects")
-  students               StudentProfile[]
-  comments               SupervisorComment[]
-  cohortAssignments      CohortMentorAssignment[]
-  department             Department                  @relation(fields: [departmentId], references: [id])
-  user                   User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  WeeklyMentorTaskReview WeeklyMentorTaskReview[]
-  reviewedTaskWorkLogs   TaskWorkLog[]               @relation("ReviewedTaskWorkLogs")
-  mentorCompetencyGroups MentorCompetencyGroup[]
+  id                       String                      @id @default(cuid())
+  userId                   String                      @unique
+  departmentId             String
+  learningAreaId           String?
+  title                    String?
+  company                  String?
+  mentorCapacity           Int                         @default(10)
+  employmentType           String?
+  maxActiveMentees         Int                         @default(10)
+  isAcceptingNewMentees    Boolean                     @default(true)
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+  milestoneAssessments     MilestoneMentorAssessment[]
+  Milestone                Milestone[]
+  officeLocations          OfficeLocation[]
+  mentoredProjects         Project[]                   @relation("MentorProjects")
+  supervisedProjects       Project[]                   @relation("SupervisorProjects")
+  students                 StudentProfile[]
+  mentoredStudents         StudentProfile[]            @relation("MentoredStudents")
+  comments                 SupervisorComment[]
+  cohortAssignments        CohortMentorAssignment[]
+  department               Department                  @relation(fields: [departmentId], references: [id])
+  learningArea             LearningArea?               @relation(fields: [learningAreaId], references: [id], onDelete: SetNull)
+  learnerMentorAllocations LearnerMentorAllocation[]
+  assessments              CompetencyAssessment[]
+  user                     User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  WeeklyMentorTaskReview   WeeklyMentorTaskReview[]
+  reviewedTaskWorkLogs     TaskWorkLog[]               @relation("ReviewedTaskWorkLogs")
+  mentorCompetencyGroups   MentorCompetencyGroup[]
 
   @@map("supervisor_profiles")
 }
@@ -410,35 +516,88 @@ model AdminProfile {
   updatedAt    DateTime   @updatedAt
   department   Department @relation(fields: [departmentId], references: [id])
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessments  CompetencyAssessment[]
 
   @@map("admin_profiles")
 }
 
-model LogbookEntry {
-  id              String              @id @default(cuid())
-  studentId       String
-  title           String
-  description     String
-  activities      String
-  challenges      String?
-  learnings       String?
-  date            DateTime
-  status          LogStatus           @default(DRAFT)
-  attachments     String[]            @default([])
-  submittedAt     DateTime?
-  reviewedAt      DateTime?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  milestoneId     String?
-  milestoneTaskId String?
-  projectId       String?
-  assessments     LecturerAssessment?
-  milestone       Milestone?          @relation(fields: [milestoneId], references: [id])
-  milestoneTask   MilestoneTask?      @relation(fields: [milestoneTaskId], references: [id])
-  project         Project?            @relation(fields: [projectId], references: [id])
-  student         StudentProfile      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  comments        SupervisorComment[]
+model CompetencyAssessment {
+  id                    String               @id @default(cuid())
+  learnerLearningPathId String
+  assessedBySupervisorId String?
+  assessedByAdminId     String?
+  assessmentDate        DateTime             @default(now())
+  score                 Int
+  level                 CompetencyLevel      @default(NOT_YET_DEMONSTRATED)
+  comments              String?
+  evidence              String?
+  status                CompetencyAssessmentStatus @default(DRAFT)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  learnerLearningPath   LearnerLearningPath  @relation(fields: [learnerLearningPathId], references: [id], onDelete: Cascade)
+  assessedBySupervisor  SupervisorProfile?   @relation(fields: [assessedBySupervisorId], references: [id], onDelete: SetNull)
+  assessedByAdmin       AdminProfile?        @relation(fields: [assessedByAdminId], references: [id], onDelete: SetNull)
 
+  @@index([learnerLearningPathId, status])
+  @@index([status, assessmentDate])
+  @@map("competency_assessments")
+}
+
+enum EvidenceType {
+  DOCUMENT
+  IMAGE
+  VIDEO
+  LINK
+  SOURCE_CODE
+
+  @@map("evidence_type")
+}
+
+model LogbookEntryEvidence {
+  id             String       @id @default(cuid())
+  logbookEntryId String
+  type           EvidenceType
+  title          String?
+  url            String
+  description    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  logbookEntry   LogbookEntry @relation(fields: [logbookEntryId], references: [id], onDelete: Cascade)
+
+  @@index([logbookEntryId])
+  @@map("logbook_entry_evidence")
+}
+
+model LogbookEntry {
+  id                String                   @id @default(cuid())
+  studentId         String
+  learningPathId    String?
+  title             String
+  description       String
+  activities        String
+  hoursWorked       Float?
+  challenges        String?
+  learnings         String?
+  date              DateTime
+  status            LogStatus                @default(DRAFT)
+  attachments       String[]                 @default([])
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  milestoneId       String?
+  milestoneTaskId   String?
+  projectId         String?
+  assessments       LecturerAssessment?
+  milestone         Milestone?               @relation(fields: [milestoneId], references: [id])
+  milestoneTask     MilestoneTask?           @relation(fields: [milestoneTaskId], references: [id])
+  project           Project?                 @relation(fields: [projectId], references: [id])
+  student           StudentProfile           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  learningPath     LearnerLearningPath?     @relation(fields: [learningPathId], references: [id])
+  evidenceItems    LogbookEntryEvidence[]
+  comments          SupervisorComment[]
+
+  @@index([learningPathId])
   @@map("logbook_entries")
 }
 
@@ -469,7 +628,7 @@ model LecturerAssessment {
   professionalismScore Int?
   overallScore         Int?
   feedback             String?
-  status               AssessmentStatus @default(NOT_ASSESSED)
+  status               LecturerAssessmentStatus @default(NOT_ASSESSED)
   assessedAt           DateTime?
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
@@ -481,16 +640,109 @@ model LecturerAssessment {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String
-  message   String
-  type      String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  type        String
+  category    String   @default("GENERAL")
+  priority    String   @default("NORMAL")
+  read        Boolean  @default(false)
+  archived    Boolean  @default(false)
+  entityType  String?
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, read, archived, createdAt])
   @@map("notifications")
+}
+
+model Announcement {
+  id              String         @id @default(cuid())
+  title           String
+  body            String
+  audienceRole    String?
+  learningAreaId  String?
+  priority        String         @default("NORMAL")
+  scheduleAt      DateTime?
+  expiresAt       DateTime?
+  isActive        Boolean        @default(true)
+  createdByUserId String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  createdBy       User           @relation("AnnouncementAuthor", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  learningArea    LearningArea?  @relation(fields: [learningAreaId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, expiresAt, createdAt])
+  @@map("announcements")
+}
+
+model Conversation {
+  id                String    @id @default(cuid())
+  participantOneId  String
+  participantTwoId  String
+  subject           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastMessageAt     DateTime?
+  participantOne    User      @relation("ConversationParticipantOne", fields: [participantOneId], references: [id], onDelete: Cascade)
+  participantTwo    User      @relation("ConversationParticipantTwo", fields: [participantTwoId], references: [id], onDelete: Cascade)
+  messages          Message[]
+
+  @@index([participantOneId, participantTwoId])
+  @@map("conversations")
+}
+
+model Message {
+  id              String       @id @default(cuid())
+  conversationId  String
+  senderId        String
+  recipientId    String?
+  body            String
+  attachmentName  String?
+  attachmentUrl   String?
+  readAt          DateTime?
+  createdAt       DateTime     @default(now())
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  recipient       User?        @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+  sender          User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model UserPreference {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  notificationCategories Json   @default("[]")
+  emailPreferences    Json     @default("{}")
+  inAppNotifications  Boolean  @default(true)
+  reminderFrequency   String   @default("DAILY")
+  quietHoursStart     String?  @default("22:00")
+  quietHoursEnd       String?  @default("07:00")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model ActivityTimelineEntry {
+  id          String   @id @default(cuid())
+  userId      String
+  eventType   String
+  title       String
+  description String?
+  entityType  String?
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("activity_timeline_entries")
 }
 
 model EmailDelivery {
@@ -668,10 +920,18 @@ model WeeklyMentorTaskReview {
   @@map("weekly_mentor_task_reviews")
 }
 
-enum AssessmentStatus {
-  NOT_ASSESSED
-  IN_PROGRESS
-  COMPLETED
+enum CompetencyAssessmentStatus {
+  DRAFT
+  SUBMITTED
+  FINAL
+}
+
+enum CompetencyLevel {
+  NOT_YET_DEMONSTRATED
+  EMERGING
+  COMPETENT
+  PROFICIENT
+  EXPERT
 }
 
 enum CohortStatus {
@@ -679,6 +939,11 @@ enum CohortStatus {
   ACTIVE
   COMPLETED
   ARCHIVED
+}
+
+enum RegistrationType {
+  CAREER_MENTEE
+  BUSINESS_MENTEE
 }
 
 enum MentorshipTrack {
@@ -732,6 +997,12 @@ enum AttendanceStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+enum LecturerAssessmentStatus {
+  NOT_ASSESSED
+  IN_PROGRESS
+  COMPLETED
 }
 
 enum SupervisorReviewStatus {

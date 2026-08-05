@@ -14,12 +14,22 @@ type RegisteredUser = {
   studentProfile: {
     mentorshipTrack: "CAREER" | "BUSINESS" | null;
     cohort: { name: string } | null;
+    learningArea?: { name: string } | null;
   } | null;
   supervisorProfile: {
     title: string | null;
     department: { name: string };
     cohortAssignments: Array<{ cohort: { name: string } }>;
+    learningArea?: { name: string } | null;
+    mentorCompetencyGroups?: Array<{
+      competencyGroup?: {
+        competency?: { name?: string | null } | null;
+      } | null;
+    }>;
   } | null;
+  learnerLearningPaths?: Array<{
+    competency?: { name?: string | null } | null;
+  }>;
 };
 
 const CONTACT_EMAIL = process.env.BG_HUB_CONTACT_EMAIL || "info@bghub.co.ke";
@@ -34,6 +44,13 @@ export async function sendRegistrationNotification(user: RegisteredUser): Promis
     if (user.role === "STUDENT" && user.studentProfile) {
       const track = user.studentProfile.mentorshipTrack === "BUSINESS" ? "Business Mentorship" : "Career Mentorship";
       const cohort = user.studentProfile.cohort?.name || "To be assigned";
+      const competencies = Array.from(
+        new Set(
+          (user.learnerLearningPaths ?? [])
+            .map((path) => path.competency?.name)
+            .filter(Boolean) as string[],
+        ),
+      );
       const document = await DocumentGenerationService.generateDocument(
         "PROVISIONAL_ADMISSION_LETTER",
         {
@@ -44,13 +61,15 @@ export async function sendRegistrationNotification(user: RegisteredUser): Promis
           registrationIdentifier: user.registrationIdentifier,
           paymentStatus: "Pending",
           registrationValidityHours: 24,
+          learningArea: user.studentProfile.learningArea?.name,
+          selectedCompetencies: competencies,
         },
       );
 
       await createAndSendEmail({
         userId: user.id,
         to: user.email,
-        subject: "Provisional Admission to the BGhub Kenya Mentorship Programme",
+        subject: "Provisional Admission to the BGHUB Kenya Mentorship Programme",
         html: menteeEmail(user.name, user.registrationIdentifier, track, cohort),
         attachment: { filename: document.fileName, path: document.filePath, contentType: "application/pdf" },
       });
@@ -59,6 +78,13 @@ export async function sendRegistrationNotification(user: RegisteredUser): Promis
     if (user.role === "SUPERVISOR" && user.supervisorProfile) {
       const technicalArea = user.supervisorProfile.title || user.supervisorProfile.department.name;
       const cohorts = user.supervisorProfile.cohortAssignments.map(({ cohort }) => cohort.name).join(", ") || "To be assigned";
+      const assignedCompetencies = Array.from(
+        new Set(
+          (user.supervisorProfile.mentorCompetencyGroups ?? [])
+            .map((group) => group.competencyGroup?.competency?.name)
+            .filter(Boolean) as string[],
+        ),
+      );
       const document = await DocumentGenerationService.generateDocument(
         "TECHNICAL_MENTOR_ENGAGEMENT_LETTER",
         {
@@ -66,13 +92,15 @@ export async function sendRegistrationNotification(user: RegisteredUser): Promis
           email: user.email,
           technicalArea,
           registrationIdentifier: user.registrationIdentifier,
+          assignedLearningArea: user.supervisorProfile.learningArea?.name,
+          assignedCompetencies,
         },
       );
 
       await createAndSendEmail({
         userId: user.id,
         to: user.email,
-        subject: "Letter of Engagement – BGhub Kenya Technical Mentor",
+        subject: "Letter of Engagement – BGHUB Kenya Technical Mentor",
         html: mentorEmail(user.name, technicalArea, cohorts, user.registrationIdentifier),
         attachment: { filename: document.fileName, path: document.filePath, contentType: "application/pdf" },
       });
@@ -83,13 +111,13 @@ export async function sendRegistrationNotification(user: RegisteredUser): Promis
 }
 
 function layout(title: string, content: string): string {
-  return `<div style="font-family:Helvetica;line-height:1.6;color:#172033;max-width:640px"><h2>${title}</h2>${content}<p>For assistance, contact ${CONTACT_EMAIL} or ${CONTACT_PHONE}.</p><p>Regards,<br>BGhub Kenya</p></div>`;
+  return `<div style="font-family:Helvetica;line-height:1.6;color:#172033;max-width:640px"><h2>${title}</h2>${content}<p>For assistance, contact ${CONTACT_EMAIL} or ${CONTACT_PHONE}.</p><p>Regards,<br>BGHUB Kenya</p></div>`;
 }
 
 function menteeEmail(name: string, identifier: string, track: string, cohort: string): string {
-  return layout("Welcome to the BGhub Kenya Mentorship Programme", `<p>Dear ${escapeHtml(name)},</p><p>Welcome. Your provisional registration has been successfully completed.</p><ul><li><strong>Registration Identifier:</strong> ${escapeHtml(identifier)}</li><li><strong>Mentorship Track:</strong> ${escapeHtml(track)}</li><li><strong>Assigned Cohort:</strong> ${escapeHtml(cohort)}</li></ul><p>Your provisional registration is valid for 24 hours. Please complete the required programme payment within this period using the payment instructions provided by BGhub Kenya. Your registration becomes permanent after payment confirmation.</p><p>Your provisional admission letter is attached for your records.</p>`);
+  return layout("Welcome to the BGHUB Kenya Mentorship Programme", `<p>Dear ${escapeHtml(name)},</p><p>Welcome. Your provisional registration has been successfully completed.</p><ul><li><strong>Registration Identifier:</strong> ${escapeHtml(identifier)}</li><li><strong>Mentorship Track:</strong> ${escapeHtml(track)}</li><li><strong>Assigned Cohort:</strong> ${escapeHtml(cohort)}</li></ul><p>Your provisional registration is valid for 24 hours. Please complete the required programme payment within this period using the payment instructions provided by BGHUB Kenya. Your registration becomes permanent after payment confirmation.</p><p>Your provisional admission letter is attached for your records.</p>`);
 }
 
 function mentorEmail(name: string, technicalArea: string, cohorts: string, identifier: string): string {
-  return layout("Welcome as a BGhub Kenya Technical Mentor", `<p>Dear ${escapeHtml(name)},</p><p>Welcome to the BGhub Kenya Mentorship Programme. We are pleased to confirm your technical mentor registration.</p><ul><li><strong>Technical Area:</strong> ${escapeHtml(technicalArea)}</li><li><strong>Assigned Cohort(s):</strong> ${escapeHtml(cohorts)}</li><li><strong>Registration Identifier:</strong> ${escapeHtml(identifier)}</li></ul><p>Your official engagement letter is attached for your records.</p>`);
+  return layout("Welcome as a BGHUB Kenya Technical Mentor", `<p>Dear ${escapeHtml(name)},</p><p>Welcome to the BGHUB Kenya Mentorship Programme. We are pleased to confirm your technical mentor registration.</p><ul><li><strong>Technical Area:</strong> ${escapeHtml(technicalArea)}</li><li><strong>Assigned Cohort(s):</strong> ${escapeHtml(cohorts)}</li><li><strong>Registration Identifier:</strong> ${escapeHtml(identifier)}</li></ul><p>Your official engagement letter is attached for your records.</p>`);
 }

@@ -9,10 +9,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, CheckCircle, User, Calendar, FileText } from "lucide-react";
+import { Clock, CheckCircle, FileText } from "lucide-react";
 import { format } from "date-fns";
 
 interface LogbookEntry {
@@ -31,7 +30,7 @@ interface LogbookEntry {
     };
   };
   comments?: Array<{
-    competencyLevel: number;
+    competencyScore: number;
     competencyLabel: string;
     competencyDescription: string;
     optionalComment?: string;
@@ -97,15 +96,12 @@ export function CompetencyReviewForm({
   >(null);
   const [comment, setComment] = useState<string>("");
 
-  // Debug: Log current state
-  console.log("Current selected competency level:", selectedCompetencyLevel);
-
   // Preselect existing competency level when entry changes
   useEffect(() => {
     const id = setTimeout(() => {
       const latestComment = selectedEntry?.comments?.[0];
-      if (latestComment?.competencyLevel) {
-        setSelectedCompetencyLevel(latestComment.competencyLevel);
+      if (latestComment?.competencyScore) {
+        setSelectedCompetencyLevel(latestComment.competencyScore);
       } else {
         setSelectedCompetencyLevel(null);
       }
@@ -122,31 +118,12 @@ export function CompetencyReviewForm({
       alert("Please select a competency level.");
       return;
     }
-    console.log(
-      "Submitting assessment with competency level:",
-      selectedCompetencyLevel,
-    );
     await onAssessmentSubmit(
       selectedEntry.id,
       selectedCompetencyLevel,
       comment,
       "APPROVED",
     );
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "PENDING":
-        return <Badge className="bg-yellow-600">Pending Review</Badge>;
-      case "APPROVED":
-        return <Badge className="bg-green-600">Approved</Badge>;
-      case "NEEDS_REVISION":
-        return <Badge className="bg-orange-600">Needs Revision</Badge>;
-      case "REJECTED":
-        return <Badge className="bg-red-600">Rejected</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
   };
 
   if (!selectedEntry) {
@@ -176,7 +153,7 @@ export function CompetencyReviewForm({
       <CardHeader>
         <CardTitle>Assess Entry</CardTitle>
         <CardDescription>
-          Evaluate {selectedEntry.student.user.name}'s work record
+          Evaluate the selected work record for {selectedEntry.student.user.name}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -207,10 +184,7 @@ export function CompetencyReviewForm({
               <button
                 type="button"
                 key={level.value}
-                onClick={() => {
-                  console.log("Clicked competency level:", level.value);
-                  setSelectedCompetencyLevel(level.value);
-                }}
+                onClick={() => setSelectedCompetencyLevel(level.value)}
                 className={`p-4 border rounded-lg cursor-pointer transition text-left w-full ${
                   selectedCompetencyLevel === level.value
                     ? "border-primary bg-primary/10 ring-2 ring-primary"

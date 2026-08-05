@@ -27,16 +27,16 @@ const roleConfigs = [
   {
     key: "student",
     title: "Student",
-    description: "Create, manage and submit internship logbooks.",
+    description: "Create, manage, and submit learning logbooks.",
     icon: GraduationCap,
     hero: "Student Guide",
     overview:
-      "Use your student guide to create entries, submit weekly work, review milestone progress, and stay updated on supervisor feedback.",
+      "Use your learner guide to create entries, submit weekly work, review milestone progress, and stay updated on mentor feedback.",
     sections: [
       {
         title: "Overview",
         description:
-          "This workspace helps you capture your daily work and keep your supervisor informed.",
+          "This workspace helps you capture your daily work and keep your mentor informed.",
         steps: [
           {
             title: "Create a reliable record",
@@ -61,7 +61,7 @@ const roleConfigs = [
       {
         title: "How to Sign Up",
         description:
-          "Your account is usually created by the administrator or your placement coordinator.",
+          "Your account is usually created by the administrator or your program coordinator.",
         steps: [
           {
             title: "Receive access",
@@ -76,7 +76,7 @@ const roleConfigs = [
         ],
         tips: ["Use an email address you check regularly."],
         mistakes: [
-          "Trying to create a student account yourself when access is managed centrally.",
+          "Trying to create a learner account yourself when access is managed centrally.",
         ],
       },
       {
@@ -95,7 +95,7 @@ const roleConfigs = [
           {
             title: "Access your dashboard",
             description:
-              "You will land on your student workspace after a successful login.",
+              "You will land on your learner workspace after a successful login.",
           },
         ],
         tips: [
@@ -117,7 +117,7 @@ const roleConfigs = [
           {
             title: "View notifications",
             description:
-              "Open the notifications area to see recent updates from supervisors or administrators.",
+              "Open the notifications area to see recent updates from mentors or administrators.",
           },
         ],
         tips: ["Treat the dashboard as your daily command center."],
@@ -126,7 +126,7 @@ const roleConfigs = [
       {
         title: "Main Features",
         description:
-          "Use the student tools for logging, reviewing, and tracking your work.",
+          "Use the learner tools for logging, reviewing, and tracking your work.",
         steps: [
           {
             title: "Create logbook entries",
@@ -135,11 +135,11 @@ const roleConfigs = [
           {
             title: "Manage milestones",
             description:
-              "Track key milestones linked to your placement or project.",
+              "Track key milestones linked to your learning pathway or project.",
           },
           {
             title: "Review feedback",
-            description: "Read comments and updates left by your supervisor.",
+            description: "Read comments and updates left by your mentor.",
           },
         ],
         tips: ["Attach relevant notes when an entry needs extra context."],
@@ -166,7 +166,7 @@ const roleConfigs = [
           {
             title: "Review feedback",
             description:
-              "Open supervisor comments and act on them where needed.",
+              "Open mentor comments and act on them where needed.",
           },
         ],
         tips: ["Save a draft if you need more time before submission."],
@@ -174,7 +174,7 @@ const roleConfigs = [
       },
       {
         title: "Frequently Asked Questions",
-        description: "Common questions from student users.",
+        description: "Common questions from learner users.",
         steps: [
           {
             title: "How do I recover access?",
@@ -184,7 +184,7 @@ const roleConfigs = [
           {
             title: "Who reviews my work?",
             description:
-              "Your assigned supervisor reviews the entries and weekly submissions.",
+              "Your assigned mentor reviews the entries and weekly submissions.",
           },
         ],
         tips: ["Check your notifications for reminders and approval updates."],
@@ -200,28 +200,28 @@ const roleConfigs = [
       {
         question: "Who approves my work?",
         answer:
-          "Your assigned supervisor reviews and approves your submitted work and milestone updates.",
+          "Your assigned mentor reviews and approves your submitted work and milestone updates.",
       },
       {
         question: "Who creates my account?",
         answer:
-          "Accounts are usually created and managed by the administrator or placement coordinator.",
+          "Accounts are usually created and managed by the administrator or program coordinator.",
       },
     ],
   },
   {
     key: "worker",
     title: "Worker",
-    description: "Record attendance and manage assigned work.",
+    description: "Record attendance and manage assigned learning activities.",
     icon: BriefcaseBusiness,
     hero: "Worker Guide",
     overview:
-      "The worker guide helps you check in, view attendance history, and stay updated on your daily work tasks.",
+      "The worker guide helps you check in, view attendance history, and stay updated on your daily learning tasks.",
     sections: [
       {
         title: "Overview",
         description:
-          "Workers use the system for attendance, work logging, and profile visibility.",
+          "Workers use the system for attendance, activity logging, and profile visibility.",
         steps: [
           {
             title: "Check in and out",
@@ -242,7 +242,7 @@ const roleConfigs = [
       {
         title: "How to Sign In",
         description:
-          "Workers sign in from the main portal using their company credentials.",
+          "Workers sign in from the main portal using their assigned credentials.",
         steps: [
           {
             title: "Go to the login screen",
@@ -275,7 +275,7 @@ const roleConfigs = [
       {
         title: "Main Features",
         description:
-          "Workers can manage attendance, profile settings, and task visibility.",
+          "Workers can manage attendance, profile settings, and activity visibility.",
         steps: [
           {
             title: "Attendance check-in",
@@ -333,16 +333,16 @@ const roleConfigs = [
   {
     key: "supervisor",
     title: "Supervisor",
-    description: "Review student submissions and provide feedback.",
+    description: "Review learner submissions and provide feedback.",
     icon: Users,
     hero: "Supervisor Guide",
     overview:
-      "Supervisors use this guide to review student progress, provide feedback, and approve work confidently.",
+      "Mentors use this guide to review learner progress, provide feedback, and approve work confidently.",
     sections: [
       {
         title: "Overview",
         description:
-          "Supervisors monitor assigned work, review submissions, and guide performance.",
+          "Mentors monitor assigned work, review submissions, and guide performance.",
         steps: [
           {
             title: "Review submissions",
@@ -352,14 +352,14 @@ const roleConfigs = [
           {
             title: "Provide timely feedback",
             description:
-              "Leave clear comments that help students improve quickly.",
+              "Leave clear comments that help learners improve quickly.",
           },
         ],
       },
       {
         title: "How to Sign In",
         description:
-          "Use your supervisor credentials to access the review workspace.",
+          "Use your mentor credentials to access the review workspace.",
         steps: [
           {
             title: "Open the login screen",
@@ -367,18 +367,18 @@ const roleConfigs = [
           },
           {
             title: "Enter your details",
-            description: "Use your assigned supervisor email and password.",
+            description: "Use your assigned mentor email and password.",
           },
         ],
       },
       {
         title: "Main Features",
         description:
-          "Review, comment, approve, and generate reports for assigned students.",
+          "Review, comment, approve, and generate reports for assigned learners.",
         steps: [
           {
-            title: "View assigned students",
-            description: "Open the student list to see current assignments.",
+            title: "View assigned learners",
+            description: "Open the learner list to see current assignments.",
           },
           {
             title: "Review submissions",
@@ -397,11 +397,11 @@ const roleConfigs = [
       },
       {
         title: "Step-by-step instructions",
-        description: "Use this flow when supporting student progress.",
+        description: "Use this flow when supporting learner progress.",
         steps: [
           {
-            title: "Open the student list",
-            description: "Select the student you want to review.",
+            title: "Open the learner list",
+            description: "Select the learner you want to review.",
           },
           {
             title: "Check their submissions",
@@ -423,7 +423,7 @@ const roleConfigs = [
       {
         question: "Who approves my work?",
         answer:
-          "Your assigned supervisor is responsible for reviewing and approving your work submissions.",
+          "Your assigned mentor is responsible for reviewing and approving your work submissions.",
       },
       {
         question: "How do I contact the administrator?",
@@ -435,20 +435,20 @@ const roleConfigs = [
   {
     key: "lecturer",
     title: "Lecturer",
-    description: "Assess milestones and monitor student progress.",
+    description: "Assess milestones and monitor learner progress.",
     icon: BookOpen,
     hero: "Lecturer Guide",
     overview:
-      "Lecturers use this guide to review student progress, assessment outcomes, and academic reports.",
+      "Lecturers use this guide to review learner progress, assessment outcomes, and learning reports.",
     sections: [
       {
         title: "Overview",
         description:
-          "This guide helps lecturers review student development and academic performance.",
+          "This guide helps lecturers review learner development and academic performance.",
         steps: [
           {
             title: "Review milestones",
-            description: "Check milestone progress for each student.",
+            description: "Check milestone progress for each learner.",
           },
           {
             title: "Assess project work",
@@ -479,7 +479,7 @@ const roleConfigs = [
         steps: [
           {
             title: "Review milestones",
-            description: "Check student progress and identify risks early.",
+            description: "Check learner progress and identify risks early.",
           },
           {
             title: "Review projects",
@@ -493,7 +493,7 @@ const roleConfigs = [
           },
           {
             title: "View reports",
-            description: "Generate or consult reports for student performance.",
+            description: "Generate or consult reports for learner performance.",
           },
         ],
       },
@@ -502,23 +502,23 @@ const roleConfigs = [
       {
         question: "How do I contact the administrator?",
         answer:
-          "Use the support channel from your department or the administrator contact route.",
+          "Use the support channel from your program or the administrator contact route.",
       },
       {
         question: "Who approves my work?",
         answer:
-          "Supervisors review student work while lecturers assess academic progression and outcomes.",
+          "Mentors review learner work while lecturers assess academic progression and outcomes.",
       },
     ],
   },
   {
     key: "admin",
     title: "Administrator",
-    description: "Manage users, departments, projects and system settings.",
+    description: "Manage users, learning areas, projects, and system settings.",
     icon: ShieldCheck,
     hero: "Administrator Guide",
     overview:
-      "Administrators use the system to manage access, worker records, departments, locations, reports, audit logs, and platform settings.",
+      "Administrators use the system to manage access, learner records, learning areas, reports, audit logs, and platform settings.",
     sections: [
       {
         title: "Overview",
@@ -528,12 +528,12 @@ const roleConfigs = [
           {
             title: "Manage users",
             description:
-              "Create and maintain student, supervisor, lecturer, worker, and admin accounts.",
+              "Create and maintain learner, mentor, lecturer, worker, and admin accounts.",
           },
           {
             title: "Maintain configuration",
             description:
-              "Keep departments, locations, projects, and settings aligned with your operations.",
+              "Keep learning areas, programs, projects, and settings aligned with your operations.",
           },
         ],
       },
@@ -564,10 +564,10 @@ const roleConfigs = [
           {
             title: "Sync workers",
             description:
-              "Keep workforce records aligned with the connected systems.",
+              "Keep workforce and learner records aligned with the connected systems.",
           },
           {
-            title: "Manage departments and locations",
+            title: "Manage learning areas and program settings",
             description: "Organize your teams and physical places.",
           },
           {
@@ -594,7 +594,7 @@ const roleConfigs = [
               "Check that all users have the correct role and access.",
           },
           {
-            title: "Maintain departments and locations",
+            title: "Maintain learning areas and program structures",
             description: "Ensure the team structure remains up to date.",
           },
           {
@@ -742,7 +742,7 @@ export default function HelpPage() {
               In-app support center
             </div>
             <h1 className="mt-4 text-3xl font-bold sm:text-4xl">
-              BGhub Kenya Worklog Management System User Guide
+              BGHUB Kenya Learning Experience Platform User Guide
             </h1>
             <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
               Select your role to view the appropriate guide.

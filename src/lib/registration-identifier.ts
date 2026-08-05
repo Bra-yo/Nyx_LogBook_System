@@ -1,4 +1,3 @@
-import type { PrismaClient } from "@prisma/client";
 import type { UserRole } from "@/types";
 
 export type RegistrationIdentifierType =
@@ -10,6 +9,7 @@ export interface RegistrationIdentifierContext {
   role: UserRole | string;
   registrationType?: RegistrationIdentifierType;
   mentorshipTrack?: "CAREER" | "BUSINESS" | null;
+  providedIdentifier?: string | null;
 }
 
 export interface RegistrationIdentifierResult {
@@ -21,7 +21,20 @@ type UserRecordWithIdentifier = {
   registrationIdentifier?: string | null;
 };
 
-type PrismaTx = Pick<PrismaClient, "user">;
+type PrismaTx = {
+  user: {
+    findMany: (args: {
+      where?: {
+        registrationIdentifier?: {
+          startsWith?: string;
+        };
+      };
+      select?: {
+        registrationIdentifier?: boolean;
+      };
+    }) => Promise<UserRecordWithIdentifier[]>;
+  };
+};
 
 const IDENTIFIER_PREFIXES: Record<RegistrationIdentifierType, string> = {
   CAREER_MENTEE: "CM-KE",
@@ -44,6 +57,11 @@ export async function generateRegistrationIdentifierForUser(
 
   if (!identifierType) {
     return { identifier: null, type: null };
+  }
+
+  const suppliedIdentifier = context.providedIdentifier?.trim();
+  if (suppliedIdentifier) {
+    return { identifier: suppliedIdentifier, type: identifierType };
   }
 
   const prefix = IDENTIFIER_PREFIXES[identifierType];

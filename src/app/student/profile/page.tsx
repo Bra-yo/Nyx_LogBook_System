@@ -142,7 +142,7 @@ export default function StudentProfile() {
 
   if (loading) {
     return (
-      <DashboardLayout title="Student Profile">
+      <DashboardLayout title="Learner Profile">
         <div className="space-y-6">
           <div className="animate-pulse space-y-4">
             <div className="h-8 w-56 rounded bg-muted" />
@@ -160,7 +160,7 @@ export default function StudentProfile() {
 
   if (!profile) {
     return (
-      <DashboardLayout title="Student Profile">
+      <DashboardLayout title="Learner Profile">
         <div className="rounded-lg border bg-card p-8 text-center">
           <p className="text-muted-foreground">
             Unable to load your profile right now.
@@ -176,9 +176,9 @@ export default function StudentProfile() {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-semibold">Student Profile</h2>
+            <h2 className="text-2xl font-semibold">Learner Profile</h2>
             <p className="text-sm text-muted-foreground">
-              Manage your student information and academic details
+              Manage your learner information and learning progress
             </p>
           </div>
           <Button onClick={() => (editing ? handleSave() : setEditing(true))}>
@@ -298,7 +298,7 @@ export default function StudentProfile() {
             {profile.supervisor && (
               <div className="rounded-lg border p-4">
                 <Label className="text-sm font-medium">
-                  Assigned Supervisor
+                  Assigned Mentor
                 </Label>
                 <div className="mt-2 space-y-1">
                   <p className="text-sm">{profile.supervisor.user.name}</p>
@@ -345,7 +345,7 @@ export default function StudentProfile() {
             {editing ? (
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="internshipCompany">Company Name</Label>
+                  <Label htmlFor="internshipCompany">Placement / Organisation</Label>
                   <Input
                     id="internshipCompany"
                     value={formData.internshipCompany}
@@ -392,7 +392,7 @@ export default function StudentProfile() {
             ) : (
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
-                  <Label className="text-sm font-medium">Company</Label>
+                  <Label className="text-sm font-medium">Placement / Organisation</Label>
                   <div className="mt-1">
                     {formData.internshipCompany ? (
                       <Badge variant="outline">

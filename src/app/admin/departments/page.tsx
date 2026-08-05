@@ -30,8 +30,9 @@ export default function DepartmentsPage() {
   })
 
   useEffect(() => {
+    router.replace('/admin/learning-areas')
     fetchDepartments()
-  }, [])
+  }, [router])
 
   const fetchDepartments = async () => {
     try {
@@ -90,7 +91,7 @@ export default function DepartmentsPage() {
     return (
       <div className="container mx-auto py-6">
         <div className="flex items-center justify-center h-64">
-          <div className="text-muted-foreground">Loading departments...</div>
+          <div className="text-muted-foreground">Redirecting to the learning architecture workspace…</div>
         </div>
       </div>
     )

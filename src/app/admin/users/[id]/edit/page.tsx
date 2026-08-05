@@ -32,19 +32,44 @@ const editUserSchema = z.object({
   phone: z.string().optional(),
   isActive: z.boolean(),
   registrationType: z.enum(["CAREER_MENTEE", "BUSINESS_MENTEE"]).optional(),
+  learningAreaId: z.string().trim().min(1, "Learning area is required for learner accounts").optional(),
+  mentorCapacity: z.number().int().min(1).max(500).optional(),
+  employmentType: z.string().optional(),
+  maxActiveMentees: z.number().int().min(1).max(500).optional(),
+  isAcceptingNewMentees: z.boolean().optional(),
 });
 
 type EditUserFormData = z.infer<typeof editUserSchema>;
+
+type EditUserResponse = {
+  id: string;
+  name: string;
+  email: string;
+  role: EditUserFormData["role"];
+  phone?: string | null;
+  isActive: boolean;
+  registrationIdentifier?: string | null;
+  studentProfile?: {
+    learningAreaId?: string | null;
+  } | null;
+  supervisorProfile?: {
+    maxActiveMentees?: number | null;
+    isAcceptingNewMentees?: boolean | null;
+    students?: Array<{ id: string }>;
+  } | null;
+};
 
 export default function EditUserPage() {
   const router = useRouter();
   const params = useParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<EditUserResponse | null>(null);
   const [departments, setDepartments] = useState<
     Array<{ id: string; name: string }>
   >([]);
+  const [learningAreas, setLearningAreas] = useState<Array<{ id: string; name: string; code: string }>>([]);
   const [error, setError] = useState<string | null>(null);
+  const [activeMenteeCount, setActiveMenteeCount] = useState(0);
 
   const {
     register,
@@ -55,7 +80,21 @@ export default function EditUserPage() {
     watch,
   } = useForm<EditUserFormData>({
     resolver: zodResolver(editUserSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      role: "SUPERVISOR",
+      phone: "",
+      isActive: true,
+      registrationType: "CAREER_MENTEE",
+      mentorCapacity: 10,
+      employmentType: "",
+      maxActiveMentees: 10,
+      isAcceptingNewMentees: true,
+    },
   });
+
+  const role = watch("role");
 
   // Fetch user data and departments on mount
   useEffect(() => {
@@ -76,7 +115,18 @@ export default function EditUserPage() {
             registrationType: data.user.registrationIdentifier?.startsWith("BM-KE")
               ? "BUSINESS_MENTEE"
               : "CAREER_MENTEE",
+            learningAreaId: data.user.studentProfile?.learningAreaId || "",
+            mentorCapacity:
+              data.user.supervisorProfile?.mentorCapacity ?? 10,
+            employmentType: data.user.supervisorProfile?.employmentType || "",
+            maxActiveMentees:
+              data.user.supervisorProfile?.maxActiveMentees ?? 10,
+            isAcceptingNewMentees:
+              data.user.supervisorProfile?.isAcceptingNewMentees ?? true,
           });
+          setActiveMenteeCount(
+            data.user.supervisorProfile?.students?.length ?? 0,
+          );
         } else {
           setError("User not found");
           toast.error("User not found");
@@ -99,6 +149,18 @@ export default function EditUserPage() {
       .catch((err) => {
         console.error("Failed to fetch departments:", err);
         toast.error("Failed to load departments");
+      });
+
+    fetch("/api/admin/learning-areas")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setLearningAreas(data.learningAreas || []);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch learning areas:", err);
+        toast.error("Failed to load learning areas");
       });
   }, [params.id, reset]);
 
@@ -166,13 +228,36 @@ export default function EditUserPage() {
     }
   };
 
-  const renderRoleSpecificFields = () => {
-    const role = watch("role");
+  const maxActiveMentees = watch("maxActiveMentees") ?? 10;
+  const isAcceptingNewMentees = watch("isAcceptingNewMentees") ?? true;
+  const availableSlots = Math.max(0, maxActiveMentees - activeMenteeCount);
+  const hasCapacityWarning = activeMenteeCount > maxActiveMentees;
 
+  const renderRoleSpecificFields = () => {
     switch (role) {
       case "STUDENT":
         return (
           <div className="space-y-4 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-4">
+            <Label htmlFor="learningAreaId">Learning Area *</Label>
+            <Select
+              value={watch("learningAreaId") || ""}
+              onValueChange={(value) => setValue("learningAreaId", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a learning area" />
+              </SelectTrigger>
+              <SelectContent>
+                {learningAreas.map((area) => (
+                  <SelectItem key={area.id} value={area.id}>
+                    {area.name} ({area.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.learningAreaId && (
+              <p className="text-sm text-red-600">{errors.learningAreaId.message}</p>
+            )}
+
             <Label htmlFor="registrationType">Registration Type</Label>
             <Select
               value={watch("registrationType") || "CAREER_MENTEE"}
@@ -203,9 +288,94 @@ export default function EditUserPage() {
               placeholder="+254 700 000 000"
               {...register("phone")}
             />
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="learningAreaId">Learning Area</Label>
+                <Select
+                  value={watch("learningAreaId") || ""}
+                  onValueChange={(value) => setValue("learningAreaId", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a learning area" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {learningAreas.map((area) => (
+                      <SelectItem key={area.id} value={area.id}>
+                        {area.name} ({area.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mentorCapacity">Mentor capacity</Label>
+                <Input
+                  id="mentorCapacity"
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={watch("mentorCapacity") ?? 10}
+                  onChange={(event) => setValue("mentorCapacity", Number(event.target.value))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="employmentType">Employment type</Label>
+                <Input
+                  id="employmentType"
+                  placeholder="Full-time, Part-time, Contract"
+                  value={watch("employmentType") || ""}
+                  onChange={(event) => setValue("employmentType", event.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="maxActiveMentees">Maximum active mentees</Label>
+                <Input
+                  id="maxActiveMentees"
+                  type="number"
+                  min="1"
+                  max="500"
+                  {...register("maxActiveMentees", { valueAsNumber: true })}
+                />
+              </div>
+
+              <div className="flex items-start justify-between rounded-lg border bg-background p-3 md:col-span-2">
+                <div>
+                  <Label htmlFor="isAcceptingNewMentees">Accepting new mentees</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Toggle mentor availability for new allocations
+                  </p>
+                </div>
+                <input
+                  id="isAcceptingNewMentees"
+                  type="checkbox"
+                  checked={isAcceptingNewMentees}
+                  onChange={(event) =>
+                    setValue("isAcceptingNewMentees", event.target.checked)
+                  }
+                  className="mt-1 h-4 w-4 rounded border-gray-300"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+              <div className="font-medium text-foreground">Capacity overview</div>
+              <div>Active mentees: {activeMenteeCount}</div>
+              <div>Configured capacity: {maxActiveMentees}</div>
+              <div>Available slots: {availableSlots}</div>
+            </div>
+
+            {hasCapacityWarning && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                This mentor currently has {activeMenteeCount} active mentees, which exceeds the new capacity of {maxActiveMentees}. Consider keeping the limit above the current count or informing the mentor before saving.
+              </div>
+            )}
+
             <p className="text-sm text-muted-foreground">
-              Mentor registration will generate a registration identifier
-              automatically after the account is updated.
+              Mentor onboarding will retain the server-generated registration identifier and the operational profile details you configure here.
             </p>
           </div>
         );
@@ -287,7 +457,7 @@ export default function EditUserPage() {
                   <Label htmlFor="role">Role *</Label>
                   <Select
                     value={watch("role")}
-                    onValueChange={(value) => setValue("role", value as any)}
+                    onValueChange={(value) => setValue("role", value as EditUserFormData["role"])}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a role" />

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { buildMentorAssignmentUpsertPlan, validateMentorAssignmentPayload } from "@/lib/mentor-assignment";
 
 const mentorCompetencyGroupSchema = z.object({
   mentorId: z.string().trim().min(1, "Mentor is required"),
@@ -72,34 +73,58 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: validatedData.error.issues[0]?.message || "Invalid request data" }, { status: 400 });
     }
 
-    const mentor = await prisma.supervisorProfile.findUnique({ where: { id: validatedData.data.mentorId } });
+    const normalizedPayload = validateMentorAssignmentPayload({
+      mentorId: validatedData.data.mentorId,
+      competencyGroupId: validatedData.data.competencyGroupId,
+      status: validatedData.data.status,
+      notes: validatedData.data.notes,
+    });
+    const upsertPlan = buildMentorAssignmentUpsertPlan(normalizedPayload);
+
+    const mentor = await prisma.supervisorProfile.findUnique({ where: { id: upsertPlan.mentorId } });
     if (!mentor) {
       return NextResponse.json({ success: false, error: "Mentor not found" }, { status: 404 });
     }
 
-    const competencyGroup = await prisma.competencyGroup.findUnique({ where: { id: validatedData.data.competencyGroupId } });
+    const competencyGroup = await prisma.competencyGroup.findUnique({ where: { id: upsertPlan.competencyGroupId } });
     if (!competencyGroup) {
       return NextResponse.json({ success: false, error: "Competency group not found" }, { status: 404 });
     }
 
     const existing = await prisma.mentorCompetencyGroup.findFirst({
       where: {
-        mentorId: validatedData.data.mentorId,
-        competencyGroupId: validatedData.data.competencyGroupId,
+        mentorId: upsertPlan.mentorId,
+        competencyGroupId: upsertPlan.competencyGroupId,
+      },
+      include: {
+        mentor: {
+          select: {
+            id: true,
+            user: { select: { id: true, name: true, email: true } },
+          },
+        },
+        competencyGroup: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            competency: { select: { id: true, name: true, code: true } },
+          },
+        },
       },
     });
 
     if (existing) {
-      return NextResponse.json({ success: false, error: "This mentor is already linked to the selected competency group" }, { status: 409 });
+      return NextResponse.json({ success: true, mentorCompetencyGroup: existing, duplicate: true, message: "This mentor is already linked to the selected competency group" }, { status: 200 });
     }
 
     const mentorCompetencyGroup = await prisma.$transaction(async (tx) => {
       return tx.mentorCompetencyGroup.create({
         data: {
-          mentorId: validatedData.data.mentorId,
-          competencyGroupId: validatedData.data.competencyGroupId,
-          status: validatedData.data.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
-          notes: validatedData.data.notes?.trim() || null,
+          mentorId: upsertPlan.mentorId,
+          competencyGroupId: upsertPlan.competencyGroupId,
+          status: upsertPlan.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+          notes: upsertPlan.notes,
         },
         include: {
           mentor: {

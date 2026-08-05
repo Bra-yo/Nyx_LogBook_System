@@ -36,9 +36,9 @@ interface SystemSettings {
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SystemSettings>({
-    siteName: "BGhub Kenya WorkLog System",
+    siteName: "BGHUB Kenya WorkLog System",
     siteDescription:
-      "A digital WorkLog and attendance management system for BGhub Kenya.",
+      "A digital WorkLog and attendance management system for BGHUB Kenya.",
     allowRegistration: true,
     emailNotifications: true,
     maintenanceMode: false,

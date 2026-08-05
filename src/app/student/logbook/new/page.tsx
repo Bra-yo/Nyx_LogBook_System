@@ -27,7 +27,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Save, Send, ArrowLeft } from "lucide-react";
+import {
+  CalendarIcon,
+  Save,
+  Send,
+  ArrowLeft,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -36,11 +43,38 @@ interface Milestone {
   id: string;
   title: string;
   description: string | null;
+  projectId: string;
   tasks: {
     id: string;
     title: string;
     description: string | null;
   }[];
+}
+
+interface LearningPath {
+  id: string;
+  competency: {
+    name: string;
+    code: string;
+    learningArea: {
+      name: string;
+    };
+  };
+  mentorAllocations: Array<{
+    mentor: {
+      user: {
+        name: string;
+        email: string;
+      };
+    };
+  }>;
+}
+
+interface EvidenceItem {
+  type: "DOCUMENT" | "IMAGE" | "VIDEO" | "LINK" | "SOURCE_CODE";
+  title: string;
+  url: string;
+  description: string;
 }
 
 export default function NewLogbookEntry() {
@@ -52,19 +86,26 @@ export default function NewLogbookEntry() {
     challenges: "",
     learnings: "",
     date: new Date(),
+    learningPathId: "",
+    projectId: "",
     milestoneId: "",
     milestoneTaskId: "",
+    hoursWorked: "",
     attachments: [] as string[],
+    evidenceItems: [] as EvidenceItem[],
   });
   const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(true);
   const [checkingAttendance, setCheckingAttendance] = useState(true);
   const [loadingMilestones, setLoadingMilestones] = useState(true);
+  const [loadingLearningPaths, setLoadingLearningPaths] = useState(true);
 
   useEffect(() => {
     checkAttendanceStatus();
     fetchMilestones();
+    fetchLearningPaths();
   }, []);
 
   const checkAttendanceStatus = async () => {
@@ -100,6 +141,21 @@ export default function NewLogbookEntry() {
     }
   };
 
+  const fetchLearningPaths = async () => {
+    try {
+      setLoadingLearningPaths(true);
+      const response = await fetch("/api/student/learning-paths");
+      if (response.ok) {
+        const data = await response.json();
+        setLearningPaths(data.learningPaths || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch active learning paths:", error);
+    } finally {
+      setLoadingLearningPaths(false);
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -108,10 +164,51 @@ export default function NewLogbookEntry() {
   };
 
   const handleMilestoneChange = (milestoneId: string) => {
+    const selected = milestones.find((milestone) => milestone.id === milestoneId);
     setFormData((prev) => ({
       ...prev,
       milestoneId,
       milestoneTaskId: "", // Reset task when milestone changes
+      projectId: selected?.projectId || "",
+    }));
+  };
+
+  const handleLearningPathChange = (learningPathId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      learningPathId,
+    }));
+  };
+
+  const handleEvidenceChange = (
+    index: number,
+    field: keyof EvidenceItem,
+    value: string,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      evidenceItems: prev.evidenceItems.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    }));
+  };
+
+  const addEvidenceItem = () => {
+    setFormData((prev) => ({
+      ...prev,
+      evidenceItems: [
+        ...prev.evidenceItems,
+        { type: "DOCUMENT", title: "", url: "", description: "" },
+      ],
+    }));
+  };
+
+  const removeEvidenceItem = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      evidenceItems: prev.evidenceItems.filter((_, itemIndex) =>
+        itemIndex !== index,
+      ),
     }));
   };
 
@@ -128,6 +225,7 @@ export default function NewLogbookEntry() {
     (m) => m.id === formData.milestoneId,
   );
   const canSubmit =
+    formData.learningPathId &&
     formData.milestoneId &&
     formData.milestoneTaskId &&
     formData.title &&
@@ -148,6 +246,10 @@ export default function NewLogbookEntry() {
     try {
       const entryData = {
         ...formData,
+        projectId: formData.projectId,
+        hoursWorked: formData.hoursWorked
+          ? Number(formData.hoursWorked)
+          : undefined,
         status: saveAsDraft ? "DRAFT" : "PENDING",
         submittedAt: saveAsDraft ? null : new Date(),
       };
@@ -248,6 +350,25 @@ export default function NewLogbookEntry() {
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
+                      <Label htmlFor="learningPath">Learning Path *</Label>
+                      <Select
+                        value={formData.learningPathId}
+                        onValueChange={handleLearningPathChange}
+                        disabled={loadingLearningPaths}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a learning path" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {learningPaths.map((path) => (
+                            <SelectItem key={path.id} value={path.id}>
+                              {path.competency.name} ({path.competency.code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="milestone">Competency Milestone *</Label>
                       <Select
                         value={formData.milestoneId}
@@ -265,39 +386,59 @@ export default function NewLogbookEntry() {
                         </SelectContent>
                       </Select>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="task">Task *</Label>
-                      <Select
-                        value={formData.milestoneTaskId}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            milestoneTaskId: value,
-                          }))
-                        }
-                        disabled={!formData.milestoneId}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              formData.milestoneId
-                                ? "Select a task"
-                                : "Select milestone first"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectedMilestone?.tasks.map((task) => (
-                            <SelectItem key={task.id} value={task.id}>
-                              {task.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
                 )}
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="task">Task *</Label>
+                    <Select
+                      value={formData.milestoneTaskId}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          milestoneTaskId: value,
+                        }))
+                      }
+                      disabled={!formData.milestoneId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            formData.milestoneId
+                              ? "Select a task"
+                              : "Select milestone first"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedMilestone?.tasks.map((task) => (
+                          <SelectItem key={task.id} value={task.id}>
+                            {task.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="hoursWorked">Hours Worked</Label>
+                    <Input
+                      id="hoursWorked"
+                      type="number"
+                      min={0}
+                      step={0.25}
+                      placeholder="e.g., 8"
+                      value={formData.hoursWorked}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          hoursWorked: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
 
                 {selectedMilestone && (
                   <div className="mt-4 p-3 bg-muted rounded-lg">
@@ -421,21 +562,120 @@ export default function NewLogbookEntry() {
 
           <div className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Attachments</CardTitle>
-                <CardDescription>
-                  Upload files related to this entry (coming soon)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                  <div className="text-muted-foreground">
-                    <p>File upload functionality</p>
-                    <p className="text-sm">
-                      Will be implemented in a future update
-                    </p>
-                  </div>
+              <CardHeader className="flex items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Evidence Items</CardTitle>
+                  <CardDescription>
+                    Add links or documents that support your learning.
+                  </CardDescription>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addEvidenceItem}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Add Evidence
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {formData.evidenceItems.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-muted/50 p-4 text-sm text-muted-foreground">
+                    No evidence added yet. Attach a link, document, or media item.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {formData.evidenceItems.map((item, index) => (
+                      <div
+                        key={index}
+                        className="space-y-3 rounded-2xl border border-muted/20 bg-muted/20 p-4"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="text-sm font-medium">
+                            Evidence item {index + 1}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeEvidenceItem(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="grid gap-4">
+                          <div className="space-y-2">
+                            <Label>Type</Label>
+                            <Select
+                              value={item.type}
+                              onValueChange={(value) =>
+                                handleEvidenceChange(index, "type", value)
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="DOCUMENT">
+                                  Document
+                                </SelectItem>
+                                <SelectItem value="IMAGE">Image</SelectItem>
+                                <SelectItem value="VIDEO">Video</SelectItem>
+                                <SelectItem value="LINK">Link</SelectItem>
+                                <SelectItem value="SOURCE_CODE">
+                                  Source Code
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Title</Label>
+                            <Input
+                              value={item.title}
+                              onChange={(e) =>
+                                handleEvidenceChange(
+                                  index,
+                                  "title",
+                                  e.target.value,
+                                )
+                              }
+                              placeholder="Evidence title"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>URL</Label>
+                            <Input
+                              value={item.url}
+                              onChange={(e) =>
+                                handleEvidenceChange(
+                                  index,
+                                  "url",
+                                  e.target.value,
+                                )
+                              }
+                              placeholder="https://example.com"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Description</Label>
+                            <Textarea
+                              value={item.description}
+                              onChange={(e) =>
+                                handleEvidenceChange(
+                                  index,
+                                  "description",
+                                  e.target.value,
+                                )
+                              }
+                              rows={2}
+                              placeholder="Optional description"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

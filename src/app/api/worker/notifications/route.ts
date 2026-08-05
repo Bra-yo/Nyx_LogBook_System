@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import {
+  getNotificationsForUser,
+  markNotificationsRead,
+} from "@/lib/services/notification-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,10 +13,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const notifications = await prisma.notification.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
-    });
+    const notifications = await getNotificationsForUser(session.user.id);
 
     return NextResponse.json({ notifications });
   } catch (error) {
@@ -41,10 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await prisma.notification.updateMany({
-      where: { id: { in: notificationIds }, userId: session.user.id },
-      data: { read: true },
-    });
+    await markNotificationsRead(session.user.id, notificationIds);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
       id: m.id,
       title: m.title,
       description: m.description,
+      projectId: m.projectId,
       startDate: m.startDate,
       endDate: m.endDate,
       status: m.status,

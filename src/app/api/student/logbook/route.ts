@@ -7,15 +7,25 @@ import {
   getLogbookEntriesForStudent,
   createLogbookEntryForStudent,
 } from "@/lib/api/studentServices";
+import { createTimelineEntry } from "@/lib/services/notification-service";
 import { z } from "zod";
 
+const evidenceItemSchema = z.object({
+  type: z.enum(["DOCUMENT", "IMAGE", "VIDEO", "LINK", "SOURCE_CODE"]),
+  title: z.string().optional(),
+  url: z.string().url("Evidence URL must be valid"),
+  description: z.string().optional(),
+});
+
 const logbookSchema = z.object({
+  learningPathId: z.string().min(1, "Learning path selection is required"),
   projectId: z.string().min(1, "Project selection is required"),
   milestoneId: z.string().min(1, "Milestone selection is required"),
   milestoneTaskId: z.string().min(1, "Task selection is required"),
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   activities: z.string().min(1, "Activities are required"),
+  hoursWorked: z.number().min(0, "Hours worked must be a positive number").optional(),
   challenges: z.string().optional(),
   learnings: z.string().optional(),
   date: z.string().transform((str) => new Date(str)),
@@ -23,6 +33,7 @@ const logbookSchema = z.object({
     .enum(["DRAFT", "PENDING", "APPROVED", "REJECTED"])
     .default("PENDING"),
   attachments: z.array(z.string()).default([]),
+  evidenceItems: z.array(evidenceItemSchema).optional(),
 });
 
 const querySchema = z.object({
@@ -146,10 +157,44 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
 
+    const learningPath = await prisma.learnerLearningPath.findFirst({
+      where: {
+        id: validatedData.learningPathId,
+        learnerId: studentProfile.id,
+        status: "ACTIVE",
+      },
+      include: {
+        competency: { include: { learningArea: true } },
+        mentorAllocations: {
+          where: { status: "ACTIVE" },
+          include: { mentor: { include: { user: true } } },
+        },
+      },
+    });
+    if (!learningPath)
+      return NextResponse.json(
+        {
+          error:
+            "Selected learning path is not active, not assigned to you, or does not exist",
+        },
+        { status: 400 },
+      );
+
     const entry = await createLogbookEntryForStudent(
       studentProfile.id,
       validatedData,
     );
+
+    await createTimelineEntry({
+      userId: studentProfile.userId,
+      eventType: "LOGBOOK_ENTRY_CREATED",
+      title: "Work log entry saved",
+      description: `Your work log entry "${entry.title}" was ${entry.status === "PENDING" ? "submitted" : "saved"}.`,
+      entityType: "LogbookEntry",
+      entityId: entry.id,
+      metadata: { status: entry.status },
+    });
+
     return NextResponse.json({
       success: true,
       message: "Logbook entry created successfully",

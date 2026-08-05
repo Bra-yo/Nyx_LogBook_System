@@ -47,6 +47,14 @@ export async function GET(
             },
           },
         },
+        mentor: {
+          select: {
+            id: true,
+            user: {
+              select: { name: true },
+            },
+          },
+        },
         milestones: {
           include: {
             tasks: {
@@ -64,6 +72,16 @@ export async function GET(
           orderBy: {
             startDate: "desc",
           },
+        },
+        LogbookEntry: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 5,
         },
       },
     });

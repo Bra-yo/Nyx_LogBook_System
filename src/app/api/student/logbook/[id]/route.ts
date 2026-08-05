@@ -10,10 +10,22 @@ import {
 } from "@/lib/api/studentServices";
 import { z } from "zod";
 
+const evidenceItemSchema = z.object({
+  type: z.enum(["DOCUMENT", "IMAGE", "VIDEO", "LINK", "SOURCE_CODE"]),
+  title: z.string().optional(),
+  url: z.string().url("Evidence URL must be valid"),
+  description: z.string().optional(),
+});
+
 const logbookUpdateSchema = z.object({
+  learningPathId: z.string().min(1, "Learning path selection is required").optional(),
+  projectId: z.string().min(1, "Project selection is required").optional(),
+  milestoneId: z.string().min(1, "Milestone selection is required").optional(),
+  milestoneTaskId: z.string().min(1, "Task selection is required").optional(),
   title: z.string().min(1, "Title is required").optional(),
   description: z.string().min(1, "Description is required").optional(),
   activities: z.string().min(1, "Activities are required").optional(),
+  hoursWorked: z.number().min(0, "Hours worked must be a positive number").optional(),
   challenges: z.string().optional(),
   learnings: z.string().optional(),
   date: z
@@ -22,6 +34,7 @@ const logbookUpdateSchema = z.object({
     .optional(),
   status: z.enum(["DRAFT", "PENDING", "APPROVED", "REJECTED"]).optional(),
   attachments: z.array(z.string()).optional(),
+  evidenceItems: z.array(evidenceItemSchema).optional(),
 });
 
 // GET - Fetch single logbook entry
@@ -103,6 +116,82 @@ export async function PUT(
         { error: "Cannot edit entry that has been reviewed" },
         { status: 400 },
       );
+
+    if (validatedData.learningPathId) {
+      const learningPath = await prisma.learnerLearningPath.findFirst({
+        where: {
+          id: validatedData.learningPathId,
+          learnerId: studentProfile.id,
+          status: "ACTIVE",
+        },
+      });
+      if (!learningPath)
+        return NextResponse.json(
+          {
+            error:
+              "Selected learning path is not active, not assigned to you, or does not exist",
+          },
+          { status: 400 },
+        );
+    }
+
+    if (validatedData.projectId) {
+      const project = await prisma.project.findFirst({
+        where: {
+          id: validatedData.projectId,
+          learners: { some: { learnerId: studentProfile.id } },
+        },
+      });
+      if (!project)
+        return NextResponse.json(
+          {
+            error: "Selected project is not assigned to you or does not exist",
+          },
+          { status: 400 },
+        );
+    }
+
+    if (validatedData.milestoneId) {
+      const milestone = await prisma.milestone.findUnique({
+        where: { id: validatedData.milestoneId },
+      });
+      if (!milestone)
+        return NextResponse.json(
+          { error: "Selected milestone does not exist" },
+          { status: 400 },
+        );
+      if (
+        validatedData.projectId &&
+        milestone.projectId !== validatedData.projectId
+      )
+        return NextResponse.json(
+          {
+            error: "Selected milestone does not belong to the selected project",
+          },
+          { status: 400 },
+        );
+    }
+
+    if (validatedData.milestoneTaskId) {
+      const task = await prisma.milestoneTask.findUnique({
+        where: { id: validatedData.milestoneTaskId },
+      });
+      if (!task)
+        return NextResponse.json(
+          { error: "Selected task does not exist" },
+          { status: 400 },
+        );
+      if (
+        validatedData.milestoneId &&
+        task.milestoneId !== validatedData.milestoneId
+      )
+        return NextResponse.json(
+          {
+            error: "Selected task does not belong to the selected milestone",
+          },
+          { status: 400 },
+        );
+    }
 
     const entry = await updateLogbookEntryForStudent(
       resolvedParams.id,

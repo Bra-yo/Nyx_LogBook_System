@@ -39,6 +39,8 @@ export interface ProvisionalAdmissionLetterPayload {
   loginUrl?: string;
   isOfficialAdmission?: boolean;
   officialAdmissionIssuedAt?: string;
+  learningArea?: string;
+  selectedCompetencies?: string[];
 }
 
 export interface TechnicalMentorEngagementLetterPayload {
@@ -47,6 +49,8 @@ export interface TechnicalMentorEngagementLetterPayload {
   technicalArea: string;
   registrationIdentifier: string;
   generatedAt?: string;
+  assignedLearningArea?: string;
+  assignedCompetencies?: string[];
 }
 
 export interface MenteeProfilePayload {
@@ -137,13 +141,19 @@ export class DocumentGenerationService {
   }
 
   private static async loadLogoDataUri(): Promise<string | undefined> {
+    const whiteSvgPath = path.resolve(process.cwd(), "public", "bghub-logo-white.jpeg");
+    const fallbackPath = path.resolve(process.cwd(), "public", "bob-grogan-logo.png");
+
     try {
-      const buffer = await readFile(
-        path.resolve(process.cwd(), "public", "bob-grogan-logo.png"),
-      );
-      return `data:image/png;base64,${buffer.toString("base64")}`;
+      const buffer = await readFile(whiteSvgPath);
+      return `data:image/svg+xml;base64,${buffer.toString("base64")}`;
     } catch {
-      return undefined;
+      try {
+        const fallbackBuffer = await readFile(fallbackPath);
+        return `data:image/png;base64,${fallbackBuffer.toString("base64")}`;
+      } catch {
+        return undefined;
+      }
     }
   }
 

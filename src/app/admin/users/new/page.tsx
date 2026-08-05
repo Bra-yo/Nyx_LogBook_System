@@ -36,6 +36,11 @@ const createUserSchema = z.object({
   registrationType: z.enum(["CAREER_MENTEE", "BUSINESS_MENTEE"]).optional(),
   mentorshipTrack: z.enum(["CAREER", "BUSINESS"]).optional(),
   cohortId: z.string().optional(),
+  learningAreaId: z.string().trim().min(1, "Learning area is required for learner accounts").optional(),
+  mentorCapacity: z.coerce.number().int().min(1).max(500).optional(),
+  employmentType: z.string().optional(),
+  competencyIds: z.array(z.string()).optional(),
+  competencyGroupIds: z.array(z.string()).optional(),
 });
 
 type CreateUserFormData = z.infer<typeof createUserSchema>;
@@ -47,6 +52,11 @@ export default function NewUserPage() {
     Array<{ id: string; name: string }>
   >([]);
   const [cohorts, setCohorts] = useState<Array<{ id: string; name: string; code: string; status: string }>>([]);
+  const [learningAreas, setLearningAreas] = useState<Array<{ id: string; name: string; code: string }>>([]);
+  const [availableCompetencies, setAvailableCompetencies] = useState<Array<{ id: string; name: string; code: string }>>([]);
+  const [availableCompetencyGroups, setAvailableCompetencyGroups] = useState<Array<{ id: string; name: string; code: string }>>([]);
+  const [isLoadingCompetencies, setIsLoadingCompetencies] = useState(false);
+  const [isLoadingCompetencyGroups, setIsLoadingCompetencyGroups] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -57,7 +67,7 @@ export default function NewUserPage() {
     reset,
     setValue,
   } = useForm<CreateUserFormData>({
-    resolver: zodResolver(createUserSchema),
+    resolver: zodResolver(createUserSchema) as never,
     defaultValues: {
       name: "",
       email: "",
@@ -67,8 +77,27 @@ export default function NewUserPage() {
       registrationType: "CAREER_MENTEE",
       mentorshipTrack: "CAREER",
       cohortId: "",
+      learningAreaId: "",
+      mentorCapacity: 10,
+      employmentType: "",
+      competencyIds: [],
+      competencyGroupIds: [],
     },
   });
+
+  const role = watch("role");
+  const selectedLearningAreaId = watch("learningAreaId") || "";
+  const selectedCompetencyIds = watch("competencyIds") || [];
+  const selectedCompetencyGroupIds = watch("competencyGroupIds") || [];
+  const selectedCompetencyIdsKey = Array.isArray(selectedCompetencyIds)
+    ? selectedCompetencyIds.join("|")
+    : String(selectedCompetencyIds);
+  const selectedCompetencyGroupIdsKey = Array.isArray(selectedCompetencyGroupIds)
+    ? selectedCompetencyGroupIds.join("|")
+    : String(selectedCompetencyGroupIds);
+
+  const areIdsEqual = (a: string[], b: string[]) =>
+    a.length === b.length && a.every((value, index) => b[index] === value);
 
   // Fetch departments on mount
   useEffect(() => {
@@ -94,11 +123,142 @@ export default function NewUserPage() {
       .catch((err) => {
         console.error("Failed to fetch cohorts:", err);
       });
+
+    fetch("/api/admin/learning-areas")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setLearningAreas(data.learningAreas || []);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch learning areas:", err);
+        toast.error("Failed to load learning areas");
+      });
   }, []);
+
+  useEffect(() => {
+    const shouldClearCompetencies = role !== "SUPERVISOR" || !selectedLearningAreaId;
+    if (shouldClearCompetencies) {
+      setAvailableCompetencies([]);
+      setAvailableCompetencyGroups([]);
+      if (!areIdsEqual(selectedCompetencyIds as string[], [])) {
+        setValue("competencyIds", []);
+      }
+      if (!areIdsEqual(selectedCompetencyGroupIds as string[], [])) {
+        setValue("competencyGroupIds", []);
+      }
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingCompetencies(true);
+    setError(null);
+
+    fetch(`/api/admin/competencies?learningAreaId=${encodeURIComponent(selectedLearningAreaId)}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!isMounted) return;
+        if (data.success) {
+          setAvailableCompetencies(data.competencies || []);
+          setValue("competencyIds", []);
+          setValue("competencyGroupIds", []);
+        } else {
+          setAvailableCompetencies([]);
+          setError(data.error || "Failed to load competencies");
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setAvailableCompetencies([]);
+          setError("Failed to load competencies");
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingCompetencies(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [role, selectedLearningAreaId, setValue]);
+
+  useEffect(() => {
+    if (role !== "SUPERVISOR") {
+      setAvailableCompetencyGroups([]);
+      return;
+    }
+
+    const competencyIds = Array.isArray(selectedCompetencyIds) ? selectedCompetencyIds : [];
+    if (competencyIds.length === 0) {
+      setAvailableCompetencyGroups([]);
+      if (!areIdsEqual(selectedCompetencyGroupIds as string[], [])) {
+        setValue("competencyGroupIds", []);
+      }
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingCompetencyGroups(true);
+
+    Promise.all(
+      competencyIds.map((competencyId) =>
+        fetch(`/api/admin/competency-groups?competencyId=${encodeURIComponent(competencyId)}`)
+          .then((response) => response.json())
+          .then((data) => (data.success ? data.competencyGroups || [] : [])),
+      ),
+    )
+      .then((results) => {
+        if (!isMounted) return;
+        const groups = results.flat();
+        const uniqueGroups = groups.filter(
+          (group, index, array) => array.findIndex((item) => item.id === group.id) === index,
+        );
+        setAvailableCompetencyGroups(uniqueGroups);
+
+        const validGroupIds = (selectedCompetencyGroupIds as string[]).filter((groupId) =>
+          uniqueGroups.some((group) => group.id === groupId),
+        );
+        setValue("competencyGroupIds", validGroupIds);
+      })
+      .catch(() => {
+        if (isMounted) {
+          setAvailableCompetencyGroups([]);
+          setError("Failed to load competency groups");
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingCompetencyGroups(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [role, selectedCompetencyIdsKey, selectedCompetencyGroupIdsKey, setValue]);
 
   const onSubmit = async (data: CreateUserFormData) => {
     setIsLoading(true);
     setError(null);
+
+    if (data.role === "SUPERVISOR") {
+      if (!data.learningAreaId) {
+        setError("Please select a learning area for this mentor.");
+        toast.error("Please select a learning area for this mentor.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!data.competencyGroupIds || data.competencyGroupIds.length === 0) {
+        setError("Please select at least one competency group for this mentor.");
+        toast.error("Please select at least one competency group for this mentor.");
+        setIsLoading(false);
+        return;
+      }
+    }
 
     try {
       const response = await fetch("/api/admin/users", {
@@ -130,8 +290,6 @@ export default function NewUserPage() {
   };
 
   const renderRoleSpecificFields = () => {
-    const role = watch("role");
-
     switch (role) {
       case "STUDENT":
         return (
@@ -167,6 +325,26 @@ export default function NewUserPage() {
                 <SelectItem value="BUSINESS">Business</SelectItem>
               </SelectContent>
             </Select>
+            <Label htmlFor="learningAreaId">Learning Area *</Label>
+            <Select
+              value={watch("learningAreaId") || ""}
+              onValueChange={(value) => setValue("learningAreaId", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a learning area" />
+              </SelectTrigger>
+              <SelectContent>
+                {learningAreas.map((area) => (
+                  <SelectItem key={area.id} value={area.id}>
+                    {area.name} ({area.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.learningAreaId && (
+              <p className="text-sm text-red-600">{errors.learningAreaId.message}</p>
+            )}
+
             <Label htmlFor="cohortId">Cohort</Label>
             <Select
               value={watch("cohortId") || ""}
@@ -199,9 +377,92 @@ export default function NewUserPage() {
               placeholder="+254 700 000 000"
               {...register("phone")}
             />
+            <Label htmlFor="learningAreaId">Learning Area</Label>
+            <Select
+              value={watch("learningAreaId") || ""}
+              onValueChange={(value) => setValue("learningAreaId", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a learning area" />
+              </SelectTrigger>
+              <SelectContent>
+                {learningAreas.map((area) => (
+                  <SelectItem key={area.id} value={area.id}>
+                    {area.name} ({area.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Label htmlFor="mentorCapacity">Mentor capacity</Label>
+            <Input
+              id="mentorCapacity"
+              type="number"
+              min="1"
+              max="500"
+              value={watch("mentorCapacity") ?? 10}
+              onChange={(event) => setValue("mentorCapacity", Number(event.target.value))}
+            />
+            <Label htmlFor="employmentType">Employment type</Label>
+            <Input
+              id="employmentType"
+              placeholder="Full-time, Part-time, Contract"
+              value={watch("employmentType") || ""}
+              onChange={(event) => setValue("employmentType", event.target.value)}
+            />
+            <Label htmlFor="competencyIds">Competencies</Label>
+            <select
+              id="competencyIds"
+              multiple
+              value={selectedCompetencyIds}
+              onChange={(event) => {
+                const nextValues = Array.from(event.target.selectedOptions, (option) => option.value);
+                setValue("competencyIds", nextValues);
+              }}
+              className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+            >
+              {isLoadingCompetencies ? (
+                <option disabled>Loading competencies...</option>
+              ) : availableCompetencies.length === 0 ? (
+                <option disabled>Select a learning area to load competencies</option>
+              ) : (
+                availableCompetencies.map((competency) => (
+                  <option key={competency.id} value={competency.id}>
+                    {competency.name}
+                  </option>
+                ))
+              )}
+            </select>
             <p className="text-sm text-muted-foreground">
-              Mentor registration will generate a registration identifier
-              automatically after the account is created.
+              Choose one or more competencies for this mentor.
+            </p>
+            <Label htmlFor="competencyGroupIds">Competency Groups</Label>
+            <select
+              id="competencyGroupIds"
+              multiple
+              value={selectedCompetencyGroupIds}
+              onChange={(event) => {
+                const nextValues = Array.from(event.target.selectedOptions, (option) => option.value);
+                setValue("competencyGroupIds", nextValues);
+              }}
+              className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+            >
+              {isLoadingCompetencyGroups ? (
+                <option disabled>Loading competency groups...</option>
+              ) : availableCompetencyGroups.length === 0 ? (
+                <option disabled>Select competencies to load competency groups</option>
+              ) : (
+                availableCompetencyGroups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))
+              )}
+            </select>
+            <p className="text-sm text-muted-foreground">
+              A mentor must be assigned to one or more competency groups.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Mentor onboarding will capture the operational details below and generate the registration identifier on the server after account creation.
             </p>
           </div>
         );
@@ -264,7 +525,7 @@ export default function NewUserPage() {
                   <Label htmlFor="role">Role *</Label>
                   <Select
                     value={watch("role")}
-                    onValueChange={(value) => setValue("role", value as any)}
+                    onValueChange={(value) => setValue("role", value as CreateUserFormData["role"])}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a role" />

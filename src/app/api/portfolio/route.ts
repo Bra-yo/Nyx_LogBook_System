@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectsForStudent, getStudentProfileByUserId } from "@/lib/api/studentServices";
 import { z } from "zod";
 
 const portfolioUpdateSchema = z.object({
@@ -149,6 +150,9 @@ export async function GET() {
       user.lecturerProfile ||
       user.adminProfile ||
       user.workerProfile;
+
+    const studentProfile = user.role === "STUDENT" ? await getStudentProfileByUserId(session.user.id) : null;
+    const studentProjects = studentProfile ? await getProjectsForStudent(studentProfile.id) : [];
 
     const [projects, tasks, workLogs, milestones] = await Promise.all([
       prisma.project.count({
@@ -344,6 +348,10 @@ export async function GET() {
     const normalizedCertificates =
       normalizeCertificates(user.certificates) || [];
     const normalizedSocialLinks = normalizeSocialLinks(user.socialLinks) || {};
+    const competencyHighlights = studentProjects.slice(0, 4).map((project) => ({
+      title: project.title,
+      detail: `${project.completionPercentage}% complete • ${project.completedTasks}/${project.totalTasks} tasks delivered`,
+    }));
 
     return NextResponse.json({
       success: true,
@@ -397,6 +405,15 @@ export async function GET() {
       },
       achievements,
       timeline,
+      projects: studentProjects.map((project) => ({
+        title: project.title,
+        status: project.status,
+        completionPercentage: project.completionPercentage,
+        mentorName: project.mentor?.name ?? null,
+        latestActivityTitle: project.latestActivity?.title ?? null,
+        evidenceCount: project.recentLogbooks?.length ?? 0,
+      })),
+      competencyHighlights,
       charts: {
         weeklyHours,
         monthlyHours,

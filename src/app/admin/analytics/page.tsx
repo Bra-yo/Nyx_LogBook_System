@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import {
   Card,
@@ -10,13 +10,31 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  BarChart3,
-  Users,
-  FileText,
   CheckCircle,
-  TrendingUp,
   Clock,
+  FileText,
+  Users,
 } from "lucide-react";
+
+interface AnalyticsPayload {
+  analytics?: {
+    learners?: number;
+    mentors?: number;
+    projects?: number;
+    learningAreas?: number;
+    competencies?: number;
+    learningPaths?: number;
+    assessments?: number;
+    logbooks?: number;
+    evidence?: number;
+    portfolioCompletion?: number;
+    averageCompetencyScore?: number;
+    completionRate?: number;
+    recentActivity?: Array<{ title: string; detail: string }>;
+  };
+  insights?: Array<{ label: string; value: string }>;
+  recommendations?: Array<{ title: string; detail: string }>;
+}
 
 export default function AdminAnalyticsPage() {
   const [stats, setStats] = useState({
@@ -28,37 +46,43 @@ export default function AdminAnalyticsPage() {
     totalLogbookEntries: 0,
     pendingReviews: 0,
   });
+  const [insights, setInsights] = useState<Array<{ label: string; value: string }>>([]);
+  const [recommendations, setRecommendations] = useState<Array<{ title: string; detail: string }>>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
 
   const fetchAnalytics = async () => {
     try {
-      // TODO: Implement actual API call
-      // const response = await fetch('/api/admin/analytics')
-      // if (response.ok) {
-      //   const data = await response.json()
-      //   setStats(data.stats)
-      // }
+      const response = await fetch("/api/admin/analytics");
+      if (!response.ok) throw new Error("Failed to load analytics");
 
-      // Mock data for now
+      const data: AnalyticsPayload = await response.json();
+      const analytics = data.analytics ?? {};
+
       setStats({
-        totalUsers: 156,
-        totalStudents: 120,
-        totalSupervisors: 24,
-        totalLecturers: 12,
-        totalWorkers: 18,
-        totalLogbookEntries: 892,
-        pendingReviews: 34,
+        totalUsers: (analytics.learners ?? 0) + (analytics.mentors ?? 0),
+        totalStudents: analytics.learners ?? 0,
+        totalSupervisors: analytics.mentors ?? 0,
+        totalLecturers: 0,
+        totalWorkers: 0,
+        totalLogbookEntries: analytics.logbooks ?? 0,
+        pendingReviews: Math.max(0, (analytics.logbooks ?? 0) - (analytics.assessments ?? 0)),
       });
+      setInsights(data.insights ?? []);
+      setRecommendations(data.recommendations ?? []);
     } catch (error) {
       console.error("Error fetching analytics:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const loadAnalytics = () => {
+      void fetchAnalytics();
+    };
+
+    loadAnalytics();
+  }, []);
 
   if (loading) {
     return (
@@ -236,36 +260,45 @@ export default function AdminAnalyticsPage() {
           </Card>
         </div>
 
-        {/* Charts Section */}
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>User Growth</CardTitle>
-              <CardDescription>
-                New user registrations over time
-              </CardDescription>
+              <CardTitle>Executive Insights</CardTitle>
+              <CardDescription>Key takeaways from the platform analytics</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <BarChart3 className="h-12 w-12 mx-auto mb-2" />
-                  <p>Chart coming soon</p>
-                </div>
+              <div className="space-y-4">
+                {insights.length > 0 ? (
+                  insights.map((insight) => (
+                    <div key={insight.label} className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{insight.label}</span>
+                      <span className="text-sm font-bold">{insight.value}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No insights are available yet.</p>
+                )}
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Activity Trends</CardTitle>
-              <CardDescription>Platform usage patterns</CardDescription>
+              <CardTitle>Recommended Focus Areas</CardTitle>
+              <CardDescription>Actions that will improve completion and engagement</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <BarChart3 className="h-12 w-12 mx-auto mb-2" />
-                  <p>Chart coming soon</p>
-                </div>
+              <div className="space-y-3">
+                {recommendations.length > 0 ? (
+                  recommendations.map((recommendation) => (
+                    <div key={recommendation.title} className="rounded-lg border p-3">
+                      <p className="text-sm font-medium">{recommendation.title}</p>
+                      <p className="text-xs text-muted-foreground">{recommendation.detail}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No recommendations are available yet.</p>
+                )}
               </div>
             </CardContent>
           </Card>

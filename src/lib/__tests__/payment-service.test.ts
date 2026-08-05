@@ -42,7 +42,7 @@ test("buildPaymentConfirmationEmailMessage includes login credentials and no att
     defaultPassword: "ChangeMe123",
   });
 
-  assert.equal(message.subject, "Official Admission to the BGhub Kenya Mentorship Programme");
+  assert.equal(message.subject, "Official Admission to the BGHUB Kenya Mentorship Programme");
   assert.match(message.html, /student@example.com/);
   assert.match(message.html, /ChangeMe123/);
   assert.match(message.html, /http:\/\/localhost:3000\/auth\/signin/);

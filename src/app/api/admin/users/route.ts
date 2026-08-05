@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -13,6 +14,7 @@ const createUserSchema = z.object({
   email: z.string().email("Valid email is required"),
   role: z.enum(["STUDENT", "SUPERVISOR", "ADMIN"]),
   departmentId: z.string().optional(),
+  learningAreaId: z.string().trim().min(1, "Learning area is required for learner accounts").optional(),
   title: z.string().optional(),
   company: z.string().optional(),
   office: z.string().optional(),
@@ -22,6 +24,10 @@ const createUserSchema = z.object({
   registrationType: z.enum(["CAREER_MENTEE", "BUSINESS_MENTEE"]).optional(),
   mentorshipTrack: z.enum(["CAREER", "BUSINESS"]).optional(),
   cohortId: z.string().optional(),
+  mentorCapacity: z.coerce.number().int().min(1).max(500).optional(),
+  employmentType: z.string().optional(),
+  competencyIds: z.array(z.string()).optional(),
+  competencyGroupIds: z.array(z.string()).optional(),
 });
 
 const querySchema = z.object({
@@ -51,7 +57,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
 
     if (validatedQuery.role) {
       where.role = validatedQuery.role;
@@ -243,11 +249,24 @@ export async function POST(request: NextRequest) {
           if (!effectiveDepartmentId) {
             throw new Error("No department is available for student profiles");
           }
+
+          const studentLearningAreaId = validatedData.learningAreaId?.trim();
+          if (!studentLearningAreaId) {
+            throw new Error("Learning area is required for learner accounts");
+          }
+
+          const learningArea = await tx.learningArea.findUnique({ where: { id: studentLearningAreaId } });
+          if (!learningArea) {
+            throw new Error("Learning area not found");
+          }
+
           await tx.studentProfile.create({
             data: {
               userId: user.id,
               regNumber: `CM-${Date.now()}`,
               departmentId: effectiveDepartmentId,
+              learningAreaId: learningArea.id,
+              registrationType: validatedData.registrationType || null,
               year: 1,
               semester: 1,
               internshipCompany: null,
@@ -261,14 +280,48 @@ export async function POST(request: NextRequest) {
           if (!effectiveDepartmentId) {
             throw new Error("No department is available for supervisor profiles");
           }
-          await tx.supervisorProfile.create({
+          if (!validatedData.competencyGroupIds || validatedData.competencyGroupIds.length === 0) {
+            throw new Error("At least one competency group is required for mentor accounts");
+          }
+
+          const selectedCompetencyIds = [...new Set((validatedData.competencyIds || []).filter(Boolean))];
+          const selectedCompetencyGroupIds = [...new Set(validatedData.competencyGroupIds.filter(Boolean))];
+
+          if (selectedCompetencyIds.length === 0) {
+            throw new Error("Select at least one competency for mentor accounts");
+          }
+
+          const createdSupervisorProfile = await tx.supervisorProfile.create({
             data: {
               userId: user.id,
               departmentId: effectiveDepartmentId,
+              learningAreaId: validatedData.learningAreaId?.trim() || null,
               title: validatedData.title || null,
               company:
                 validatedData.company || validatedData.organization || null,
+              mentorCapacity: validatedData.mentorCapacity ?? 10,
+              employmentType: validatedData.employmentType?.trim() || null,
             },
+          });
+
+          const validCompetencyGroups = await tx.competencyGroup.findMany({
+            where: {
+              id: { in: selectedCompetencyGroupIds },
+              competencyId: { in: selectedCompetencyIds },
+            },
+            select: { id: true },
+          });
+
+          if (validCompetencyGroups.length !== selectedCompetencyGroupIds.length) {
+            throw new Error("Selected competency groups must belong to the selected competencies");
+          }
+
+          await tx.mentorCompetencyGroup.createMany({
+            data: validCompetencyGroups.map((group) => ({
+              mentorId: createdSupervisorProfile.id,
+              competencyGroupId: group.id,
+            })),
+            skipDuplicates: true,
           });
           break;
 
@@ -297,13 +350,29 @@ export async function POST(request: NextRequest) {
           include: {
             department: true,
             cohort: { select: { name: true } },
+            learningArea: true,
+          },
+        },
+        learnerLearningPaths: {
+          include: {
+            competency: true,
           },
         },
         supervisorProfile: {
           include: {
             department: true,
+            learningArea: true,
             cohortAssignments: {
               include: { cohort: { select: { name: true } } },
+            },
+            mentorCompetencyGroups: {
+              include: {
+                competencyGroup: {
+                  include: {
+                    competency: true,
+                  },
+                },
+              },
             },
           },
         },

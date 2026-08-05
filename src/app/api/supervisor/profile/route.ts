@@ -10,6 +10,9 @@ const profileUpdateSchema = z.object({
   phone: z.string().optional(),
   title: z.string().optional(),
   company: z.string().optional(),
+  learningAreaId: z.string().optional(),
+  mentorCapacity: z.coerce.number().int().min(1).max(500).optional(),
+  employmentType: z.string().optional(),
 });
 
 export async function GET() {
@@ -86,10 +89,19 @@ export async function PUT(request: NextRequest) {
         create: {
           userId: session.user.id,
           departmentId: existingUser.supervisorProfile?.departmentId || "",
+          learningAreaId: validatedData.learningAreaId?.trim() || null,
           title: validatedData.title ?? null,
           company: validatedData.company ?? null,
+          mentorCapacity: validatedData.mentorCapacity ?? 10,
+          employmentType: validatedData.employmentType?.trim() || null,
         },
-        update: { title: validatedData.title, company: validatedData.company },
+        update: {
+          learningAreaId: validatedData.learningAreaId?.trim() || existingUser.supervisorProfile?.learningAreaId || null,
+          title: validatedData.title,
+          company: validatedData.company,
+          mentorCapacity: validatedData.mentorCapacity,
+          employmentType: validatedData.employmentType?.trim() || existingUser.supervisorProfile?.employmentType || null,
+        },
         include: {
           user: { select: { id: true, name: true, email: true } },
           department: true,

@@ -84,21 +84,21 @@ export default function ReportsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Internship Reports</h2>
-            <p className="text-muted-foreground">Generate and download your internship reports</p>
+            <h2 className="text-2xl font-bold">Learning Reports</h2>
+            <p className="text-muted-foreground">Generate and review your learning progress summaries</p>
           </div>
           <div className="flex space-x-2">
             <Button onClick={() => handleGenerateReport("weekly")}>
               <FileText className="mr-2 h-4 w-4" />
-              Generate Weekly
+              Generate Progress Summary
             </Button>
             <Button onClick={() => handleGenerateReport("monthly")}>
               <FileText className="mr-2 h-4 w-4" />
-              Generate Monthly
+              Generate Milestone Review
             </Button>
             <Button onClick={() => handleGenerateReport("full")}>
               <FileText className="mr-2 h-4 w-4" />
-              Generate Full Report
+              Generate Full Learning Review
             </Button>
           </div>
         </div>
@@ -158,7 +158,7 @@ export default function ReportsPage() {
                 {reports.filter((r: any) => r.type === "full").length}
               </div>
               <p className="text-xs text-muted-foreground">
-                Complete internship
+                Full learning review
               </p>
             </CardContent>
           </Card>
@@ -190,7 +190,7 @@ export default function ReportsPage() {
                     Monthly
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setFilterType("full")}>
-                    Full Internship
+                    Full Learning Review
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

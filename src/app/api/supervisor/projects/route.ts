@@ -15,7 +15,7 @@ const projectSchema = z.object({
   status: z.enum(["ACTIVE", "COMPLETED", "ARCHIVED"]).optional(),
 });
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.role || session.user.role !== "SUPERVISOR") {
@@ -57,15 +57,25 @@ export async function GET(request: NextRequest) {
             },
           },
         },
+        mentor: {
+          select: {
+            id: true,
+            user: {
+              select: { name: true },
+            },
+          },
+        },
         milestones: {
           select: {
             id: true,
+            status: true,
           },
         },
         _count: {
           select: {
             learners: true,
             milestones: true,
+            LogbookEntry: true,
           },
         },
       },

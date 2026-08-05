@@ -31,14 +31,18 @@ function handlePrismaError(error: unknown) {
   return null;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.role || session.user.role !== "ADMIN") {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const learningAreaId = searchParams.get("learningAreaId")?.trim();
+
     const competencies = await prisma.competency.findMany({
+      where: learningAreaId ? { learningAreaId } : undefined,
       orderBy: [{ learningArea: { name: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
       include: {
         learningArea: { select: { id: true, name: true, code: true } },

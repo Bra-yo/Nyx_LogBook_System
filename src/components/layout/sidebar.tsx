@@ -53,7 +53,7 @@ const navigationItems = {
       icon: Folder,
     },
     {
-      title: "WorkLog",
+      title: "Learning Logbook",
       href: "/student/logbook",
       icon: BookOpen,
     },
@@ -63,7 +63,7 @@ const navigationItems = {
       icon: Calendar,
     },
     {
-      title: "Reports",
+      title: "Learning Reports",
       href: "/student/reports",
       icon: FileText,
     },
@@ -90,12 +90,12 @@ const navigationItems = {
       icon: LayoutDashboard,
     },
     {
-      title: "My Portfolio",
+      title: "Learning Portfolio",
       href: "/portfolio",
       icon: UserCircle2,
     },
     {
-      title: "Office Location",
+      title: "Mentor Workspace",
       href: "/supervisor/office-location",
       icon: QrCode,
     },
@@ -120,7 +120,7 @@ const navigationItems = {
       icon: Clock,
     },
     {
-      title: "Mentor Reviews",
+      title: "Mentor Feedback",
       href: "/supervisor/review",
       icon: FileText,
     },
@@ -209,7 +209,7 @@ const navigationItems = {
       icon: Clock,
     },
     {
-      title: "Work Log",
+      title: "Work Records",
       href: "/worker/logbook",
       icon: BookOpen,
     },
@@ -241,12 +241,7 @@ const navigationItems = {
       icon: FileText,
     },
     {
-      title: "Departments",
-      href: "/admin/departments",
-      icon: Settings,
-    },
-    {
-      title: "Learning Areas",
+      title: "Learning Architecture",
       href: "/admin/learning-areas",
       icon: BookOpen,
     },

@@ -59,6 +59,31 @@ interface LogbookEntry {
   status: LogStatus;
   reviewerComment?: string;
   reviewedAt?: string;
+  learningPath?: {
+    competency: {
+      name: string;
+      code: string;
+      learningArea: {
+        name: string;
+      };
+    };
+  };
+  project?: {
+    title: string;
+  };
+  milestone?: {
+    title: string;
+  };
+  milestoneTask?: {
+    title: string;
+  };
+  evidenceItems?: Array<{ id: string; type: string; title?: string; url: string }>;
+  hoursWorked?: number;
+  comments?: Array<{
+    status: string;
+    optionalComment?: string;
+    createdAt: string;
+  }>;
 }
 
 interface LogbookResponse {
@@ -106,6 +131,7 @@ export function WorkLogbookPage({
   const [filterStatus, setFilterStatus] = useState<LogStatus | "all">("all");
   const [checkingAttendance, setCheckingAttendance] =
     useState(requiresAttendance);
+  const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
   const router = useRouter();
 
   const fetchLogbookEntries = useCallback(async () => {
@@ -157,6 +183,31 @@ export function WorkLogbookPage({
     fetchLogbookEntries,
   ]);
 
+  const handleDeleteEntry = async (entryId: string) => {
+    const confirmed = window.confirm(
+      "Delete this draft record? This cannot be undone.",
+    );
+    if (!confirmed) return;
+
+    setDeletingEntryId(entryId);
+    try {
+      const response = await fetch(`${entriesApiPath}/${entryId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        setLogbookEntries((current) =>
+          current.filter((entry) => entry.id !== entryId),
+        );
+      } else {
+        console.error("Failed to delete entry", response.status);
+      }
+    } catch (error) {
+      console.error("Error deleting entry:", error);
+    } finally {
+      setDeletingEntryId(null);
+    }
+  };
+
   useEffect(() => {
     const id = setTimeout(() => {
       void checkAttendanceAndFetchEntries();
@@ -167,7 +218,19 @@ export function WorkLogbookPage({
   const filteredEntries = logbookEntries.filter((entry) => {
     const matchesSearch =
       entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entry.description.toLowerCase().includes(searchTerm.toLowerCase());
+      entry.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      entry.learningPath?.competency.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      entry.project?.title
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      entry.milestone?.title
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      entry.milestoneTask?.title
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
     const matchesFilter =
       filterStatus === "all" || entry.status === filterStatus;
     return matchesSearch && matchesFilter;
@@ -415,26 +478,44 @@ export function WorkLogbookPage({
                           <div className="text-sm text-muted-foreground line-clamp-1">
                             {entry.description}
                           </div>
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            {entry.learningPath ? (
+                              <span className="rounded-full border px-2 py-1">
+                                {entry.learningPath.competency.name} ({entry.learningPath.competency.code})
+                              </span>
+                            ) : null}
+                            {entry.project ? (
+                              <span className="rounded-full border px-2 py-1">
+                                {entry.project.title}
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(entry.date)}
+                        <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            {formatDate(entry.date)}
+                          </div>
+                          {entry.milestone ? (
+                            <div>{entry.milestone.title}</div>
+                          ) : null}
+                          {entry.milestoneTask ? (
+                            <div className="text-xs">Task: {entry.milestoneTask.title}</div>
+                          ) : null}
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(entry)}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                          {entry.reviewerComment ? (
-                            <>
-                              <span>Reviewed</span>
-                              <span className="truncate">
-                                {entry.reviewerComment}
-                              </span>
-                            </>
+                          <span>
+                            {entry.evidenceItems?.length ?? 0} evidence item{entry.evidenceItems?.length === 1 ? "" : "s"}
+                          </span>
+                          {typeof entry.hoursWorked === "number" ? (
+                            <span>{entry.hoursWorked} hrs</span>
                           ) : (
-                            <span>No reviewer notes</span>
+                            <span>No hours logged</span>
                           )}
                         </div>
                       </TableCell>
@@ -463,7 +544,13 @@ export function WorkLogbookPage({
                               </DropdownMenuItem>
                             ) : null}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem
+                              onSelect={(event) => {
+                                event.preventDefault();
+                                handleDeleteEntry(entry.id);
+                              }}
+                              className="text-red-600"
+                            >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete
                             </DropdownMenuItem>
